@@ -22,7 +22,7 @@ package org.jbackup.core.archive.zip;
 
 import org.jbackup.core.archive.ArchiveFactoryTest;
 
-public class ZipArchiveFactoryTest extends ArchiveFactoryTest {
+public class ZipArchiveFactoryTest extends ArchiveFactoryTest<ZipArchiveFactory> {
     public ZipArchiveFactoryTest() {
         super("archive.zip", new ZipArchiveFactory());
     }

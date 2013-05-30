@@ -22,10 +22,7 @@ package org.jbackup.core.filter;
 
 import org.apache.commons.io.filefilter.AbstractFileFilter;
 import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.jexl2.Expression;
-import org.apache.commons.jexl2.JexlContext;
-import org.apache.commons.jexl2.JexlEngine;
-import org.apache.commons.jexl2.MapContext;
+import org.apache.commons.jexl2.*;
 
 import java.io.File;
 import java.util.HashMap;
@@ -59,7 +56,7 @@ public class JexlFileFilter extends AbstractFileFilter {
     @Override
     public boolean accept(File file) {
         // Create an expression object
-        Expression e = ENGINE.createExpression(expression);
+        Expression e = ENGINE.createExpression(expression, new DebugInfo(filterName, 0, 0));
 
         // Create a context and add data
         JexlContext jctx = new MapContext();

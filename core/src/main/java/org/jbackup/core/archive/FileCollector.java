@@ -34,7 +34,7 @@ import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 /**
  * Class collecting files in a directory. Files are filtered with a directory filter and a file filter.
  */
-public class FileCollector extends DirectoryWalker {
+public class FileCollector extends DirectoryWalker<File> {
     private static final Logger LOG = LoggerFactory.getLogger(FileCollector.class);
 
     private long totalSize = 0L;
@@ -54,7 +54,7 @@ public class FileCollector extends DirectoryWalker {
     }
 
     @Override
-    protected void handleFile(File file, int depth, Collection results) throws IOException {
+    protected void handleFile(File file, int depth, Collection<File> results) throws IOException {
         LOG.trace("handleFile {}", file.getAbsolutePath());
         results.add(file);
         totalSize += file.length();
