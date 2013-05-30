@@ -93,11 +93,12 @@ public class ConfigurationManagerTest {
         boolean found1 = false;
         boolean found2 = false;
         for (BackupConfiguration config : configs) {
-            if ("config1".equals(config.getName())) {
-                found1 = true;
-            }
-            if ("config2".equals(config.getName())) {
-                found2 = true;
+            switch (config.getName()) {
+                case "config1":
+                    found1 = true;
+                    break;
+                case "config2":
+                    found2 = true;
             }
         }
         assertTrue("config1 not found", found1);
@@ -169,7 +170,7 @@ public class ConfigurationManagerTest {
     public void testAddBackupConfiguration_invalidNames() throws Exception {
         String[] names = {null, "", " ", "a.b", "a b"};
 
-        Set<String> failingNames = new HashSet<String>();
+        Set<String> failingNames = new HashSet<>();
         for (String name : names) {
             try {
                 manager.addBackupConfiguration(createConfiguration(name));
@@ -232,7 +233,7 @@ public class ConfigurationManagerTest {
 
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
-        final List<Exception> errors = new ArrayList<Exception>();
+        final List<Exception> errors = new ArrayList<>();
         doAnswer(new Answer() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
@@ -372,7 +373,7 @@ public class ConfigurationManagerTest {
     }
 
     private Collection<String> toConfigNames(Collection<BackupConfiguration> configs) {
-        List<String> names = new ArrayList<String>(configs.size());
+        List<String> names = new ArrayList<>(configs.size());
         for (BackupConfiguration config : configs) {
             names.add(config.getName());
         }

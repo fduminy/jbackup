@@ -65,21 +65,16 @@ abstract public class ArchiveFactoryTest<T extends ArchiveFactory> {
     @Test
     public final void testCreateArchiveOutputStream() throws Exception {
         ByteArrayOutputStream archive = new ByteArrayOutputStream(128);
-        ArchiveOutputStream output = factory.create(archive);
-        assertNotNull(output);
 
-        try {
+        try (ArchiveOutputStream output = factory.create(archive)) {
+            assertNotNull(output);
+
             for (String resource : RESOURCES) {
-                InputStream input = ArchiveFactoryTest.class.getResourceAsStream(resource);
-                assertNotNull(input);
-                try {
+                try (InputStream input = ArchiveFactoryTest.class.getResourceAsStream(resource)) {
+                    assertNotNull(input);
                     output.addEntry(resource, input);
-                } finally {
-                    input.close();
                 }
             }
-        } finally {
-            output.close(); // this also test the close() method
         }
 
         // archives can't be compared byte by byte, so let compare them by size.
@@ -105,8 +100,8 @@ abstract public class ArchiveFactoryTest<T extends ArchiveFactory> {
             assertNotNull(input);
 
             Entry actualEntry = input.getNextEntry();
-            Set<String> actualEntries = new HashSet<String>();
-            Set<String> expectedEntries = new HashSet<String>(Arrays.asList(RESOURCES));
+            Set<String> actualEntries = new HashSet<>();
+            Set<String> expectedEntries = new HashSet<>(Arrays.asList(RESOURCES));
             while (actualEntry != null) {
                 final String name = actualEntry.getName();
                 assertNotNull("entry name is null", name);

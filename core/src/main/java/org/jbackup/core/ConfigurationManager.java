@@ -43,7 +43,7 @@ public class ConfigurationManager {
     private static final String FILE_EXTENSION = "xml";
     private static final FilenameFilter XML_FILE_FILTER = FileFilterUtils.suffixFileFilter(FILE_EXTENSION);
 
-    private final Map<String, BackupConfiguration> configurations = new HashMap<String, BackupConfiguration>();
+    private final Map<String, BackupConfiguration> configurations = new HashMap<>();
     private final File configurationDir;
 
     public ConfigurationManager(File configurationDir) {

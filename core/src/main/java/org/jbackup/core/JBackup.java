@@ -98,7 +98,7 @@ public class JBackup {
 
             File archive = new File(target, archiveName);
 
-            Collection<File> files = new ArrayList<File>(10000);
+            Collection<File> files = new ArrayList<>(10000);
             long size = 0L;
             for (BackupConfiguration.Source filter : config.getSources()) {
                 IOFileFilter dirFilter = config.createIOFileFilter("_dir", filter.getDirFilter());

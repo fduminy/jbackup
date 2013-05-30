@@ -93,7 +93,7 @@ public class FileCollectorTest {
         } else {
             collector = new FileCollector(directoryFilter, fileFilter);
         }
-        List<File> files = new ArrayList<File>();
+        List<File> files = new ArrayList<>();
         collector.collect(files, directory);
 
         Collections.sort(files, DEFAULT_COMPARATOR);

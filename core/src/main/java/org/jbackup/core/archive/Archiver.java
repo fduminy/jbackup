@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.commons.io.FileUtils.openInputStream;
-import static org.apache.commons.io.IOUtils.closeQuietly;
 
 /**
  * A high level class that can (de)compress files in a format managed by the provided {@link ArchiveFactory}.
@@ -49,16 +48,19 @@ public class Archiver {
         final File archive = new File(args[1]);
         final ZipArchiveFactory factory = new ZipArchiveFactory();
 
-        if ("-c".equals(operation)) {
-            new Archiver(factory).compress(toFiles(args, 2), archive);
-        } else if ("-d".equals(operation)) {
-            File directory = null;
+        switch (operation) {
+            case "-c":
+                new Archiver(factory).compress(toFiles(args, 2), archive);
+                break;
+            case "-d":
+                File directory = null;
 
-            if (args.length > 2) {
-                directory = new File(args[2]);
-            }
+                if (args.length > 2) {
+                    directory = new File(args[2]);
+                }
 
-            new Archiver(factory).decompress(archive, directory);
+                new Archiver(factory).decompress(archive, directory);
+                break;
         }
     }
 
@@ -157,12 +159,9 @@ public class Archiver {
         directory = (directory == null) ? new File(".") : directory;
 
         MutableLong processedSize = new MutableLong();
-        InputStream archiveStream = new FileInputStream(archive);
-        ArchiveInputStream input = null;
 
-        try {
-            input = factory.create(archiveStream);
-
+        try (InputStream archiveStream = new FileInputStream(archive);
+             ArchiveInputStream input = factory.create(archiveStream)) {
             ArchiveInputStream.Entry entry = input.getNextEntry();
             while (entry != null) {
                 InputStream entryStream = createCountingInputStream(listener, processedSize, entry.getInput());
@@ -173,31 +172,25 @@ public class Archiver {
                 }
                 entry = input.getNextEntry();
             }
-        } finally {
-            closeQuietly(archiveStream);
-            closeQuietly(input);
         }
     }
 
     private void decompress(String name, InputStream stream, File outputDirectory) throws IOException {
-        FileOutputStream output = new FileOutputStream(new File(outputDirectory, name));
-        try {
+        try (FileOutputStream output = new FileOutputStream(new File(outputDirectory, name))) {
             IOUtils.copy(stream, output);
-        } finally {
-            IOUtils.closeQuietly(output);
         }
     }
 
     private File[] filterFiles(File[] files, MutableLong totalSize) throws IOException {
         totalSize.setValue(0L);
 
-        List<File> onlyFiles = new ArrayList<File>();
+        List<File> onlyFiles = new ArrayList<>();
         FileCollector collector = new FileCollector();
         for (File file : files) {
             long size;
 
             if (file.isDirectory()) {
-                List<File> fileList = new ArrayList<File>();
+                List<File> fileList = new ArrayList<>();
                 size = collector.collect(fileList, file);
                 for (int j = 0; j < fileList.size(); j++) {
                     File f = fileList.get(j);

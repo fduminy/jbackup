@@ -66,7 +66,7 @@ abstract public class AbstractArchivingTest {
     @Theory
     public void testDecompress(EntryData[] entries, boolean useListener) throws Exception {
         // preparation of archiver & mocks
-        List<Long> expectedNotifications = new ArrayList<Long>();
+        List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
         for (EntryData e : entries) {
             if (e != null) {
@@ -126,7 +126,7 @@ abstract public class AbstractArchivingTest {
 
         File[] files = new File[entries.length - 1];
         File sourceDirectory = tempFolder.newFolder("sourceDirectory");
-        List<Long> expectedNotifications = new ArrayList<Long>();
+        List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
         for (int i = 0; i < files.length; i++) {
             EntryData e = entries[i];
@@ -210,7 +210,7 @@ abstract public class AbstractArchivingTest {
     }
 
     private static class Listener implements ProgressListener {
-        private final List<Long> notifications = new ArrayList<Long>();
+        private final List<Long> notifications = new ArrayList<>();
 
         private boolean progressCalled = false;
         private boolean totalSizeCalledBeforeProgress = false;

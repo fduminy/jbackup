@@ -44,7 +44,7 @@ public class BackupConfiguration {
 
     @XmlElementWrapper(name = "sources")
     @XmlElement(name = "source")
-    private final List<Source> sources = new ArrayList<Source>();
+    private final List<Source> sources = new ArrayList<>();
 
     private String targetDirectory;
 

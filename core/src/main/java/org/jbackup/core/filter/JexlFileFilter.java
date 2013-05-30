@@ -40,7 +40,7 @@ public class JexlFileFilter extends AbstractFileFilter {
         ENGINE.setLenient(false);
         ENGINE.setCache(64);
 
-        Map<String, Object> functionMap = new HashMap<String, Object>();
+        Map<String, Object> functionMap = new HashMap<>();
         functionMap.put(null, FileFunctions.class);
         ENGINE.setFunctions(functionMap);
     }
