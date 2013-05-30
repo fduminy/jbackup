@@ -23,6 +23,7 @@ package org.jbackup.archive;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.CountingInputStream;
+import org.apache.commons.lang.mutable.MutableLong;
 import org.jbackup.archive.zip.ZipArchiveFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,34 +87,34 @@ public class Archiver {
         this.factory = factory;
     }
 
-    public void compress(File[] files, final File archive) throws IOException {
-        files = filterFiles(files);
+    public void compress(File[] files, File archive) throws IOException {
+        compress(files, archive, null);
+
+    }
+
+    public void compress(File[] files, final File archive, final ProgressListener listener) throws IOException {
+        MutableLong totalSize = new MutableLong();
+        files = filterFiles(files, totalSize);
+        if (listener != null) {
+            listener.totalSizeComputed(totalSize.longValue());
+        }
 
         final String name = archive.getAbsolutePath();
         FileOutputStream fos = FileUtils.openOutputStream(archive);
-        ArchiveOutputStream output = factory.create(fos);
-        final long[] processedSize = {0L};
+        final ArchiveOutputStream output = factory.create(fos);
+        final MutableLong processedSize = new MutableLong();
         try {
             LOG.info("Backup '{}': creating archive {}", name, archive);
-            for (File file : files) {
+            for (final File file : files) {
                 if (!file.isDirectory()) {
                     LOG.info("Backup '{}': compressing file {}", name, file.getAbsolutePath());
-                    FileInputStream fis = openInputStream(file);
-                    CountingInputStream cis = new CountingInputStream(fis) {
-                        @Override
-                        protected synchronized void afterRead(int n) {
-                            super.afterRead(n);
-                            processedSize[0] += getByteCount();
-                            LOG.info("Backup '{}': processed {} bytes", new Object[]{name, processedSize[0]});
-                        }
-                    };
+                    final InputStream input = createCountingInputStream(listener, processedSize, openInputStream(file));
                     try {
                         String path = (file instanceof RelativeFile) ? ((RelativeFile) file).relativePath : file.getAbsolutePath();
                         LOG.info("Backup '{}': adding entry {}", new Object[]{name, path});
-                        output.addEntry(path, cis);
+                        output.addEntry(path, input);
                     } finally {
-                        IOUtils.closeQuietly(cis);
-                        IOUtils.closeQuietly(fis);
+                        IOUtils.closeQuietly(input);
                     }
                 }
             }
@@ -124,9 +125,38 @@ public class Archiver {
         }
     }
 
+    private InputStream createCountingInputStream(final ProgressListener listener, final MutableLong processedSize, final InputStream input) {
+        InputStream result = input;
+
+        if (listener != null) {
+            result = new CountingInputStream(input) {
+                @Override
+                protected synchronized void afterRead(int n) {
+                    super.afterRead(n);
+
+                    if (n > 0) {
+                        processedSize.add(n);
+                        listener.progress(processedSize.longValue());
+                    }
+                }
+            };
+        }
+
+        return result;
+    }
+
     public void decompress(File archive, File directory) throws IOException {
+        decompress(archive, directory, null);
+    }
+
+    public void decompress(File archive, File directory, ProgressListener listener) throws IOException {
+        if (listener != null) {
+            listener.totalSizeComputed(archive.length());
+        }
+
         directory = (directory == null) ? new File(".") : directory;
 
+        MutableLong processedSize = new MutableLong();
         InputStream archiveStream = new FileInputStream(archive);
         ArchiveInputStream input = null;
 
@@ -135,7 +165,7 @@ public class Archiver {
 
             ArchiveInputStream.Entry entry = input.getNextEntry();
             while (entry != null) {
-                InputStream entryStream = entry.getInput();
+                InputStream entryStream = createCountingInputStream(listener, processedSize, entry.getInput());
                 try {
                     decompress(entry.getName(), entryStream, directory);
                 } finally {
@@ -158,13 +188,17 @@ public class Archiver {
         }
     }
 
-    private File[] filterFiles(File[] files) throws IOException {
+    private File[] filterFiles(File[] files, MutableLong totalSize) throws IOException {
+        totalSize.setValue(0L);
+
         List<File> onlyFiles = new ArrayList<File>();
         FileCollector collector = new FileCollector();
         for (File file : files) {
+            long size;
+
             if (file.isDirectory()) {
                 List<File> fileList = new ArrayList<File>();
-                collector.collect(fileList, file);
+                size = collector.collect(fileList, file);
                 for (int j = 0; j < fileList.size(); j++) {
                     File f = fileList.get(j);
                     String relativePath = f.getAbsolutePath().substring(file.getAbsolutePath().length());
@@ -173,7 +207,10 @@ public class Archiver {
                 onlyFiles.addAll(fileList);
             } else {
                 onlyFiles.add(file);
+                size = file.length();
             }
+
+            totalSize.add(size);
         }
         return onlyFiles.toArray(new File[onlyFiles.size()]);
     }

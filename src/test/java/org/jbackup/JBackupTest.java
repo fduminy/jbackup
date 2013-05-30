@@ -22,6 +22,7 @@ package org.jbackup;
 
 import org.jbackup.archive.AbstractArchivingTest;
 import org.jbackup.archive.ArchiveFactory;
+import org.jbackup.archive.ProgressListener;
 import org.junit.Before;
 
 import java.io.File;
@@ -42,24 +43,36 @@ public class JBackupTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void decompress(ArchiveFactory mockFactory, File archive, File directory) throws Exception {
+    protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener) throws Exception {
         File archiveDirectory = new File(archive.getParent());
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testDecompress");
         config.setTargetDirectory(archiveDirectory.getAbsolutePath());
         config.setArchiveFactory(mockFactory);
-        jbackup.restore(config, archive, directory);
+
+        if (listener == null) {
+            jbackup.restore(config, archive, directory);
+        } else {
+            jbackup.restore(config, archive, directory, listener);
+        }
+
         jbackup.shutdown();
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive) throws Exception {
+    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive, ProgressListener listener) throws Exception {
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testCompress");
         config.setTargetDirectory(archive.getParent());
         config.addSource(sourceDirectory.getAbsolutePath());
         config.setArchiveFactory(mockFactory);
-        jbackup.backup(config);
+
+        if (listener == null) {
+            jbackup.backup(config);
+        } else {
+            jbackup.backup(config, listener);
+        }
+
         jbackup.shutdown();
     }
 }

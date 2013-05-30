@@ -20,32 +20,21 @@
  */
 package org.jbackup.archive;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
+/**
+ * Interface used to notify progress of (de)compression.
+ */
+public interface ProgressListener {
+    /**
+     * Notify that the total number of bytes has been computed. Note that this method must be called before {@link #progress(long)}.
+     *
+     * @param totalSize The total number of bytes to be read for (de)compression.
+     */
+    void totalSizeComputed(long totalSize);
 
-public interface ArchiveInputStream extends Closeable {
-    Entry getNextEntry() throws IOException;
-
-    public abstract static class Entry implements Closeable {
-        private final String name;
-        private final long compressedSize;
-
-        public Entry(String name, long compressedSize) {
-            this.name = name;
-            this.compressedSize = compressedSize;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public long getCompressedSize() {
-            return compressedSize;
-        }
-
-        abstract public InputStream getInput();
-
-        abstract public void close() throws IOException;
-    }
+    /**
+     * Notify that some bytes have been read.
+     *
+     * @param totalReadBytes The total number of bytes read since the begin of (de)compression.
+     */
+    void progress(long totalReadBytes);
 }

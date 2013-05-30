@@ -32,14 +32,22 @@ public class ArchiverTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void decompress(ArchiveFactory mockFactory, File archive, File directory) throws IOException {
+    protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener) throws IOException {
         Archiver archiver = new Archiver(mockFactory);
-        archiver.decompress(archive, directory);
+        if (listener == null) {
+            archiver.decompress(archive, directory);
+        } else {
+            archiver.decompress(archive, directory, listener);
+        }
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive) throws IOException {
+    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive, ProgressListener listener) throws IOException {
         Archiver archiver = new Archiver(mockFactory);
-        archiver.compress(files, archive);
+        if (listener == null) {
+            archiver.compress(files, archive);
+        } else {
+            archiver.compress(files, archive, listener);
+        }
     }
 }

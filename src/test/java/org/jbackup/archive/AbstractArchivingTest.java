@@ -21,17 +21,21 @@
 package org.jbackup.archive;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.fest.assertions.Assertions;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -39,11 +43,16 @@ import static org.mockito.Mockito.*;
 @RunWith(Theories.class)
 abstract public class AbstractArchivingTest {
     @DataPoint
-    public static final String[] NO_ENTRY = {null};
+    public static final boolean NO_LISTENER = false;
     @DataPoint
-    public static final String[] ONE_ENTRY = {"entry1", null};
+    public static final boolean LISTENER = true;
+
     @DataPoint
-    public static final String[] TWO_ENTRIES = new String[]{"entry1", "entry2", null};
+    public static final EntryData[] NO_ENTRY = {null};
+    @DataPoint
+    public static final EntryData[] ONE_ENTRY = {new EntryData("entry1", 1L), null};
+    @DataPoint
+    public static final EntryData[] TWO_ENTRIES = {new EntryData("entry1", 3L), new EntryData("entry2", 5L), null};
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
@@ -55,8 +64,17 @@ abstract public class AbstractArchivingTest {
     }
 
     @Theory
-    public void testDecompress(String[] entries) throws Exception {
+    public void testDecompress(EntryData[] entries, boolean useListener) throws Exception {
         // preparation of archiver & mocks
+        List<Long> expectedNotifications = new ArrayList<Long>();
+        long expectedTotalSize = 0L;
+        for (EntryData e : entries) {
+            if (e != null) {
+                expectedTotalSize += e.compressedSize;
+                expectedNotifications.add(expectedTotalSize);
+            }
+        }
+
         ArchiveInputStream mockInput = mock(ArchiveInputStream.class);
         ArchiveInputStream.Entry first = firstMockEntry(entries);
         ArchiveInputStream.Entry[] next = nextMockEntries(entries);
@@ -67,9 +85,12 @@ abstract public class AbstractArchivingTest {
 
         File archive = tempFolder.newFile("archive.mock");
         File directory = tempFolder.newFolder("targetDir");
+        FileUtils.write(archive, StringUtils.repeat("A", (int) expectedTotalSize));
+
+        Listener listener = useListener ? new Listener() : null;
 
         // test decompression
-        decompress(mockFactory, archive, directory);
+        decompress(mockFactory, archive, directory, listener);
 
         // assertions
         verify(mockFactory, times(1)).create(any(InputStream.class));
@@ -78,14 +99,26 @@ abstract public class AbstractArchivingTest {
         verify(mockInput, times(entries.length)).getNextEntry();
         verify(mockInput, times(1)).close();
         verifyNoMoreInteractions(mockInput);
+
+        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize);
     }
 
-    abstract protected void decompress(ArchiveFactory mockFactory, File archive, File directory) throws Exception;
+    abstract protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener) throws Exception;
 
     @Theory
-    public void testCompress(String[] entries) throws Exception {
+    public void testCompress(EntryData[] entries, boolean useListener) throws Exception {
+        File archive = tempFolder.newFile("archive.mock");
+
         // preparation of archiver & mocks
         ArchiveOutputStream mockOutput = mock(ArchiveOutputStream.class);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                InputStream input = (InputStream) invocation.getArguments()[1];
+                IOUtils.copy(input, new ByteArrayOutputStream());
+                return null;
+            }
+        }).when(mockOutput).addEntry(any(String.class), any(InputStream.class));
 
         ArchiveFactory mockFactory = mock(ArchiveFactory.class);
         when(mockFactory.create(any(OutputStream.class))).thenReturn(mockOutput);
@@ -93,14 +126,22 @@ abstract public class AbstractArchivingTest {
 
         File[] files = new File[entries.length - 1];
         File sourceDirectory = tempFolder.newFolder("sourceDirectory");
+        List<Long> expectedNotifications = new ArrayList<Long>();
+        long expectedTotalSize = 0L;
         for (int i = 0; i < files.length; i++) {
-            files[i] = new File(sourceDirectory, entries[i]);
-            FileUtils.write(files[i], "some data");
+            EntryData e = entries[i];
+            File file = new File(sourceDirectory, e.name);
+            files[i] = file;
+            FileUtils.write(file, StringUtils.repeat("A", (int) e.compressedSize));
+
+            expectedTotalSize += file.length();
+            expectedNotifications.add(expectedTotalSize);
         }
-        File archive = tempFolder.newFile("archive.mock");
+
+        Listener listener = useListener ? new Listener() : null;
 
         // test compression
-        compress(mockFactory, sourceDirectory, files, archive);
+        compress(mockFactory, sourceDirectory, files, archive, listener);
 
         // assertions
         verify(mockFactory, times(1)).create(any(OutputStream.class));
@@ -114,11 +155,27 @@ abstract public class AbstractArchivingTest {
         }
         verify(mockOutput, times(1)).close();
         verifyNoMoreInteractions(mockOutput);
+
+        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize);
     }
 
-    abstract protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive) throws Exception;
+    private void assertThatNotificationsAreValid(Listener listener, List<Long> expectedNotifications, long expectedTotalSize) {
+        if (listener != null) {
+            if (expectedNotifications.isEmpty()) {
+                Assertions.assertThat(listener.notifications).isEmpty();
+            } else {
+                Assertions.assertThat(listener.notifications).isEqualTo(expectedNotifications);
+            }
 
-    private ArchiveInputStream.Entry[] nextMockEntries(String[] entries) {
+            Assertions.assertThat(listener.totalSizeCallCount).as("number of calls to totalSizeComputed()").isEqualTo(1);
+            Assertions.assertThat(listener.totalSizeCalledBeforeProgress).as("totalSizeComputed() called before progress()").isTrue();
+            Assertions.assertThat(listener.totalSize).as("totalSize").isEqualTo(expectedTotalSize);
+        }
+    }
+
+    abstract protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive, ProgressListener listener) throws Exception;
+
+    private ArchiveInputStream.Entry[] nextMockEntries(EntryData[] entries) {
         ArchiveInputStream.Entry[] result = new ArchiveInputStream.Entry[entries.length - 1];
         for (int i = 1; i < entries.length; i++) {
             result[i - 1] = newMockEntry(entries[i]);
@@ -126,18 +183,52 @@ abstract public class AbstractArchivingTest {
         return result;
     }
 
-    private ArchiveInputStream.Entry firstMockEntry(String[] entries) {
+    private ArchiveInputStream.Entry firstMockEntry(EntryData[] entries) {
         return newMockEntry(entries[0]);
     }
 
-    private ArchiveInputStream.Entry newMockEntry(String entryName) {
-        ArchiveInputStream.Entry entry = null;
-        if (entryName != null) {
-            entry = mock(ArchiveInputStream.Entry.class);
-            when(entry.getName()).thenReturn(entryName);
-            when(entry.getInput()).thenReturn(new ByteArrayInputStream(new byte[0]));
+    private ArchiveInputStream.Entry newMockEntry(EntryData entry) {
+        ArchiveInputStream.Entry result = null;
+        if (entry != null) {
+            result = mock(ArchiveInputStream.Entry.class);
+            when(result.getName()).thenReturn(entry.name);
+            when(result.getCompressedSize()).thenReturn(entry.compressedSize);
+            when(result.getInput()).thenReturn(new ByteArrayInputStream(new byte[(int) entry.compressedSize]));
         }
 
-        return entry;
+        return result;
+    }
+
+    private static class EntryData {
+        private final String name;
+        private final long compressedSize;
+
+        private EntryData(String name, long compressedSize) {
+            this.name = name;
+            this.compressedSize = compressedSize;
+        }
+    }
+
+    private static class Listener implements ProgressListener {
+        private final List<Long> notifications = new ArrayList<Long>();
+
+        private boolean progressCalled = false;
+        private boolean totalSizeCalledBeforeProgress = false;
+        private int totalSizeCallCount = 0;
+
+        private long totalSize;
+
+        @Override
+        public void totalSizeComputed(long totalSize) {
+            totalSizeCallCount++;
+            totalSizeCalledBeforeProgress = !progressCalled;
+            this.totalSize = totalSize;
+        }
+
+        @Override
+        public void progress(long totalReadBytes) {
+            progressCalled = true;
+            notifications.add(totalReadBytes);
+        }
     }
 }

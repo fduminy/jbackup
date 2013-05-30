@@ -37,8 +37,8 @@ class ZipArchiveInputStream implements ArchiveInputStream {
     private static class ZipBackupEntry extends Entry {
         private final ZipInputStream zipInput;
 
-        private ZipBackupEntry(ZipInputStream zipInput, String name) {
-            super(name);
+        private ZipBackupEntry(ZipInputStream zipInput, String name, long compressedSize) {
+            super(name, compressedSize);
             this.zipInput = zipInput;
         }
 
@@ -58,7 +58,7 @@ class ZipArchiveInputStream implements ArchiveInputStream {
         final ZipEntry entry = input.getNextEntry();
         ZipBackupEntry zipEntry = null;
         if (entry != null) {
-            zipEntry = new ZipBackupEntry(input, entry.getName());
+            zipEntry = new ZipBackupEntry(input, entry.getName(), entry.getCompressedSize());
         }
         return zipEntry;
     }
