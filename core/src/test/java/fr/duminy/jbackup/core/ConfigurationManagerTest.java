@@ -29,6 +29,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.naming.InvalidNameException;
 import java.io.File;
@@ -42,6 +44,8 @@ import static org.mockito.Mockito.*;
  * Tests for class {@link fr.duminy.jbackup.core.ConfigurationManager}.
  */
 public class ConfigurationManagerTest {
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManagerTest.class);
+
     private static final String TARGET_DIRECTORY = "aDirectory";
     private static final String CONFIG1 = "config1";
     private static final String CONFIG2 = "config2";
@@ -252,6 +256,9 @@ public class ConfigurationManagerTest {
         }).when(mock).loadBackupConfiguration(any(File.class));
 
         // test
+        LOG.warn("**************************************************************");
+        LOG.warn("***** The following logged ERROR is expected by the test *****");
+        LOG.warn("**************************************************************");
         mock.loadAllConfigurations();
 
         // verify
@@ -260,6 +267,9 @@ public class ConfigurationManagerTest {
         verifyNoMoreInteractions(mock);
         assertEquals("wrong number of invalid xml files", 1, errors.size());
         Assertions.assertThat(mock.getBackupConfigurations()).isEmpty();
+        LOG.warn("**************************************************************");
+        LOG.warn("*************** End of expected ERROR in test ***************");
+        LOG.warn("**************************************************************");
     }
 
 
