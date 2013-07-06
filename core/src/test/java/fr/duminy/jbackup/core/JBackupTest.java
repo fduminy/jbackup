@@ -22,28 +22,28 @@ package fr.duminy.jbackup.core;
 
 import fr.duminy.jbackup.core.archive.AbstractArchivingTest;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
+import fr.duminy.jbackup.core.archive.Archiver;
 import fr.duminy.jbackup.core.archive.ProgressListener;
-import org.junit.Before;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.fest.assertions.Assertions.assertThat;
 
 /**
  * Tests for class {@link fr.duminy.jbackup.core.JBackup}.
  */
 public class JBackupTest extends AbstractArchivingTest {
-    private JBackup jbackup;
-
     public JBackupTest() {
         super(true);
     }
 
-    @Before
-    public void setUp() throws Exception {
-        jbackup = new JBackup();
-    }
-
     @Override
     protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener) throws Exception {
+        JBackup jbackup = new JBackup();
         File archiveDirectory = new File(archive.getParent());
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testDecompress");
@@ -60,7 +60,24 @@ public class JBackupTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive, ProgressListener listener) throws Exception {
+    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, final File[] expectedFiles, File archive, ProgressListener listener) throws Exception {
+        JBackup jbackup = new JBackup() {
+            @Override
+            Archiver createArchiver(ArchiveFactory factory) {
+                return new Archiver(factory) {
+                    @Override
+                    public void compress(File[] actualFiles, File archive, ProgressListener listener) throws IOException {
+                        // ensure that actual files are as expected
+                        assertThat(asSet(actualFiles)).isEqualTo(asSet(expectedFiles));
+
+                        // now compress files in the order given by expectedFiles
+                        // (otherwise the test will fail on some platforms)
+                        super.compress(actualFiles, archive, listener);
+                    }
+                };
+            }
+        };
+
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testCompress");
         config.setTargetDirectory(archive.getParent());
@@ -74,5 +91,9 @@ public class JBackupTest extends AbstractArchivingTest {
         }
 
         jbackup.shutdown();
+    }
+
+    private static <T> Set<T> asSet(T[] items) {
+        return new HashSet<T>(Arrays.asList(items));
     }
 }
