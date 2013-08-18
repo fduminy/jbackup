@@ -25,10 +25,9 @@ import fr.duminy.jbackup.core.filter.JexlFileFilter;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.lang.StringUtils;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
+import javax.xml.bind.annotation.*;
+import javax.xml.bind.annotation.adapters.XmlAdapter;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,12 +38,11 @@ import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
  * Configuration of a backup.
  */
 @XmlRootElement
+@XmlAccessorType(XmlAccessType.PROPERTY)
 public class BackupConfiguration {
     private String name;
 
-    @XmlElementWrapper(name = "sources")
-    @XmlElement(name = "source")
-    private final List<Source> sources = new ArrayList<>();
+    private List<Source> sources = new ArrayList<>();
 
     private String targetDirectory;
 
@@ -82,15 +80,33 @@ public class BackupConfiguration {
         this.targetDirectory = targetDirectory;
     }
 
-    public Iterable<Source> getSources() {
+    @XmlElementWrapper(name = "sources")
+    @XmlElement(name = "source")
+    public List<Source> getSources() {
         return sources;
     }
 
+    public void setSources(List<Source> sources) {
+        this.sources = sources;
+    }
+
+    @XmlJavaTypeAdapter(value = ArchiveFactoryXmlAdapter.class)
     public ArchiveFactory getArchiveFactory() {
         return archiveFactory;
     }
 
-    @XmlTransient
+    public static class ArchiveFactoryXmlAdapter extends XmlAdapter<Class<? extends ArchiveFactory>, ArchiveFactory> {
+        @Override
+        public ArchiveFactory unmarshal(Class<? extends ArchiveFactory> v) throws Exception {
+            return v.newInstance();
+        }
+
+        @Override
+        public Class<? extends ArchiveFactory> marshal(ArchiveFactory v) throws Exception {
+            return v.getClass();
+        }
+    }
+
     public void setArchiveFactory(ArchiveFactory archiveFactory) {
         this.archiveFactory = archiveFactory;
     }

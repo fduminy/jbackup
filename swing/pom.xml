@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>fr.duminy.jbackup</groupId>
+        <artifactId>jbackup-pom</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <name>JBackup - Swing</name>
+    <artifactId>jbackup-swing</artifactId>
+
+    <properties>
+        <project.root>${project.parent.basedir}</project.root>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>fr.duminy.jbackup</groupId>
+            <artifactId>jbackup-core</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.formbuilder</groupId>
+            <artifactId>formbuilder-main</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-validator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>fr.duminy.components</groupId>
+            <artifactId>swing-components</artifactId>
+        </dependency>
+
+        <!-- tests -->
+        <dependency>
+            <groupId>org.easytesting</groupId>
+            <artifactId>fest-swing-junit-4.5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>fr.duminy.components</groupId>
+            <artifactId>swing-components</artifactId>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>fr.duminy.jbackup</groupId>
+            <artifactId>jbackup-core</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- uses cacio-tta to render swing components off-screen -->
+        <dependency>
+            <groupId>net.java.openjdk.cacio</groupId>
+            <artifactId>cacio-tta</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.14.1</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- These properties are used to render swing components off-screen -->
+                        <awt.toolkit>net.java.openjdk.cacio.ctc.CTCToolkit</awt.toolkit>
+                        <java.awt.graphicsenv>net.java.openjdk.cacio.ctc.CTCGraphicsEnvironment</java.awt.graphicsenv>
+                        <swing.defaultlaf>javax.swing.plaf.metal.MetalLookAndFeel</swing.defaultlaf>
+                        <java.awt.headless>false</java.awt.headless>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

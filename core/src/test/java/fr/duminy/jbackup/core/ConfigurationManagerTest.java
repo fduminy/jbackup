@@ -20,6 +20,8 @@
  */
 package fr.duminy.jbackup.core;
 
+import fr.duminy.jbackup.core.archive.ArchiveFactory;
+import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.fest.assertions.Assertions;
@@ -34,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.naming.InvalidNameException;
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import static java.lang.Thread.sleep;
@@ -47,29 +50,30 @@ public class ConfigurationManagerTest {
     private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManagerTest.class);
 
     private static final String TARGET_DIRECTORY = "aDirectory";
-    private static final String CONFIG1 = "config1";
-    private static final String CONFIG2 = "config2";
+    private static final String CONFIG1 = "configOne";
+    private static final String CONFIG2 = "configTwo";
     private static final String CONFIG_XML = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
             "<backupConfiguration>\n" +
-            "    <sources>\n" +
-            "        <source>\n" +
-            "            <dirFilter>aDirFilter</dirFilter>\n" +
-            "            <fileFilter>aFileFilter</fileFilter>\n" +
-            "            <sourceDirectory>aSource</sourceDirectory>\n" +
-            "        </source>\n" +
-            "        <source>\n" +
-            "            <sourceDirectory>aSource2</sourceDirectory>\n" +
-            "        </source>\n" +
-            "        <source>\n" +
-            "            <dirFilter>anotherDirFilter</dirFilter>\n" +
-            "            <fileFilter>anotherFileFilter</fileFilter>\n" +
-            "            <sourceDirectory>anotherSource</sourceDirectory>\n" +
-            "        </source>\n" +
-            "    </sources>\n" +
+            "    <archiveFactory>" + ZipArchiveFactory.class.getName() + "</archiveFactory>\n" +
             "    <name>" + CONFIG1 + "</name>\n" +
+            "    <sources>\n" +
+            generateSourceXml("        ", "aDirFilter", "aFileFilter", "aSource") +
+            generateSourceXml("        ", null, null, "aSource2") +
+            generateSourceXml("        ", "anotherDirFilter", "anotherFileFilter", "anotherSource") +
+            "    </sources>\n" +
             "    <targetDirectory>" + TARGET_DIRECTORY + "</targetDirectory>\n" +
             "</backupConfiguration>\n";
-    private static final String CONFIG_XML2 = CONFIG_XML.replace("<name>config1</name>", "<name>" + CONFIG2 + "</name>");
+    private static final String CONFIG_XML2 = CONFIG_XML.replace("<name>" + CONFIG1 + "</name>", "<name>" + CONFIG2 + "</name>");
+
+    private static String generateSourceXml(String indent, String dirFilter, String fileFilter, String sourceDirectory) {
+        return indent + "<source>\n" +
+                ((dirFilter == null) ? "" : indent + "    <dirFilter>" + dirFilter + "</dirFilter>\n") +
+                ((fileFilter == null) ? "" : indent + "    <fileFilter>" + fileFilter + "</fileFilter>\n") +
+                ((sourceDirectory == null) ? "" : indent + "    <sourceDirectory>" + toAbsolutePath(sourceDirectory) + "</sourceDirectory>\n") +
+                indent + "</source>\n";
+    }
+
+    public static final ArchiveFactory ZIP_ARCHIVE_FACTORY = new ZipArchiveFactory();
 
     private File configDir;
     private ConfigurationManager manager;
@@ -85,11 +89,8 @@ public class ConfigurationManagerTest {
 
     @Test
     public void testGetBackupConfigurations() throws Exception {
-        File configFile1 = new File(configDir, "config1.xml");
-        FileUtils.write(configFile1, CONFIG_XML);
-
-        File configFile2 = new File(configDir, "config2.xml");
-        FileUtils.write(configFile2, CONFIG_XML2);
+        File configFile1 = writeConfigFile(true); //config1=true
+        File configFile2 = writeConfigFile(false); //config1=false => config2
 
         Collection<BackupConfiguration> configs = manager.getBackupConfigurations();
         assertNotNull(configs);
@@ -98,15 +99,21 @@ public class ConfigurationManagerTest {
         boolean found2 = false;
         for (BackupConfiguration config : configs) {
             switch (config.getName()) {
-                case "config1":
+                case CONFIG1:
                     found1 = true;
                     break;
-                case "config2":
+                case CONFIG2:
                     found2 = true;
             }
         }
-        assertTrue("config1 not found", found1);
-        assertTrue("config2 not found", found2);
+        assertTrue(CONFIG1 + " not found", found1);
+        assertTrue(CONFIG2 + " not found", found2);
+    }
+
+    private File writeConfigFile(boolean config1) throws IOException {
+        File configFile = new File(configDir, (config1 ? CONFIG1 : CONFIG2) + ".xml");
+        FileUtils.write(configFile, (config1 ? CONFIG_XML : CONFIG_XML2));
+        return configFile;
     }
 
     @Test
@@ -190,11 +197,8 @@ public class ConfigurationManagerTest {
     @Test
     public void testLoadAllConfigurations() throws Exception {
         // prepare mock
-        File validXmlConfigFile1 = new File(configDir, "config1.xml");
-        FileUtils.write(validXmlConfigFile1, CONFIG_XML);
-
-        File validXmlConfigFile2 = new File(configDir, "config2.xml");
-        FileUtils.write(validXmlConfigFile2, CONFIG_XML2);
+        File validXmlConfigFile1 = writeConfigFile(true); //config1=true
+        File validXmlConfigFile2 = writeConfigFile(false); //config1=false => config2
 
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
@@ -349,29 +353,37 @@ public class ConfigurationManagerTest {
         return output;
     }
 
-    private BackupConfiguration createConfiguration() {
+    public static BackupConfiguration createConfiguration() {
         return createConfiguration(CONFIG1);
     }
 
-    private BackupConfiguration createConfiguration(String configName) {
-        BackupConfiguration config = new BackupConfiguration();
+    public static BackupConfiguration createConfiguration(String configName) {
+        final BackupConfiguration config = new BackupConfiguration();
+
         config.setName(configName);
-        config.setTargetDirectory("aDirectory");
-        config.addSource("aSource", "aDirFilter", "aFileFilter");
-        config.addSource("aSource2");
-        config.addSource("anotherSource", "anotherDirFilter", "anotherFileFilter");
+        config.setArchiveFactory(ZIP_ARCHIVE_FACTORY);
+        config.setTargetDirectory(TARGET_DIRECTORY);
+        config.addSource(toAbsolutePath("aSource"), "aDirFilter", "aFileFilter");
+        config.addSource(toAbsolutePath("aSource2"));
+        config.addSource(toAbsolutePath("anotherSource"), "anotherDirFilter", "anotherFileFilter");
+
         return config;
     }
 
-    private void assertConfigEquals(BackupConfiguration expected, BackupConfiguration actual) throws Exception {
+    public static String toAbsolutePath(String file) {
+        return new File(file).getAbsolutePath();
+    }
+
+    public static void assertConfigEquals(BackupConfiguration expected, BackupConfiguration actual) throws Exception {
         Map expectedProperties = describe(expected);
         Map actualProperties = describe(actual);
         assertEquals(expectedProperties, actualProperties);
     }
 
-    private Map describe(BackupConfiguration config) throws Exception {
+    private static Map describe(BackupConfiguration config) throws Exception {
         Map properties = PropertyUtils.describe(config);
         properties.remove("class");
+        properties.put("archiveFactory", config.getArchiveFactory().getClass().getName());
         List<BackupConfiguration.Source> sources = (List<BackupConfiguration.Source>) properties.remove("sources");
         properties.put("sources.size", sources.size());
         for (int i = 0; i < sources.size(); i++) {
