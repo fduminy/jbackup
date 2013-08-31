@@ -23,6 +23,7 @@ package fr.duminy.jbackup.core.archive;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,7 +38,6 @@ import java.util.List;
 
 import static org.apache.commons.io.comparator.DefaultFileComparator.DEFAULT_COMPARATOR;
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
-import static org.junit.Assert.assertArrayEquals;
 
 /**
  * Tests for {@link FileCollector}.
@@ -97,6 +97,6 @@ public class FileCollectorTest {
         collector.collect(files, directory);
 
         Collections.sort(files, DEFAULT_COMPARATOR);
-        assertArrayEquals("wrong FILES", expectedFiles, files.toArray(new File[files.size()]));
+        Assertions.assertThat(files.toArray()).as("collected files").isEqualTo(expectedFiles);
     }
 }

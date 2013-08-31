@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core.archive;
 
-import org.apache.commons.io.HexDump;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -30,13 +29,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static fr.duminy.jbackup.core.archive.ArchiveInputStream.Entry;
 import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertNotNull;
 
 abstract public class ArchiveFactoryTest<T extends ArchiveFactory> {
     private static final Logger LOG = LoggerFactory.getLogger(ArchiveFactoryTest.class);
@@ -53,8 +51,8 @@ abstract public class ArchiveFactoryTest<T extends ArchiveFactory> {
     @Test
     public final void testGetExtension() {
         String extension = factory.getExtension();
-        assertNotNull(extension);
-        assertFalse("extension is blank", extension.trim().isEmpty());
+        assertThat(extension).isNotNull();
+        assertThat(extension.trim()).isNotEmpty(); //TODO add assertions for blank CharSequence
     }
 
     @Test
@@ -67,29 +65,27 @@ abstract public class ArchiveFactoryTest<T extends ArchiveFactory> {
         ByteArrayOutputStream archive = new ByteArrayOutputStream(128);
 
         try (ArchiveOutputStream output = factory.create(archive)) {
-            assertNotNull(output);
+            assertThat(output).isNotNull();
 
             for (String resource : RESOURCES) {
-                try (InputStream input = ArchiveFactoryTest.class.getResourceAsStream(resource)) {
-                    assertNotNull(input);
+                try (InputStream input = getTestFile(resource)) {
+                    assertThat(input).isNotNull();
                     output.addEntry(resource, input);
                 }
             }
         }
 
         // archives can't be compared byte by byte, so let compare them by size.
-//        boolean equals = contentEquals(new ByteArrayInputStream(archive.toByteArray()), archiveResource, true);
+//        assertThat(archive.toByteArray()).isEqualTo(IOUtils.toByteArray(getResourceAsStream(archiveResource, true)));
         int resourceSize = IOUtils.toByteArray(getResourceAsStream(archiveResource, true)).length;
-        boolean equals = (archive.toByteArray().length == resourceSize);
-
-        if (!equals) {
-            LOG.info("Dump of generated archive :\n{}", dump(archive.toByteArray()));
-            LOG.info("Dump of reference archive :\n{}", dump(getClass().getResourceAsStream(archiveResource)));
-        }
-        assertTrue("size are different", equals);
+        assertThat(archive.toByteArray().length).as("archive size").isEqualTo(resourceSize);
 
         // test validity of created archive
         testCreateArchiveInputStream(new ByteArrayInputStream(archive.toByteArray()));
+    }
+
+    private InputStream getTestFile(String resource) {
+        return ArchiveFactoryTest.class.getResourceAsStream(resource);
     }
 
     private void testCreateArchiveInputStream(InputStream archive) throws IOException {
@@ -97,54 +93,38 @@ abstract public class ArchiveFactoryTest<T extends ArchiveFactory> {
 
         try {
             input = factory.create(archive);
-            assertNotNull(input);
+            assertThat(input).isNotNull();
 
-            Entry actualEntry = input.getNextEntry();
-            Set<String> actualEntries = new HashSet<>();
+            Map<String, byte[]> actualContent = asMap(input);
+
             Set<String> expectedEntries = new HashSet<>(Arrays.asList(RESOURCES));
-            while (actualEntry != null) {
-                final String name = actualEntry.getName();
-                assertNotNull("entry name is null", name);
+            assertThat(actualContent.keySet()).as("entry names").isEqualTo(expectedEntries);
 
-                assertFalse("resource '" + name + "' duplicated in archive", actualEntries.contains(name));
-                assertTrue("unexpected resource '" + name + "' in archive", expectedEntries.contains(name));
-
-                actualEntries.add(name);
-                expectedEntries.remove(name);
-
-                assertTrue("wrong content for resource '" + name + "'", contentEquals(actualEntry.getInput(), name, false));
-
-                actualEntry = input.getNextEntry();
+            for (String name : actualContent.keySet()) {
+                byte[] expectedContent = IOUtils.toByteArray(getTestFile(name));
+                assertThat(actualContent.get(name)).as("content for entry " + name).isEqualTo(expectedContent);
             }
-            assertTrue("files not found in archive: " + expectedEntries, expectedEntries.isEmpty());
         } finally {
             closeQuietly(archive);
             closeQuietly(input);
         }
     }
 
-    private String dump(InputStream input) throws IOException {
-        byte[] buffer = new byte[10240];
-        int read = IOUtils.read(input, buffer);
-        byte[] bytes = new byte[read];
-        System.arraycopy(buffer, 0, bytes, 0, bytes.length);
-        return dump(bytes);
-    }
+    private static Map<String, byte[]> asMap(ArchiveInputStream input) throws IOException {
+        Map<String, byte[]> actualEntries = new HashMap<String, byte[]>();
 
-    private String dump(byte[] bytes) throws IOException {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream(128);
-        HexDump.dump(bytes, 0, stream, 0);
-        return new String(stream.toByteArray());
-    }
+        Entry actualEntry = input.getNextEntry();
+        while (actualEntry != null) {
+            final String name = actualEntry.getName();
+            assertNotNull("entry name is null", name);
+            assertThat(actualEntries.keySet()).as("resource '" + name + "' duplicated in archive").doesNotContain(name);
 
-    private boolean contentEquals(final InputStream stream, String resource, boolean specificClass) throws IOException {
-        InputStream resourceStream = null;
-        try {
-            resourceStream = getResourceAsStream(resource, specificClass);
-            return IOUtils.contentEquals(resourceStream, stream);
-        } finally {
-            IOUtils.closeQuietly(resourceStream);
+            actualEntries.put(name, IOUtils.toByteArray(actualEntry.getInput()));
+
+            actualEntry = input.getNextEntry();
         }
+
+        return actualEntries;
     }
 
     private InputStream getResourceAsStream(String resource, boolean specificClass) {

@@ -23,7 +23,6 @@ package fr.duminy.jbackup.swing;
 import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.BackupConfiguration;
-import fr.duminy.jbackup.core.ConfigurationManagerTest;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ArchiveInputStream;
 import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
@@ -41,8 +40,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static fr.duminy.jbackup.core.BackupConfiguration.Source;
-import static fr.duminy.jbackup.core.ConfigurationManagerTest.ZIP_ARCHIVE_FACTORY;
-import static fr.duminy.jbackup.core.ConfigurationManagerTest.createConfiguration;
+import static fr.duminy.jbackup.core.ConfigurationManagerTest.*;
 import static org.fest.assertions.Assertions.assertThat;
 
 /**
@@ -128,11 +126,7 @@ public class BackupConfigurationPanelTest extends AbstractSwingTest {
         BackupConfiguration actualConfig = panel.getConfiguration();
 
         // assertions
-        ConfigurationManagerTest.assertConfigEquals(expectedConfig, actualConfig);
-//        assertThat(actualConfig.getName()).as("name").isEqualTo(expectedConfig.getName());
-//        assertThat(actualConfig.getSources()).as("sources").containsExactly(expectedConfig.getSources());
-//        assertThat(actualConfig.getTargetDirectory()).as("targetDirectory").isEqualTo(expectedConfig.getTargetDirectory());
-//        assertThat(actualConfig.getArchiveFactory()).as("archiveFactory").isEqualTo(expectedConfig.getArchiveFactory());
+        assertAreEquals(expectedConfig, actualConfig);
     }
 
     private BackupConfiguration fillForm() {

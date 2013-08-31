@@ -26,6 +26,8 @@ import org.apache.commons.io.testtools.FileBasedTestCase;
 
 import java.io.File;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * .
  */
@@ -66,18 +68,12 @@ public class JexlFileFilterTest extends FileBasedTestCase {
     public void assertFiltering(final IOFileFilter filter, final File file, final boolean expected) throws Exception {
         // Note. This only tests the (File, String) version if the parent of
         //       the File passed in is not null
-        assertEquals(
-                "Source(File) " + filter.getClass().getName() + " not " + expected + " for " + file,
-                expected, filter.accept(file));
+        assertThat(filter.accept(file)).
+                as("Source(File) " + filter.getClass().getName() + " not " + expected + " for " + file).isEqualTo(expected);
 
         if (file != null && file.getParentFile() != null) {
-            assertEquals(
-                    "Source(File, String) " + filter.getClass().getName() + " not " + expected + " for " + file,
-                    expected, filter.accept(file.getParentFile(), file.getName()));
-        } else if (file == null) {
-            assertEquals(
-                    "Source(File, String) " + filter.getClass().getName() + " not " + expected + " for null",
-                    expected, filter.accept(file));
+            assertThat(filter.accept(file.getParentFile(), file.getName())).
+                    as("Source(File, String) " + filter.getClass().getName() + " not " + expected + " for " + file).isEqualTo(expected);
         }
     }
 

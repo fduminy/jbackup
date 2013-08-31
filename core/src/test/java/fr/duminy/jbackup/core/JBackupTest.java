@@ -27,11 +27,8 @@ import fr.duminy.jbackup.core.archive.ProgressListener;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for class {@link fr.duminy.jbackup.core.JBackup}.
@@ -68,7 +65,7 @@ public class JBackupTest extends AbstractArchivingTest {
                     @Override
                     public void compress(File[] actualFiles, File archive, ProgressListener listener) throws IOException {
                         // ensure that actual files are as expected
-                        assertThat(asSet(actualFiles)).isEqualTo(asSet(expectedFiles));
+                        assertThat(actualFiles).isEqualTo(expectedFiles);
 
                         // now compress files in the order given by expectedFiles
                         // (otherwise the test will fail on some platforms)
@@ -91,9 +88,5 @@ public class JBackupTest extends AbstractArchivingTest {
         }
 
         jbackup.shutdown();
-    }
-
-    private static <T> Set<T> asSet(T[] items) {
-        return new HashSet<T>(Arrays.asList(items));
     }
 }

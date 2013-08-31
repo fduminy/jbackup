@@ -23,7 +23,6 @@ package fr.duminy.jbackup.core.archive;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.fest.assertions.Assertions;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
@@ -37,6 +36,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -162,14 +162,14 @@ abstract public class AbstractArchivingTest {
     private void assertThatNotificationsAreValid(Listener listener, List<Long> expectedNotifications, long expectedTotalSize) {
         if (listener != null) {
             if (expectedNotifications.isEmpty()) {
-                Assertions.assertThat(listener.notifications).isEmpty();
+                assertThat(listener.notifications).isEmpty();
             } else {
-                Assertions.assertThat(listener.notifications).isEqualTo(expectedNotifications);
+                assertThat(listener.notifications).isEqualTo(expectedNotifications);
             }
 
-            Assertions.assertThat(listener.totalSizeCallCount).as("number of calls to totalSizeComputed()").isEqualTo(1);
-            Assertions.assertThat(listener.totalSizeCalledBeforeProgress).as("totalSizeComputed() called before progress()").isTrue();
-            Assertions.assertThat(listener.totalSize).as("totalSize").isEqualTo(expectedTotalSize);
+            assertThat(listener.totalSizeCallCount).as("number of calls to totalSizeComputed()").isEqualTo(1);
+            assertThat(listener.totalSizeCalledBeforeProgress).as("totalSizeComputed() called before progress()").isTrue();
+            assertThat(listener.totalSize).as("totalSize").isEqualTo(expectedTotalSize);
         }
     }
 

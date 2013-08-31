@@ -39,11 +39,6 @@
 
         <!-- tests -->
         <dependency>
-            <groupId>org.easytesting</groupId>
-            <artifactId>fest-swing-junit-4.5</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>fr.duminy.components</groupId>
             <artifactId>swing-components</artifactId>
             <classifier>tests</classifier>
@@ -66,6 +61,18 @@
             <artifactId>commons-beanutils</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+
         <!-- uses cacio-tta to render swing components off-screen -->
         <dependency>
             <groupId>net.java.openjdk.cacio</groupId>

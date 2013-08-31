@@ -24,7 +24,7 @@ import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
-import org.fest.assertions.Assertions;
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +40,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static java.lang.Thread.sleep;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 /**
@@ -89,31 +89,12 @@ public class ConfigurationManagerTest {
 
     @Test
     public void testGetBackupConfigurations() throws Exception {
-        File configFile1 = writeConfigFile(true); //config1=true
-        File configFile2 = writeConfigFile(false); //config1=false => config2
+        writeConfigFile(true); //config1=true
+        writeConfigFile(false); //config1=false => config2
 
         Collection<BackupConfiguration> configs = manager.getBackupConfigurations();
-        assertNotNull(configs);
-        assertEquals(2, configs.size());
-        boolean found1 = false;
-        boolean found2 = false;
-        for (BackupConfiguration config : configs) {
-            switch (config.getName()) {
-                case CONFIG1:
-                    found1 = true;
-                    break;
-                case CONFIG2:
-                    found2 = true;
-            }
-        }
-        assertTrue(CONFIG1 + " not found", found1);
-        assertTrue(CONFIG2 + " not found", found2);
-    }
 
-    private File writeConfigFile(boolean config1) throws IOException {
-        File configFile = new File(configDir, (config1 ? CONFIG1 : CONFIG2) + ".xml");
-        FileUtils.write(configFile, (config1 ? CONFIG_XML : CONFIG_XML2));
-        return configFile;
+        assertThat(configs).extracting("name").containsOnlyOnce(CONFIG1, CONFIG2);
     }
 
     @Test
@@ -145,16 +126,15 @@ public class ConfigurationManagerTest {
         manager.removeBackupConfiguration(configToRemove);
 
         if (unknownName) {
-            Assertions.assertThat(manager.getBackupConfigurations()).hasSize(1);
-            Assertions.assertThat(manager.getBackupConfigurations()).containsOnly(config);
+            ConfigurationManagerAssert.assertThat(manager).hasBackupConfigurations(config); //TODO replace by hasOnlyOnceBackupConfigurations(config);
 
-            Assertions.assertThat(configFileFor(config)).exists();
-            Assertions.assertThat(configFileFor(configToRemove)).doesNotExist();
+            assertThat(configFileFor(config)).exists().canRead().canWrite();
+            assertThat(configFileFor(configToRemove)).doesNotExist();
         } else {
-            Assertions.assertThat(manager.getBackupConfigurations()).isEmpty();
-            Assertions.assertThat(configFileFor(config)).doesNotExist();
+            ConfigurationManagerAssert.assertThat(manager).hasNoBackupConfigurations();
 
-            Assertions.assertThat(configFileFor(configToRemove)).doesNotExist();
+            assertThat(configFileFor(config)).doesNotExist();
+            assertThat(configFileFor(configToRemove)).doesNotExist();
         }
     }
 
@@ -165,10 +145,10 @@ public class ConfigurationManagerTest {
         manager.addBackupConfiguration(expectedConfiguration);
 
         Collection<BackupConfiguration> configs = manager.getBackupConfigurations();
-        assertEquals(1, configs.size());
+        assertThat(configs).hasSize(1);
         BackupConfiguration actualConfiguration = configs.iterator().next();
-        assertConfigEquals(expectedConfiguration, actualConfiguration);
-        Assertions.assertThat(configFileFor(expectedConfiguration)).exists();
+        BackupConfigurationAssert.assertThat(actualConfiguration).isEqualTo(expectedConfiguration);
+        assertThat(configFileFor(expectedConfiguration)).exists().canRead().canWrite();
     }
 
     @Test(expected = DuplicateNameException.class)
@@ -191,7 +171,7 @@ public class ConfigurationManagerTest {
             }
         }
 
-        Assertions.assertThat(failingNames).as("failingNames").isEmpty();
+        assertThat(failingNames).as("failingNames").isEmpty();
     }
 
     @Test
@@ -211,7 +191,7 @@ public class ConfigurationManagerTest {
         verify(mock, times(1)).loadBackupConfiguration(eq(validXmlConfigFile2));
         verify(mock, times(1)).loadAllConfigurations();
         verifyNoMoreInteractions(mock);
-        Assertions.assertThat(toConfigNames(mock.getBackupConfigurations())).as("fully valid config files").containsOnly(CONFIG1, CONFIG2);
+        assertThat(mock.getBackupConfigurations()).extracting("name").as("fully valid config files").containsOnlyOnce(CONFIG1, CONFIG2);
     }
 
     @Test
@@ -230,7 +210,7 @@ public class ConfigurationManagerTest {
         verify(mock, times(1)).loadAllConfigurations();
         verify(mock, never()).loadBackupConfiguration(eq(notAnXmlFile));
         verifyNoMoreInteractions(mock);
-        Assertions.assertThat(mock.getBackupConfigurations()).isEmpty();
+        assertThat(mock.getBackupConfigurations()).isEmpty();
     }
 
     @Test
@@ -269,8 +249,8 @@ public class ConfigurationManagerTest {
         verify(mock, times(1)).loadBackupConfiguration(eq(wrongXmlConfigFile));
         verify(mock, times(1)).loadAllConfigurations();
         verifyNoMoreInteractions(mock);
-        assertEquals("wrong number of invalid xml files", 1, errors.size());
-        Assertions.assertThat(mock.getBackupConfigurations()).isEmpty();
+        assertThat(errors).as("number of invalid xml files").hasSize(1);
+        ConfigurationManagerAssert.assertThat(mock).hasNoBackupConfigurations();
         LOG.warn("**************************************************************");
         LOG.warn("*************** End of expected ERROR in test ***************");
         LOG.warn("**************************************************************");
@@ -294,7 +274,7 @@ public class ConfigurationManagerTest {
         verify(mock, times(1)).loadBackupConfiguration(eq(wrongConfigName));
         verify(mock, times(1)).loadAllConfigurations();
         verifyNoMoreInteractions(mock);
-        Assertions.assertThat(mock.getBackupConfigurations()).isEmpty();
+        ConfigurationManagerAssert.assertThat(mock).hasNoBackupConfigurations();
     }
 
     @Test
@@ -305,7 +285,7 @@ public class ConfigurationManagerTest {
         FileUtils.write(input, CONFIG_XML);
         BackupConfiguration actualConfiguration = manager.loadBackupConfiguration(input);
 
-        assertConfigEquals(expectedConfiguration, actualConfiguration);
+        assertAreEquals(expectedConfiguration, actualConfiguration);
     }
 
     @Test
@@ -314,13 +294,13 @@ public class ConfigurationManagerTest {
 
         String oldName = config.getName();
         File output1 = manager.saveBackupConfiguration(config);
-        Assertions.assertThat(output1).exists();
+        assertThat(output1).exists();
 
         config.setName("NewName");
 
         File output2 = manager.saveRenamedBackupConfiguration(oldName, config);
-        Assertions.assertThat(output1).doesNotExist();
-        Assertions.assertThat(output2).exists();
+        assertThat(output1).doesNotExist();
+        assertThat(output2).exists();
     }
 
     @Test
@@ -340,15 +320,14 @@ public class ConfigurationManagerTest {
         output = testSaveBackupConfiguration(config);
         long t1 = output.lastModified();
 
-        Assertions.assertThat(t1).isGreaterThan(t0);
+        assertThat(t1).isGreaterThan(t0);
     }
 
     private File testSaveBackupConfiguration(BackupConfiguration config) throws Exception {
         File output = manager.saveBackupConfiguration(config);
 
-        Assertions.assertThat(output.getParentFile()).isEqualTo(configDir);
-        String actualXML = FileUtils.readFileToString(output);
-        assertEquals(CONFIG_XML, actualXML);
+        assertThat(output.getParentFile()).isEqualTo(configDir);
+        Assertions.assertThat(output).hasContent(CONFIG_XML);
 
         return output;
     }
@@ -374,35 +353,43 @@ public class ConfigurationManagerTest {
         return new File(file).getAbsolutePath();
     }
 
-    public static void assertConfigEquals(BackupConfiguration expected, BackupConfiguration actual) throws Exception {
-        Map expectedProperties = describe(expected);
-        Map actualProperties = describe(actual);
-        assertEquals(expectedProperties, actualProperties);
+    private File configFileFor(BackupConfiguration config) {
+        return manager.configFileFor(config);
     }
 
-    private static Map describe(BackupConfiguration config) throws Exception {
-        Map properties = PropertyUtils.describe(config);
+    private File writeConfigFile(boolean config1) throws IOException {
+        File configFile = new File(configDir, (config1 ? CONFIG1 : CONFIG2) + ".xml");
+        FileUtils.write(configFile, (config1 ? CONFIG_XML : CONFIG_XML2));
+        return configFile;
+    }
+
+    public static void assertAreEquals(BackupConfiguration expected, BackupConfiguration actual) {
+        Assertions.assertThat(describe(actual)).isEqualTo(describe(expected));
+    }
+
+    private static Map describe(BackupConfiguration config) {
+        Map properties;
+        try {
+            properties = PropertyUtils.describe(config);
+        } catch (Exception e) {
+            LOG.error("unable to extract properties from configuration", e);
+            properties = Collections.EMPTY_MAP;
+        }
+
         properties.remove("class");
         properties.put("archiveFactory", config.getArchiveFactory().getClass().getName());
         List<BackupConfiguration.Source> sources = (List<BackupConfiguration.Source>) properties.remove("sources");
         properties.put("sources.size", sources.size());
         for (int i = 0; i < sources.size(); i++) {
-            Map sourceProperties = PropertyUtils.describe(sources.get(i));
+            Map sourceProperties = null;
+            try {
+                sourceProperties = PropertyUtils.describe(sources.get(i));
+            } catch (Exception e) {
+                LOG.error("unable to extract source #" + i, e);
+            }
             sourceProperties.remove("class");
             properties.put("sources[" + i + "]", sourceProperties);
         }
         return properties;
-    }
-
-    private Collection<String> toConfigNames(Collection<BackupConfiguration> configs) {
-        List<String> names = new ArrayList<>(configs.size());
-        for (BackupConfiguration config : configs) {
-            names.add(config.getName());
-        }
-        return names;
-    }
-
-    private File configFileFor(BackupConfiguration config) {
-        return manager.configFileFor(config);
     }
 }
