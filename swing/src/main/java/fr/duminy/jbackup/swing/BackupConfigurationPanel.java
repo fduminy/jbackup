@@ -20,23 +20,14 @@
  */
 package fr.duminy.jbackup.swing;
 
-import com.google.common.base.Supplier;
-import fr.duminy.components.swing.list.ListPanel;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import org.formbuilder.Form;
 import org.formbuilder.FormBuilder;
-import org.formbuilder.TypeMapper;
-import org.formbuilder.mapping.change.ChangeHandler;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
 
-import static fr.duminy.jbackup.core.BackupConfiguration.Source;
 import static org.formbuilder.FormBuilder.map;
 import static org.formbuilder.mapping.form.FormFactories.REPLICATING;
 
@@ -49,67 +40,8 @@ public class BackupConfigurationPanel extends JPanel {
     public BackupConfigurationPanel(ArchiveFactory... factories) {
         FormBuilder<BackupConfiguration> builder = map(BackupConfiguration.class).formsOf(REPLICATING);
 
-        builder.useForProperty("sources", new TypeMapper<ListPanel<JList<Source>, Source>, Object>() {
-            @Override
-            public void handleChanges(@Nonnull ListPanel listPanel, @Nonnull ChangeHandler changeHandler) {
-                //TODO implement this.
-            }
-
-            @Nonnull
-            @Override
-            public ListPanel<JList<Source>, Source> createEditorComponent() {
-                JList<Source> list = new JList(new DefaultListModel<Source>());
-                list.setName("sources");
-                list.setCellRenderer(SourceRenderer.INSTANCE);
-
-                Supplier<Source> sourceProvider = new Supplier<Source>() {
-                    @Override
-                    public Source get() {
-                        Source source = null;
-                        JFileChooser chooser = new JFileChooser();
-                        if (chooser.showOpenDialog(BackupConfigurationPanel.this) == JFileChooser.APPROVE_OPTION) {
-                            source = new Source();
-                            source.setSourceDirectory(chooser.getSelectedFile());
-                        }
-                        return source;
-                    }
-                };
-                return new ListPanel<>(list, sourceProvider);
-            }
-
-            @Nullable
-            @Override
-            public Object getValue(@Nonnull ListPanel<JList<Source>, Source> listPanel) {
-                List<Source> result = new ArrayList<>();
-
-                DefaultListModel<Source> model = getModel(listPanel);
-                for (int i = 0; i < model.getSize(); i++) {
-                    result.add(model.getElementAt(i));
-                }
-
-                return result;
-            }
-
-            @Nonnull
-            @Override
-            public Class getValueClass() {
-                return List.class;
-            }
-
-            @Override
-            public void setValue(@Nonnull ListPanel<JList<Source>, Source> listPanel, @Nullable Object o) {
-                DefaultListModel<Source> model = getModel(listPanel);
-                model.clear();
-                for (Source source : (List<Source>) o) {
-                    model.addElement(source);
-                }
-            }
-
-            private DefaultListModel<Source> getModel(ListPanel<JList<Source>, Source> listPanel) {
-                JList<Source> list = listPanel.getListComponent();
-                return (DefaultListModel<Source>) list.getModel();
-            }
-        }).useForProperty("archiveFactory", new ArchiveFactoryTypeMapper(factories));
+        builder.useForProperty("sources", new SourceListTypeMapper(this));
+        builder.useForProperty("archiveFactory", new ArchiveFactoryTypeMapper(factories));
 
         form = builder.buildForm();
 
