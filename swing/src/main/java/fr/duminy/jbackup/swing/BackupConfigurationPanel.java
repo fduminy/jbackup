@@ -127,13 +127,7 @@ public class BackupConfigurationPanel extends JPanel {
             @Override
             public JComboBox createEditorComponent() {
                 JComboBox result = super.createEditorComponent();
-                result.setRenderer(new DefaultListCellRenderer() {
-                    @Override
-                    public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                        value = (value instanceof ArchiveFactory) ? ((ArchiveFactory) value).getExtension() : "";
-                        return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                    }
-                });
+                result.setRenderer(ArchiveFactoryRenderer.INSTANCE);
                 return result;
             }
 
