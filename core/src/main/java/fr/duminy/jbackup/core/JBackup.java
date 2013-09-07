@@ -31,13 +31,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Main class.
@@ -47,20 +45,20 @@ public class JBackup {
 
     private final ExecutorService executor = Executors.newFixedThreadPool(8);
 
-    public void backup(BackupConfiguration config) throws IOException, InterruptedException {
-        backup(config, null);
+    public Future<Object> backup(BackupConfiguration config) throws IOException, InterruptedException {
+        return backup(config, null);
     }
 
-    public void backup(BackupConfiguration config, ProgressListener listener) throws IOException, InterruptedException {
-        executor.submit(new BackupTask(this, config, listener));
+    public Future<Object> backup(BackupConfiguration config, ProgressListener listener) throws IOException, InterruptedException {
+        return executor.submit(new BackupTask(this, config, listener));
     }
 
-    public void restore(BackupConfiguration config, File archive, File directory) throws IOException, InterruptedException {
-        restore(config, archive, directory, null);
+    public Future<Object> restore(BackupConfiguration config, File archive, File directory) throws IOException, InterruptedException {
+        return restore(config, archive, directory, null);
     }
 
-    public void restore(BackupConfiguration config, File archive, File targetDirectory, ProgressListener listener) throws IOException, InterruptedException {
-        executor.submit(new RestoreTask(this, config, archive, targetDirectory, listener));
+    public Future<Object> restore(BackupConfiguration config, File archive, File targetDirectory, ProgressListener listener) throws IOException, InterruptedException {
+        return executor.submit(new RestoreTask(this, config, archive, targetDirectory, listener));
     }
 
     public void shutdown() throws InterruptedException {
@@ -102,7 +100,7 @@ public class JBackup {
             ArchiveFactory factory = config.getArchiveFactory();
 
             File target = new File(config.getTargetDirectory());
-            target.mkdirs();
+            Files.createDirectories(target.toPath());
 
             String archiveName = generateName(config.getName(), config.getArchiveFactory());
 

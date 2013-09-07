@@ -40,14 +40,20 @@ public class ArchiveFactoryTypeMapper extends ReferenceToComboboxMapper<ArchiveF
         for (ArchiveFactory f : factories) {
             sortedFactories.add(f);
         }
-        Collections.sort(sortedFactories, new Comparator<ArchiveFactory>() {
-            @Override
-            public int compare(ArchiveFactory o1, ArchiveFactory o2) {
-                return o1.getExtension().compareTo(o2.getExtension());
-            }
-        });
+        Collections.sort(sortedFactories, ArchiveFactoryComparator.INSTANCE);
         sortedFactories.add(0, null);
+    }
 
+    private static class ArchiveFactoryComparator implements Comparator<ArchiveFactory> {
+        private static final ArchiveFactoryComparator INSTANCE = new ArchiveFactoryComparator();
+
+        private ArchiveFactoryComparator() {
+        }
+
+        @Override
+        public int compare(ArchiveFactory o1, ArchiveFactory o2) {
+            return o1.getExtension().compareTo(o2.getExtension());
+        }
     }
 
     @Nonnull

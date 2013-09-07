@@ -61,6 +61,8 @@ public class Archiver {
 
                 new Archiver(factory).decompress(archive, directory);
                 break;
+            default:
+                throw new IOException("unsupported operation: " + operation);
         }
     }
 
@@ -82,6 +84,18 @@ public class Archiver {
                 relativePath = relativePath.substring(File.separator.length());
             }
             this.relativePath = relativePath;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
         }
     }
 
@@ -131,20 +145,36 @@ public class Archiver {
         InputStream result = input;
 
         if (listener != null) {
-            result = new CountingInputStream(input) {
-                @Override
-                protected synchronized void afterRead(int n) {
-                    super.afterRead(n);
-
-                    if (n > 0) {
-                        processedSize.add(n);
-                        listener.progress(processedSize.longValue());
-                    }
-                }
-            };
+            result = new NotifyingInputStream(listener, processedSize, input);
         }
 
         return result;
+    }
+
+    private static class NotifyingInputStream extends CountingInputStream {
+        private final ProgressListener listener;
+        private final MutableLong processedSize;
+
+        /**
+         * Constructs a new CountingInputStream.
+         *
+         * @param input the InputStream to delegate to
+         */
+        public NotifyingInputStream(final ProgressListener listener, final MutableLong processedSize, final InputStream input) {
+            super(input);
+            this.listener = listener;
+            this.processedSize = processedSize;
+        }
+
+        @Override
+        protected synchronized void afterRead(int n) {
+            super.afterRead(n);
+
+            if (n > 0) {
+                processedSize.add(n);
+                listener.progress(processedSize.longValue());
+            }
+        }
     }
 
     public void decompress(File archive, File directory) throws IOException {

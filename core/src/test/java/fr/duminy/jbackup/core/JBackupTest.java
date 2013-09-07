@@ -27,6 +27,7 @@ import fr.duminy.jbackup.core.archive.ProgressListener;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -47,11 +48,17 @@ public class JBackupTest extends AbstractArchivingTest {
         config.setTargetDirectory(archiveDirectory.getAbsolutePath());
         config.setArchiveFactory(mockFactory);
 
+        Future<Object> future;
         if (listener == null) {
-            jbackup.restore(config, archive, directory);
+            future = jbackup.restore(config, archive, directory);
+            assertThat(future).isNotNull();
         } else {
-            jbackup.restore(config, archive, directory, listener);
+            future = jbackup.restore(config, archive, directory, listener);
+            assertThat(future).isNotNull();
         }
+
+        assertThat(future).isNotNull();
+        future.get(); // block until finished and maybe throw an Exception if task has thrown one.
 
         jbackup.shutdown();
     }
@@ -81,11 +88,15 @@ public class JBackupTest extends AbstractArchivingTest {
         config.addSource(sourceDirectory.getAbsolutePath());
         config.setArchiveFactory(mockFactory);
 
+        Future<Object> future;
         if (listener == null) {
-            jbackup.backup(config);
+            future = jbackup.backup(config);
         } else {
-            jbackup.backup(config, listener);
+            future = jbackup.backup(config, listener);
         }
+
+        assertThat(future).isNotNull();
+        future.get(); // block until finished and maybe throw an Exception if task has thrown one.
 
         jbackup.shutdown();
     }

@@ -142,7 +142,7 @@
                     <findbugsXmlOutputDirectory>
                         ${findbugs.dir}
                     </findbugsXmlOutputDirectory>
-                    <failOnError>false</failOnError>
+                    <failOnError>true</failOnError>
                 </configuration>
             </plugin>
             <plugin>

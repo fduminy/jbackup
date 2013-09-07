@@ -31,6 +31,8 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -113,10 +115,10 @@ public class ConfigurationManager {
         saveBackupConfiguration(config);
     }
 
-    public void removeBackupConfiguration(BackupConfiguration config) {
+    public void removeBackupConfiguration(BackupConfiguration config) throws IOException {
         BackupConfiguration conf = configurations.remove(config.getName());
         if (conf != null) {
-            configFileFor(config).delete();
+            Files.delete(configFileFor(config).toPath());
         }
     }
 
@@ -129,7 +131,7 @@ public class ConfigurationManager {
     }
 
     public File saveRenamedBackupConfiguration(String oldName, BackupConfiguration config) throws Exception {
-        configFileFor(oldName).delete();
+        Files.delete(configFileFor(oldName).toPath());
         return saveBackupConfiguration(config);
     }
 }

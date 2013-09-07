@@ -93,8 +93,10 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<JList<Source>,
     public void setValue(@Nonnull ListPanel<JList<Source>, Source> listPanel, @Nullable Object o) {
         DefaultListModel<Source> model = getModel(listPanel);
         model.clear();
-        for (Source source : (List<Source>) o) {
-            model.addElement(source);
+        if (o != null) {
+            for (Source source : (List<Source>) o) {
+                model.addElement(source);
+            }
         }
     }
 
