@@ -73,13 +73,7 @@ public class BackupConfigurationPanel extends JPanel {
             public ListPanel<JList<Source>, Source> createEditorComponent() {
                 JList<Source> list = new JList(new DefaultListModel<Source>());
                 list.setName("sources");
-                list.setCellRenderer(new DefaultListCellRenderer() {
-                    @Override
-                    public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                        value = (value == null) ? "" : ((Source) value).getSourceDirectory().getAbsolutePath();
-                        return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                    }
-                });
+                list.setCellRenderer(SourceRenderer.INSTANCE);
 
                 Supplier<Source> sourceProvider = new Supplier<Source>() {
                     @Override
