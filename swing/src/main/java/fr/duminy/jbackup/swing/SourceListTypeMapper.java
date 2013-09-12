@@ -21,7 +21,8 @@
 package fr.duminy.jbackup.swing;
 
 import com.google.common.base.Supplier;
-import fr.duminy.components.swing.list.ListPanel;
+import fr.duminy.components.swing.list.DefaultMutableListModel;
+import fr.duminy.components.swing.listpanel.ListPanel;
 import org.formbuilder.TypeMapper;
 import org.formbuilder.mapping.change.ChangeHandler;
 
@@ -51,7 +52,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<JList<Source>,
     @Nonnull
     @Override
     public ListPanel<JList<Source>, Source> createEditorComponent() {
-        JList<Source> list = new JList(new DefaultListModel<Source>());
+        JList<Source> list = new JList(new DefaultMutableListModel<Source>());
         list.setName("sources");
         list.setCellRenderer(SourceRenderer.INSTANCE);
 
