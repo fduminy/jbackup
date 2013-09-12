@@ -33,9 +33,9 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Manager for JBackup's configurations.
@@ -45,18 +45,19 @@ public class ConfigurationManager {
     private static final String FILE_EXTENSION = "xml";
     private static final FilenameFilter XML_FILE_FILTER = FileFilterUtils.suffixFileFilter(FILE_EXTENSION);
 
-    private final Map<String, BackupConfiguration> configurations = new HashMap<>();
+    private final List<BackupConfiguration> configurations = new ArrayList<>();
     private final File configurationDir;
 
     public ConfigurationManager(File configurationDir) {
         this.configurationDir = configurationDir;
     }
 
-    public Collection<BackupConfiguration> getBackupConfigurations() throws Exception {
+    public List<BackupConfiguration> getBackupConfigurations() throws Exception {
         if (configurations.isEmpty()) {
             loadAllConfigurations();
         }
-        return configurations.values();
+
+        return Collections.unmodifiableList(configurations);
     }
 
     void loadAllConfigurations() throws Exception {
@@ -65,7 +66,7 @@ public class ConfigurationManager {
             try {
                 BackupConfiguration config = loadBackupConfiguration(configFile);
                 if (FilenameUtils.getBaseName(configFile.getAbsolutePath()).equals(config.getName())) {
-                    configurations.put(config.getName(), config);
+                    doAddBackupConfiguration(config);
                 }
             } catch (Exception e) {
                 LOG.error(e.getMessage(), e);
@@ -95,6 +96,40 @@ public class ConfigurationManager {
     }
 
     public void addBackupConfiguration(BackupConfiguration config) throws Exception {
+        doAddBackupConfiguration(config);
+
+        saveBackupConfiguration(config);
+    }
+
+    public void removeBackupConfiguration(BackupConfiguration config) throws IOException {
+        int index = indexOf(config);
+        if (index >= 0) {
+            configurations.remove(index);
+            Files.delete(configFileFor(config).toPath());
+        }
+    }
+
+    File configFileFor(BackupConfiguration config) {
+        return configFileFor(config.getName());
+    }
+
+    private int indexOf(BackupConfiguration config) {
+        int index = -1;
+        for (int i = 0, configurationsSize = configurations.size(); i < configurationsSize; i++) {
+            BackupConfiguration c = configurations.get(i);
+            if (c.getName().equals(config.getName())) {
+                index = i;
+                break;
+            }
+        }
+        return index;
+    }
+
+    private File configFileFor(String configName) {
+        return new File(configurationDir, configName + "." + FILE_EXTENSION);
+    }
+
+    private void doAddBackupConfiguration(BackupConfiguration config) throws Exception {
         if (config.getName() == null) {
             throw new InvalidNameException("configuration has a null name");
         }
@@ -106,28 +141,12 @@ public class ConfigurationManager {
                 throw new InvalidNameException("configuration has an invalid name : '" + config.getName() + "'");
             }
         }
-        if (configurations.containsKey(config.getName())) {
+
+        if (indexOf(config) >= 0) {
             throw new DuplicateNameException("There is already a configuration with name '" + config.getName() + "'");
         }
 
-        configurations.put(config.getName(), config);
-
-        saveBackupConfiguration(config);
-    }
-
-    public void removeBackupConfiguration(BackupConfiguration config) throws IOException {
-        BackupConfiguration conf = configurations.remove(config.getName());
-        if (conf != null) {
-            Files.delete(configFileFor(config).toPath());
-        }
-    }
-
-    File configFileFor(BackupConfiguration config) {
-        return configFileFor(config.getName());
-    }
-
-    private File configFileFor(String configName) {
-        return new File(configurationDir, configName + "." + FILE_EXTENSION);
+        configurations.add(config);
     }
 
     public File saveRenamedBackupConfiguration(String oldName, BackupConfiguration config) throws Exception {
