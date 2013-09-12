@@ -242,6 +242,11 @@
                 <artifactId>hibernate-validator</artifactId>
                 <version>4.3.0.Final</version>
             </dependency>
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.8.2</version>
+            </dependency>
 
             <!-- libraries for tests -->
             <dependency>
@@ -249,12 +254,6 @@
                 <artifactId>commons-io</artifactId>
                 <version>2.4</version>
                 <classifier>tests</classifier>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>commons-beanutils</groupId>
-                <artifactId>commons-beanutils</artifactId>
-                <version>1.8.2</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
