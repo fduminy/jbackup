@@ -103,7 +103,7 @@ public class BackupConfiguration {
 
         @Override
         public Class<? extends ArchiveFactory> marshal(ArchiveFactory v) throws Exception {
-            return v.getClass();
+            return (v == null) ? null : v.getClass();
         }
     }
 
