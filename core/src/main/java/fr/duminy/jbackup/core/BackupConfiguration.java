@@ -111,6 +111,16 @@ public class BackupConfiguration {
         this.archiveFactory = archiveFactory;
     }
 
+    @Override
+    public String toString() {
+        return "BackupConfiguration{" +
+                "name='" + name + '\'' +
+                ", sources=" + sources +
+                ", targetDirectory='" + targetDirectory + '\'' +
+                ", archiveFactory=" + archiveFactory +
+                '}';
+    }
+
     public static class Source {
         private File sourceDirectory;
         private String dirFilter;
@@ -138,6 +148,15 @@ public class BackupConfiguration {
 
         public String getFileFilter() {
             return fileFilter;
+        }
+
+        @Override
+        public String toString() {
+            return "Source{" +
+                    "sourceDirectory=" + sourceDirectory +
+                    ", dirFilter='" + dirFilter + '\'' +
+                    ", fileFilter='" + fileFilter + '\'' +
+                    '}';
         }
     }
 }
