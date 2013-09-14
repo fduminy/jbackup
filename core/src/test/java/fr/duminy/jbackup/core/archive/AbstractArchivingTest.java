@@ -29,6 +29,8 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -87,7 +89,7 @@ abstract public class AbstractArchivingTest {
         File directory = tempFolder.newFolder("targetDir");
         FileUtils.write(archive, StringUtils.repeat("A", (int) expectedTotalSize));
 
-        Listener listener = useListener ? new Listener() : null;
+        ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
 
         // test decompression
         decompress(mockFactory, archive, directory, listener);
@@ -138,7 +140,7 @@ abstract public class AbstractArchivingTest {
             expectedNotifications.add(expectedTotalSize);
         }
 
-        Listener listener = useListener ? new Listener() : null;
+        ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
 
         // test compression
         compress(mockFactory, sourceDirectory, files, archive, listener);
@@ -159,17 +161,21 @@ abstract public class AbstractArchivingTest {
         assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize);
     }
 
-    private void assertThatNotificationsAreValid(Listener listener, List<Long> expectedNotifications, long expectedTotalSize) {
+    private void assertThatNotificationsAreValid(ProgressListener listener, List<Long> expectedNotifications, long expectedTotalSize) {
         if (listener != null) {
-            if (expectedNotifications.isEmpty()) {
-                assertThat(listener.notifications).isEmpty();
-            } else {
-                assertThat(listener.notifications).isEqualTo(expectedNotifications);
+            InOrder inOrder = inOrder(listener);
+
+            // 1 - totalSizeComputed
+            inOrder.verify(listener, times(1)).totalSizeComputed(expectedTotalSize);
+
+            // 2 - progress 
+            if (!expectedNotifications.isEmpty()) {
+                ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+                inOrder.verify(listener, times(expectedNotifications.size())).progress(argument.capture());
+                assertThat(argument.getAllValues()).as("progress notifications").isEqualTo(expectedNotifications);
             }
 
-            assertThat(listener.totalSizeCallCount).as("number of calls to totalSizeComputed()").isEqualTo(1);
-            assertThat(listener.totalSizeCalledBeforeProgress).as("totalSizeComputed() called before progress()").isTrue();
-            assertThat(listener.totalSize).as("totalSize").isEqualTo(expectedTotalSize);
+            inOrder.verifyNoMoreInteractions();
         }
     }
 
@@ -206,29 +212,6 @@ abstract public class AbstractArchivingTest {
         private EntryData(String name, long compressedSize) {
             this.name = name;
             this.compressedSize = compressedSize;
-        }
-    }
-
-    private static class Listener implements ProgressListener {
-        private final List<Long> notifications = new ArrayList<>();
-
-        private boolean progressCalled = false;
-        private boolean totalSizeCalledBeforeProgress = false;
-        private int totalSizeCallCount = 0;
-
-        private long totalSize;
-
-        @Override
-        public void totalSizeComputed(long totalSize) {
-            totalSizeCallCount++;
-            totalSizeCalledBeforeProgress = !progressCalled;
-            this.totalSize = totalSize;
-        }
-
-        @Override
-        public void progress(long totalReadBytes) {
-            progressCalled = true;
-            notifications.add(totalReadBytes);
         }
     }
 }
