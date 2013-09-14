@@ -58,7 +58,19 @@ public class ProgressPanelTest extends AbstractSwingTest {
 
     @Test
     public void testInit() throws Exception {
-        checkState(null, null);
+        checkState(TaskState.NOT_STARTED, null, null, null);
+    }
+
+    @Test
+    public void testTaskStarted() {
+        GuiActionRunner.execute(new GuiQuery<Object>() {
+            protected Object executeInEDT() {
+                panel.taskStarted();
+                return null;
+            }
+        });
+
+        checkState(TaskState.STARTED, null, null, null);
     }
 
     @Test
@@ -74,12 +86,13 @@ public class ProgressPanelTest extends AbstractSwingTest {
     private void testTotalSizeComputed(final long maxValue) throws Exception {
         GuiActionRunner.execute(new GuiQuery<Object>() {
             protected Object executeInEDT() {
+                panel.taskStarted();
                 panel.totalSizeComputed(maxValue);
                 return null;
             }
         });
 
-        checkState(0L, maxValue);
+        checkState(TaskState.TOTAL_SIZE_COMPUTED, 0L, maxValue, null);
     }
 
     @Test
@@ -95,39 +108,89 @@ public class ProgressPanelTest extends AbstractSwingTest {
     private void testProgress(final long value, final long maxValue) throws Exception {
         GuiActionRunner.execute(new GuiQuery<Object>() {
             protected Object executeInEDT() {
+                panel.taskStarted();
                 panel.totalSizeComputed(maxValue);
                 panel.progress(value);
                 return null;
             }
         });
 
-        checkState(value, maxValue);
+        checkState(TaskState.PROGRESS, value, maxValue, null);
     }
 
-    private void checkState(Long value, Long maxValue) {
+    @Test
+    public void testTaskFinished_withoutError() {
+        testTaskFinished(null);
+    }
+
+    @Test
+    public void testTaskFinished_withError() {
+        testTaskFinished(new Exception("Something went wrong"));
+    }
+
+    private void testTaskFinished(final Throwable error) {
+        GuiActionRunner.execute(new GuiQuery<Object>() {
+            protected Object executeInEDT() {
+                panel.taskStarted();
+                panel.totalSizeComputed(10);
+                panel.progress(0);
+                panel.taskFinished(error);
+                return null;
+            }
+        });
+
+        checkState(TaskState.FINISHED, null, null, error);
+    }
+
+    private void checkState(TaskState taskState, Long value, Long maxValue, Throwable error) {
         assertThat(panel.getBorder()).isExactlyInstanceOf(TitledBorder.class);
         assertThat(((TitledBorder) panel.getBorder()).getTitle()).isEqualTo(TITLE);
 
         JProgressBarFixture f = window.progressBar("progress");
-        if (value == null) {
-            f.requireIndeterminate().requireText("Estimating total size");
-        } else {
-            int iValue;
-            int iMaxValue;
-            if (maxValue > Integer.MAX_VALUE) {
-                iValue = MathUtils.toInteger(value, maxValue);
-                iMaxValue = Integer.MAX_VALUE;
-            } else {
-                iValue = value.intValue();
-                iMaxValue = maxValue.intValue();
-            }
+        switch (taskState) {
+            case NOT_STARTED:
+                f.requireIndeterminate().requireText("Not started");
+                break;
 
-            String expectedMessage = format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(value),
-                    byteCountToDisplaySize(maxValue), MathUtils.percent(value, maxValue));
-            f.requireDeterminate().requireValue(iValue).requireText(expectedMessage);
-            assertThat(f.component().getMinimum()).isEqualTo(0);
-            assertThat(f.component().getMaximum()).isEqualTo(iMaxValue);
+            case STARTED:
+                f.requireIndeterminate().requireText("Estimating total size");
+                break;
+
+            case TOTAL_SIZE_COMPUTED:
+            case PROGRESS:
+                int iValue;
+                int iMaxValue;
+                if (maxValue > Integer.MAX_VALUE) {
+                    iValue = MathUtils.toInteger(value, maxValue);
+                    iMaxValue = Integer.MAX_VALUE;
+                } else {
+                    iValue = value.intValue();
+                    iMaxValue = maxValue.intValue();
+                }
+
+                String expectedMessage = format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(value),
+                        byteCountToDisplaySize(maxValue), MathUtils.percent(value, maxValue));
+                f.requireDeterminate().requireValue(iValue).requireText(expectedMessage);
+                assertThat(f.component().getMinimum()).isEqualTo(0);
+                assertThat(f.component().getMaximum()).isEqualTo(iMaxValue);
+                break;
+
+            case FINISHED:
+                if (error == null) {
+                    f.requireDeterminate().requireText("Finished");
+                } else {
+                    f.requireDeterminate().requireText("Error : " + error.getMessage());
+                }
+                break;
         }
+    }
+
+    private static enum TaskState {
+        NOT_STARTED,
+        STARTED,
+        TOTAL_SIZE_COMPUTED,
+        PROGRESS,
+        FINISHED;
     }
 
 }

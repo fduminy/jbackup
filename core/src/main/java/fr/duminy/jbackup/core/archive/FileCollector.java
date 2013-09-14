@@ -59,4 +59,10 @@ public class FileCollector extends DirectoryWalker<File> {
         results.add(file);
         totalSize += file.length();
     }
+
+    @Override
+    protected boolean handleIsCancelled(File file, int depth, Collection<File> results) throws IOException {
+        //TODO returns true and handle cancellation somewhere 
+        return super.handleIsCancelled(file, depth, results);
+    }
 }

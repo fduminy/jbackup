@@ -20,11 +20,14 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.JBackupTest;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
+import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.rules.TemporaryFolder;
@@ -49,6 +52,9 @@ abstract public class AbstractArchivingTest {
     @DataPoint
     public static final boolean LISTENER = true;
 
+    @DataPoints
+    public static final ErrorType[] ERROR_TYPES = ErrorType.values();
+
     @DataPoint
     public static final EntryData[] NO_ENTRY = {null};
     @DataPoint
@@ -59,14 +65,19 @@ abstract public class AbstractArchivingTest {
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private final boolean callGetExtension;
+    private static final Class<FileNotFoundException> ERROR_CLASS = FileNotFoundException.class;
 
-    protected AbstractArchivingTest(boolean callGetExtension) {
-        this.callGetExtension = callGetExtension;
+    private final boolean testJBackup;
+
+    protected AbstractArchivingTest() {
+        this.testJBackup = (this instanceof JBackupTest);
     }
 
     @Theory
-    public void testDecompress(EntryData[] entries, boolean useListener) throws Exception {
+    public void testDecompress(EntryData[] entries, boolean useListener, ErrorType errorType) throws Throwable {
+        boolean errorIsExpected = ErrorType.ERROR == errorType;
+        Assume.assumeTrue(!errorIsExpected || testJBackup);
+
         // preparation of archiver & mocks
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
@@ -92,23 +103,36 @@ abstract public class AbstractArchivingTest {
         ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
 
         // test decompression
-        decompress(mockFactory, archive, directory, listener);
+        try {
+            if (errorIsExpected) {
+                archive.setReadable(false);
+            }
 
-        // assertions
-        verify(mockFactory, times(1)).create(any(InputStream.class));
-        verifyNoMoreInteractions(mockFactory);
+            decompress(mockFactory, archive, directory, listener, errorIsExpected);
 
-        verify(mockInput, times(entries.length)).getNextEntry();
-        verify(mockInput, times(1)).close();
-        verifyNoMoreInteractions(mockInput);
+            // assertions
+            verify(mockFactory, times(1)).create(any(InputStream.class));
+            verifyNoMoreInteractions(mockFactory);
 
-        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize);
+            verify(mockInput, times(entries.length)).getNextEntry();
+            verify(mockInput, times(1)).close();
+            verifyNoMoreInteractions(mockInput);
+        } catch (Throwable t) {
+            checkErrorIsExpected(errorIsExpected, t);
+        } finally {
+            archive.setReadable(true);
+        }
+
+        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorIsExpected);
     }
 
-    abstract protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener) throws Exception;
+    abstract protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener, boolean errorIsExpected) throws Throwable;
 
     @Theory
-    public void testCompress(EntryData[] entries, boolean useListener) throws Exception {
+    public void testCompress(EntryData[] entries, boolean useListener, ErrorType errorType) throws Throwable {
+        boolean errorIsExpected = ErrorType.ERROR == errorType;
+        Assume.assumeTrue(!errorIsExpected || testJBackup);
+
         File archive = tempFolder.newFile("archive.mock");
 
         // preparation of archiver & mocks
@@ -142,44 +166,78 @@ abstract public class AbstractArchivingTest {
 
         ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
 
-        // test compression
-        compress(mockFactory, sourceDirectory, files, archive, listener);
+        try {
+            if (errorIsExpected) {
+                sourceDirectory.setReadable(false);
+            }
 
-        // assertions
-        verify(mockFactory, times(1)).create(any(OutputStream.class));
-        if (callGetExtension) {
-            verify(mockFactory, times(1)).getExtension();
+            // test compression
+            compress(mockFactory, sourceDirectory, files, archive, listener, errorIsExpected);
+
+            // assertions
+            verify(mockFactory, times(1)).create(any(OutputStream.class));
+            if (testJBackup) {
+                verify(mockFactory, times(1)).getExtension();
+            }
+            verifyNoMoreInteractions(mockFactory);
+
+            if (!errorIsExpected) {
+                for (File file : files) {
+                    verify(mockOutput, times(1)).addEntry(eq(file.getAbsolutePath()), any(InputStream.class));
+                }
+            }
+            verify(mockOutput, times(1)).close();
+            verifyNoMoreInteractions(mockOutput);
+        } catch (Throwable t) {
+            checkErrorIsExpected(errorIsExpected, t);
+        } finally {
+            sourceDirectory.setReadable(true);
         }
-        verifyNoMoreInteractions(mockFactory);
 
-        for (File file : files) {
-            verify(mockOutput, times(1)).addEntry(eq(file.getAbsolutePath()), any(InputStream.class));
-        }
-        verify(mockOutput, times(1)).close();
-        verifyNoMoreInteractions(mockOutput);
-
-        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize);
+        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorIsExpected);
     }
 
-    private void assertThatNotificationsAreValid(ProgressListener listener, List<Long> expectedNotifications, long expectedTotalSize) {
+    private void checkErrorIsExpected(boolean error, Throwable t) throws Throwable {
+        if (!error || !t.getClass().equals(ERROR_CLASS)) {
+            throw t;
+        }
+    }
+
+    private void assertThatNotificationsAreValid(ProgressListener listener, List<Long> expectedNotifications, long expectedTotalSize, boolean errorIsExpected) {
         if (listener != null) {
             InOrder inOrder = inOrder(listener);
 
-            // 1 - totalSizeComputed
-            inOrder.verify(listener, times(1)).totalSizeComputed(expectedTotalSize);
+            // 1 - taskStarted
+            if (testJBackup) {
+                inOrder.verify(listener, times(1)).taskStarted();
+            } else {
+                inOrder.verify(listener, never()).taskStarted();
+            }
 
-            // 2 - progress 
-            if (!expectedNotifications.isEmpty()) {
-                ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-                inOrder.verify(listener, times(expectedNotifications.size())).progress(argument.capture());
-                assertThat(argument.getAllValues()).as("progress notifications").isEqualTo(expectedNotifications);
+            if (!errorIsExpected) {
+                // 2 - totalSizeComputed
+                inOrder.verify(listener, times(1)).totalSizeComputed(expectedTotalSize);
+
+                // 3 - progress
+                if (!expectedNotifications.isEmpty()) {
+                    ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+                    inOrder.verify(listener, times(expectedNotifications.size())).progress(argument.capture());
+                    assertThat(argument.getAllValues()).as("progress notifications").isEqualTo(expectedNotifications);
+                }
+            }
+
+            // 4 - taskFinished
+            if (testJBackup) {
+                inOrder.verify(listener, times(1)).taskFinished(errorIsExpected ? any(ERROR_CLASS) : null);
+            } else {
+                inOrder.verify(listener, never()).taskFinished(any(Throwable.class));
             }
 
             inOrder.verifyNoMoreInteractions();
         }
     }
 
-    abstract protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive, ProgressListener listener) throws Exception;
+    abstract protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive, ProgressListener listener, boolean errorIsExpected) throws Throwable;
 
     private ArchiveInputStream.Entry[] nextMockEntries(EntryData[] entries) {
         ArchiveInputStream.Entry[] result = new ArchiveInputStream.Entry[entries.length - 1];
@@ -213,5 +271,10 @@ abstract public class AbstractArchivingTest {
             this.name = name;
             this.compressedSize = compressedSize;
         }
+    }
+
+    private static enum ErrorType {
+        NO_ERROR,
+        ERROR;
     }
 }

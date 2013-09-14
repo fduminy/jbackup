@@ -24,9 +24,11 @@ import fr.duminy.jbackup.core.archive.AbstractArchivingTest;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.Archiver;
 import fr.duminy.jbackup.core.archive.ProgressListener;
+import org.apache.commons.lang.mutable.MutableObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,12 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for class {@link fr.duminy.jbackup.core.JBackup}.
  */
 public class JBackupTest extends AbstractArchivingTest {
-    public JBackupTest() {
-        super(true);
-    }
-
     @Override
-    protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener) throws Exception {
+    protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener, boolean errorIsExpected) throws Throwable {
         JBackup jbackup = new JBackup();
         File archiveDirectory = new File(archive.getParent());
         BackupConfiguration config = new BackupConfiguration();
@@ -57,22 +55,20 @@ public class JBackupTest extends AbstractArchivingTest {
             assertThat(future).isNotNull();
         }
 
-        assertThat(future).isNotNull();
-        future.get(); // block until finished and maybe throw an Exception if task has thrown one.
-
+        waitResult(future);
         jbackup.shutdown();
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, final File[] expectedFiles, File archive, ProgressListener listener) throws Exception {
+    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, final File[] expectedFiles, File archive, ProgressListener listener, boolean errorIsExpected) throws Throwable {
+        final MutableObject actualFilesWrapper = new MutableObject();
         JBackup jbackup = new JBackup() {
             @Override
             Archiver createArchiver(ArchiveFactory factory) {
                 return new Archiver(factory) {
                     @Override
                     public void compress(File[] actualFiles, File archive, ProgressListener listener) throws IOException {
-                        // ensure that actual files are as expected
-                        assertThat(actualFiles).isEqualTo(expectedFiles);
+                        actualFilesWrapper.setValue(actualFiles);
 
                         // now compress files in the order given by expectedFiles
                         // (otherwise the test will fail on some platforms)
@@ -95,9 +91,22 @@ public class JBackupTest extends AbstractArchivingTest {
             future = jbackup.backup(config, listener);
         }
 
-        assertThat(future).isNotNull();
-        future.get(); // block until finished and maybe throw an Exception if task has thrown one.
+        waitResult(future);
+
+        // ensure that actual files are as expected
+        if (!errorIsExpected) {
+            assertThat(actualFilesWrapper.getValue()).isEqualTo(expectedFiles);
+        }
 
         jbackup.shutdown();
+    }
+
+    protected void waitResult(Future<Object> future) throws Throwable {
+        assertThat(future).isNotNull();
+        try {
+            future.get(); // block until finished and maybe throw an Exception if task has thrown one.
+        } catch (ExecutionException e) {
+            throw e.getCause();
+        }
     }
 }

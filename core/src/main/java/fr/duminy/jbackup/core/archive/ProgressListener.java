@@ -25,6 +25,11 @@ package fr.duminy.jbackup.core.archive;
  */
 public interface ProgressListener {
     /**
+     * Notify that the task has just started (by computing the totalSize).
+     */
+    void taskStarted();
+
+    /**
      * Notify that the total number of bytes has been computed. Note that this method must be called before {@link #progress(long)}.
      *
      * @param totalSize The total number of bytes to be read for (de)compression.
@@ -37,4 +42,11 @@ public interface ProgressListener {
      * @param totalReadBytes The total number of bytes read since the begin of (de)compression.
      */
     void progress(long totalReadBytes);
+
+    /**
+     * Notify that the task has finished and eventually failed.
+     *
+     * @param error If not null, provides details about the failure.
+     */
+    void taskFinished(Throwable error);
 }

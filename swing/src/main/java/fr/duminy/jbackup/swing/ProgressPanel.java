@@ -41,8 +41,13 @@ public class ProgressPanel extends JPanel implements ProgressListener {
         progressBar.setName("progress");
         progressBar.setIndeterminate(true);
         progressBar.setStringPainted(true);
-        progressBar.setString("Estimating total size");
+        progressBar.setString("Not started");
         add(progressBar, BorderLayout.CENTER);
+    }
+
+    @Override
+    public void taskStarted() {
+        progressBar.setString("Estimating total size");
     }
 
     @Override
@@ -70,6 +75,15 @@ public class ProgressPanel extends JPanel implements ProgressListener {
         }
         progressBar.setValue(value);
         setText(totalReadBytes);
+    }
+
+    @Override
+    public void taskFinished(Throwable error) {
+        if (error == null) {
+            progressBar.setString("Finished");
+        } else {
+            progressBar.setString("Error : " + error.getMessage());
+        }
     }
 
     private void setText(long totalReadBytes) {

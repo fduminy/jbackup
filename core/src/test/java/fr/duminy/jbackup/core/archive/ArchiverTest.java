@@ -27,12 +27,8 @@ import java.io.IOException;
  * Test for the class {@link Archiver}.
  */
 public class ArchiverTest extends AbstractArchivingTest {
-    public ArchiverTest() {
-        super(false);
-    }
-
     @Override
-    protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener) throws IOException {
+    protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener, boolean errorIsExpected) throws IOException {
         Archiver archiver = new Archiver(mockFactory);
         if (listener == null) {
             archiver.decompress(archive, directory);
@@ -42,7 +38,7 @@ public class ArchiverTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive, ProgressListener listener) throws IOException {
+    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive, ProgressListener listener, boolean errorIsExpected) throws IOException {
         Archiver archiver = new Archiver(mockFactory);
         if (listener == null) {
             archiver.compress(files, archive);

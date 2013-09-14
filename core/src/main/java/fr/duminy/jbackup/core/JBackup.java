@@ -79,10 +79,36 @@ public class JBackup {
 
     private static abstract class Task implements Callable<Object> {
         protected final JBackup jbackup;
+        protected final ProgressListener listener;
 
-        protected Task(JBackup jbackup) {
+        protected Task(JBackup jbackup, ProgressListener listener) {
             this.jbackup = jbackup;
+            this.listener = listener;
         }
+
+        @Override
+        public final Object call() throws IOException {
+            if (listener == null) {
+                execute();
+            } else {
+                Throwable error = null;
+                try {
+                    try {
+                        listener.taskStarted();
+                        execute();
+                    } catch (Throwable e) {
+                        error = e;
+                        throw e;
+                    }
+                } finally {
+                    listener.taskFinished(error);
+                }
+            }
+
+            return null;
+        }
+
+        abstract protected void execute() throws IOException;
     }
 
     private static class BackupTask extends Task {
@@ -90,13 +116,13 @@ public class JBackup {
         private final ProgressListener listener;
 
         private BackupTask(JBackup jbackup, BackupConfiguration config, ProgressListener listener) {
-            super(jbackup);
+            super(jbackup, listener);
             this.config = config;
             this.listener = listener;
         }
 
         @Override
-        public Object call() throws IOException {
+        protected void execute() throws IOException {
             ArchiveFactory factory = config.getArchiveFactory();
 
             File target = new File(config.getTargetDirectory());
@@ -117,7 +143,6 @@ public class JBackup {
             LOG.info("Backup '{}': {} files ({}) to compress", new Object[]{config.getName(), files.size(), FileUtils.byteCountToDisplaySize(size)});
 
             jbackup.createArchiver(factory).compress(files.toArray(new File[files.size()]), archive, listener);
-            return null;
         }
     }
 
@@ -128,7 +153,7 @@ public class JBackup {
         private final ProgressListener listener;
 
         private RestoreTask(JBackup jbackup, BackupConfiguration config, File archive, File targetDirectory, ProgressListener listener) {
-            super(jbackup);
+            super(jbackup, listener);
             this.config = config;
             this.archive = archive;
             this.targetDirectory = targetDirectory;
@@ -136,10 +161,9 @@ public class JBackup {
         }
 
         @Override
-        public Object call() throws Exception {
+        protected void execute() throws IOException {
             ArchiveFactory factory = config.getArchiveFactory();
             jbackup.createArchiver(factory).decompress(archive, targetDirectory, listener);
-            return null;
         }
     }
 }
