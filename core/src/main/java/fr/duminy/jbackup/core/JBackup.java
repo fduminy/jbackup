@@ -45,19 +45,19 @@ public class JBackup {
 
     private final ExecutorService executor = Executors.newFixedThreadPool(8);
 
-    public Future<Object> backup(BackupConfiguration config) throws IOException, InterruptedException {
+    public Future<Object> backup(BackupConfiguration config) {
         return backup(config, null);
     }
 
-    public Future<Object> backup(BackupConfiguration config, ProgressListener listener) throws IOException, InterruptedException {
+    public Future<Object> backup(BackupConfiguration config, ProgressListener listener) {
         return executor.submit(new BackupTask(this, config, listener));
     }
 
-    public Future<Object> restore(BackupConfiguration config, File archive, File directory) throws IOException, InterruptedException {
+    public Future<Object> restore(BackupConfiguration config, File archive, File directory) {
         return restore(config, archive, directory, null);
     }
 
-    public Future<Object> restore(BackupConfiguration config, File archive, File targetDirectory, ProgressListener listener) throws IOException, InterruptedException {
+    public Future<Object> restore(BackupConfiguration config, File archive, File targetDirectory, ProgressListener listener) {
         return executor.submit(new RestoreTask(this, config, archive, targetDirectory, listener));
     }
 
