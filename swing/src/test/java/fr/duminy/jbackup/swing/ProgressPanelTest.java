@@ -142,18 +142,24 @@ public class ProgressPanelTest extends AbstractSwingTest {
         checkState(TaskState.FINISHED, null, null, error);
     }
 
+    public static void assertThatPanelHasTitle(ProgressPanel panel, String expectedTitle) {
+        assertThat(((TitledBorder) panel.getBorder()).getTitle()).isEqualTo(expectedTitle);
+    }
+
     private void checkState(TaskState taskState, Long value, Long maxValue, Throwable error) {
         assertThat(panel.getBorder()).isExactlyInstanceOf(TitledBorder.class);
-        assertThat(((TitledBorder) panel.getBorder()).getTitle()).isEqualTo(TITLE);
+        assertThatPanelHasTitle(panel, TITLE);
 
         JProgressBarFixture f = window.progressBar("progress");
         switch (taskState) {
             case NOT_STARTED:
                 f.requireIndeterminate().requireText("Not started");
+                assertThat(panel.isFinished()).as("isFinished").isFalse();
                 break;
 
             case STARTED:
                 f.requireIndeterminate().requireText("Estimating total size");
+                assertThat(panel.isFinished()).as("isFinished").isFalse();
                 break;
 
             case TOTAL_SIZE_COMPUTED:
@@ -173,6 +179,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
                 f.requireDeterminate().requireValue(iValue).requireText(expectedMessage);
                 assertThat(f.component().getMinimum()).isEqualTo(0);
                 assertThat(f.component().getMaximum()).isEqualTo(iMaxValue);
+                assertThat(panel.isFinished()).as("isFinished").isFalse();
                 break;
 
             case FINISHED:
@@ -181,6 +188,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
                 } else {
                     f.requireDeterminate().requireText("Error : " + error.getMessage());
                 }
+                assertThat(panel.isFinished()).as("isFinished").isTrue();
                 break;
         }
     }

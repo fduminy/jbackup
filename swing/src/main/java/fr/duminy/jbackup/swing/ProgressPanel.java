@@ -34,6 +34,7 @@ import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 public class ProgressPanel extends JPanel implements ProgressListener {
     private final JProgressBar progressBar = new JProgressBar();
     private long totalSize;
+    private boolean finished = false;
 
     public ProgressPanel(String title) {
         super(new BorderLayout());
@@ -84,11 +85,16 @@ public class ProgressPanel extends JPanel implements ProgressListener {
         } else {
             progressBar.setString("Error : " + error.getMessage());
         }
+        finished = true;
     }
 
     private void setText(long totalReadBytes) {
         String message = String.format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(totalReadBytes),
                 byteCountToDisplaySize(totalSize), MathUtils.percent(totalReadBytes, totalSize));
         progressBar.setString(message);
+    }
+
+    public boolean isFinished() {
+        return finished;
     }
 }
