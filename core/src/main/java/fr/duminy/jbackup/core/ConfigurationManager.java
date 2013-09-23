@@ -74,6 +74,18 @@ public class ConfigurationManager {
         }
     }
 
+    public static File getLatestArchive(BackupConfiguration configuration) {
+        File result = null;
+        for (File file : new File(configuration.getTargetDirectory()).listFiles()) {
+            if (result == null) {
+                result = file;
+            } else if (file.lastModified() > result.lastModified()) {
+                result = file;
+            }
+        }
+        return result;
+    }
+
     BackupConfiguration loadBackupConfiguration(File input) throws Exception {
         JAXBContext jaxbContext = JAXBContext.newInstance(BackupConfiguration.class);
 

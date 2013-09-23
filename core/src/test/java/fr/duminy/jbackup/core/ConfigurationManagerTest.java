@@ -22,8 +22,10 @@ package fr.duminy.jbackup.core;
 
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
+import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
@@ -331,6 +333,40 @@ public class ConfigurationManagerTest {
         Assertions.assertThat(output).hasContent(CONFIG_XML);
 
         return output;
+    }
+
+    @Test
+    public void testGetLatestArchive_noArchive() throws IOException {
+        BackupConfiguration config = createConfiguration("config", tempFolder.newFolder().toPath());
+
+        File configFile = ConfigurationManager.getLatestArchive(config);
+
+        assertThat(configFile).isNull();
+    }
+
+    @Test
+    public void testGetLatestArchive_oneArchive() throws Exception {
+        initAndGetLatestArchive(1);
+    }
+
+    @Test
+    public void testGetLatestArchive_twoArchives() throws Exception {
+        initAndGetLatestArchive(2);
+    }
+
+    private void initAndGetLatestArchive(int nbConfigurations) throws Exception {
+        BackupConfiguration config = createConfiguration("config", tempFolder.newFolder().toPath());
+        File[] files = new File[nbConfigurations];
+        for (int i = 0; i < nbConfigurations; i++) {
+            File file = new File(config.getTargetDirectory(), "file" + i);
+            IOUtils.copy(ZipArchiveFactoryTest.getArchive(), new java.io.FileOutputStream(file));
+            Thread.sleep(1000);
+            files[i] = file;
+        }
+
+        File configFile = ConfigurationManager.getLatestArchive(config);
+
+        assertThat(configFile).isEqualTo(files[files.length - 1]);
     }
 
     public static BackupConfiguration createConfiguration() {
