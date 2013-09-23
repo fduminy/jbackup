@@ -22,8 +22,16 @@ package fr.duminy.jbackup.core.archive.zip;
 
 import fr.duminy.jbackup.core.archive.ArchiveFactoryTest;
 
+import java.io.InputStream;
+
 public class ZipArchiveFactoryTest extends ArchiveFactoryTest<ZipArchiveFactory> {
+    private static final String ARCHIVE_RESOURCE = "archive.zip";
+
     public ZipArchiveFactoryTest() {
-        super("archive.zip", new ZipArchiveFactory());
+        super(ARCHIVE_RESOURCE, new ZipArchiveFactory());
+    }
+
+    public static InputStream getArchive() {
+        return getArchiveResource(ZipArchiveFactoryTest.class, ARCHIVE_RESOURCE);
     }
 }

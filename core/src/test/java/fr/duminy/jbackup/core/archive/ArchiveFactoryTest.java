@@ -57,7 +57,11 @@ abstract public class ArchiveFactoryTest<T extends ArchiveFactory> {
 
     @Test
     public final void testCreateArchiveInputStream() throws IOException {
-        testCreateArchiveInputStream(getClass().getResourceAsStream(archiveResource));
+        testCreateArchiveInputStream(getArchiveResource(getClass(), archiveResource));
+    }
+
+    protected static InputStream getArchiveResource(Class<? extends ArchiveFactoryTest> clazz, String archiveResource) {
+        return clazz.getResourceAsStream(archiveResource);
     }
 
     @Test
