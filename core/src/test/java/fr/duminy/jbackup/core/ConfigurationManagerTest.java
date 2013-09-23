@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import javax.naming.InvalidNameException;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 
 import static java.lang.Thread.sleep;
@@ -337,11 +338,15 @@ public class ConfigurationManagerTest {
     }
 
     public static BackupConfiguration createConfiguration(String configName) {
+        return createConfiguration(configName, null);
+    }
+
+    public static BackupConfiguration createConfiguration(String configName, Path targetDirectory) {
         final BackupConfiguration config = new BackupConfiguration();
 
         config.setName(configName);
         config.setArchiveFactory(ZIP_ARCHIVE_FACTORY);
-        config.setTargetDirectory(TARGET_DIRECTORY);
+        config.setTargetDirectory((targetDirectory == null) ? TARGET_DIRECTORY : targetDirectory.toFile().getAbsolutePath());
         config.addSource(toAbsolutePath("aSource"), "aDirFilter", "aFileFilter");
         config.addSource(toAbsolutePath("aSource2"));
         config.addSource(toAbsolutePath("anotherSource"), "anotherDirFilter", "anotherFileFilter");
