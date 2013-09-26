@@ -61,6 +61,8 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<JList<Source>,
             public Source get() {
                 Source source = null;
                 JFileChooser chooser = new JFileChooser();
+                chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+                chooser.setMultiSelectionEnabled(false);
                 if (chooser.showOpenDialog(parent) == JFileChooser.APPROVE_OPTION) {
                     source = new Source();
                     source.setSourceDirectory(chooser.getSelectedFile());

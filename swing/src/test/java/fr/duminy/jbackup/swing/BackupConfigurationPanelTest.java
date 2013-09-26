@@ -29,9 +29,11 @@ import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
 import org.fest.swing.edt.GuiActionRunner;
 import org.fest.swing.edt.GuiQuery;
 import org.fest.swing.fixture.JComboBoxFixture;
+import org.fest.swing.fixture.JFileChooserFixture;
 import org.fest.swing.fixture.JListFixture;
 import org.junit.Test;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -141,7 +143,13 @@ public class BackupConfigurationPanelTest extends AbstractSwingTest {
         window.textBox("name").enterText(expectedConfig.getName());
         for (Source source : expectedConfig.getSources()) {
             window.button("addButton").click();
-            window.fileChooser().selectFile(source.getSourceDirectory()).approve();
+            JFileChooserFixture jfc = window.fileChooser();
+
+            //TODO also support multiple files/directories in listpanel
+            assertThat(jfc.component().isMultiSelectionEnabled()).as("multiSelectionEnabled").isFalse(); //TODO add that to fest assert
+            assertThat(jfc.component().getFileSelectionMode()).as("fileSelectionMode").isEqualTo(JFileChooser.FILES_AND_DIRECTORIES); // TODO add that to fest assert
+
+            jfc.selectFile(source.getSourceDirectory()).approve();
         }
         window.textBox("targetDirectory").enterText(expectedConfig.getTargetDirectory());
         window.comboBox("archiveFactory").selectItem("zip");
