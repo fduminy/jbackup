@@ -90,6 +90,35 @@ public class ConfigurationManagerTest {
         manager = new ConfigurationManager(configDir);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void testInit_nullDirectory() throws Exception {
+        new ConfigurationManager(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInit_notWritableDirectory() throws Exception {
+        File dir = tempFolder.newFolder();
+        dir.setWritable(false);
+        new ConfigurationManager(dir);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInit_notADirectory() throws Exception {
+        File dir = tempFolder.newFile();
+        new ConfigurationManager(dir);
+    }
+
+    @Test
+    public void testInit_nonExistingDirectory() throws Exception {
+        File dir = tempFolder.newFolder();
+        assertThat(dir.delete()).isTrue();
+        assertThat(dir).doesNotExist();
+
+        new ConfigurationManager(dir);
+
+        assertThat(dir).exists();
+    }
+
     @Test
     public void testGetBackupConfigurations() throws Exception {
         writeConfigFile(true); //config1=true

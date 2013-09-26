@@ -49,6 +49,21 @@ public class ConfigurationManager {
     private final File configurationDir;
 
     public ConfigurationManager(File configurationDir) {
+        if (configurationDir == null) {
+            throw new NullPointerException("configurationDir is null");
+        }
+        if (!configurationDir.isDirectory()) {
+            if (configurationDir.exists()) {
+                throw new IllegalArgumentException("'" + configurationDir.getAbsolutePath() + "' is not a directory");
+            } else {
+                if (!configurationDir.mkdirs()) {
+                    throw new IllegalArgumentException("Can't create directory '" + configurationDir.getAbsolutePath() + "'");
+                }
+            }
+        }
+        if (!configurationDir.canWrite()) {
+            throw new IllegalArgumentException("can't write into directory '" + configurationDir.getAbsolutePath() + "'");
+        }
         this.configurationDir = configurationDir;
     }
 
