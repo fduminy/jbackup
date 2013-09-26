@@ -81,6 +81,9 @@
                 <configuration>
                     <source>1.7</source>
                     <target>1.7</target>
+
+                    <!-- configuration for ez18n -->
+                    <compilerArgument>-proc:none</compilerArgument>
                 </configuration>
             </plugin>
             <plugin>

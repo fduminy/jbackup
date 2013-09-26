@@ -26,16 +26,26 @@ import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.ConfigurationManager;
 import fr.duminy.jbackup.core.ConfigurationManagerTest;
+import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
+import org.apache.commons.io.IOUtils;
 import org.fest.assertions.Assertions;
 import org.fest.swing.fixture.JListFixture;
+import org.fest.swing.fixture.JOptionPaneFixture;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,12 +53,15 @@ import java.util.List;
 import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.COMPARATOR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests for class {@link ConfigurationManagerPanel}.
  */
 @RunWith(Theories.class)
 public class ConfigurationManagerPanelTest extends AbstractSwingTest {
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManagerPanelTest.class);
     @DataPoint
     public static final int INIT_NO_CONFIG = 0;
     @DataPoint
@@ -61,6 +74,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     private ConfigurationManagerPanel panel;
     private File configDir;
     private ConfigurationManager manager;
+    private BackupConfigurationActions configActions;
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
@@ -104,6 +118,101 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         assertThat(manager.getBackupConfigurations()).usingElementComparator(COMPARATOR).containsOnlyOnce(Iterables.toArray(expectedConfigs, BackupConfiguration.class));
     }
 
+    @Theory
+    public void testBackup(int nbConfigurations) throws Exception {
+        assumeTrue(nbConfigurations > 0);
+        List<BackupConfiguration> configs = init(nbConfigurations);
+
+        BackupConfiguration expectedConfig = configs.get(nbConfigurations - 1);
+        window.list("configurations").selectItem(expectedConfig.getName());
+        window.button("backupButton").requireToolTip(Messages.BACKUP_MESSAGE).click();
+
+        ArgumentCaptor<BackupConfiguration> actualConfig = ArgumentCaptor.forClass(BackupConfiguration.class);
+        verify(configActions, times(1)).backup(actualConfig.capture());
+        verifyNoMoreInteractions(configActions);
+
+        ConfigurationManagerTest.assertAreEquals(expectedConfig, actualConfig.getValue());
+    }
+
+    @Test
+    public void testBackup_noSelection() throws Exception {
+        init(1);
+
+        window.list("configurations").selectItem(0).clearSelection();
+        window.button("backupButton").requireDisabled();
+    }
+
+    @Test
+    public void testBackup_multipleSelection() throws Exception {
+        init(3);
+
+        window.list("configurations").selectItems(0, 2);
+        window.button("backupButton").requireEnabled();
+    }
+
+    @Theory
+    public void testRestore_cancel(int nbConfigurations) throws Exception {
+        testRestore(nbConfigurations, false);
+    }
+
+    @Theory
+    public void testRestore_ok(int nbConfigurations) throws Exception {
+        testRestore(nbConfigurations, true);
+    }
+
+    private void testRestore(int nbConfigurations, boolean ok) throws Exception {
+        assumeTrue(nbConfigurations > 0);
+        List<BackupConfiguration> configs = init(nbConfigurations);
+
+        BackupConfiguration expectedConfig = configs.get(nbConfigurations - 1);
+        File expectedArchive = createArchive(expectedConfig);
+        File expectedTargetDirectory = tempFolder.newFile("targetDir");
+        window.list("configurations").selectItem(expectedConfig.getName());
+        window.button("restoreButton").requireToolTip(Messages.RESTORE_MESSAGE).click();
+
+        JOptionPaneFixture dialog = window.optionPane();
+        dialog.requireQuestionMessage();
+        dialog.requireTitle("Restore backup '" + expectedConfig.getName() + "'");
+        dialog.panel("archive").textBox("pathField").requireText(expectedArchive.getAbsolutePath());
+        dialog.panel("targetDirectory").textBox("pathField").requireText("").setText(expectedTargetDirectory.getAbsolutePath());
+        if (ok) {
+            dialog.okButton().click();
+
+            ArgumentCaptor<BackupConfiguration> actualConfig = ArgumentCaptor.forClass(BackupConfiguration.class);
+            verify(configActions, times(1)).restore(actualConfig.capture(), eq(expectedArchive), eq(expectedTargetDirectory));
+            verifyNoMoreInteractions(configActions);
+
+            ConfigurationManagerTest.assertAreEquals(expectedConfig, actualConfig.getValue());
+        } else {
+            dialog.cancelButton().click();
+
+            verify(configActions, never()).restore(any(BackupConfiguration.class), any(File.class), any(File.class));
+            verifyNoMoreInteractions(configActions);
+        }
+    }
+
+    @Test
+    public void testRestore_noSelection() throws Exception {
+        init(1);
+
+        window.list("configurations").selectItem(0).clearSelection();
+        window.button("restoreButton").requireDisabled();
+    }
+
+    @Test
+    public void testRestore_multipleSelection() throws Exception {
+        init(3);
+
+        window.list("configurations").selectItems(0, 2);
+        window.button("restoreButton").requireDisabled();
+    }
+
+    private File createArchive(BackupConfiguration config) throws IOException {
+        File result = new File(config.getTargetDirectory(), "archive.zip");
+        IOUtils.copy(ZipArchiveFactoryTest.getArchive(), new FileOutputStream(result));
+        return result;
+    }
+
     private List<BackupConfiguration> init(int nbConfigurations) {
         try {
             configDir = tempFolder.newFolder();
@@ -116,13 +225,14 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
             }
 
             manager = new ConfigurationManager(configDir);
+            configActions = mock(BackupConfigurationActions.class);
 
             final ConfigurationManager mgr = manager;
             panel = buildAndShowWindow(new Supplier<ConfigurationManagerPanel>() {
                 @Override
                 public ConfigurationManagerPanel get() {
                     try {
-                        return new ConfigurationManagerPanel(mgr);
+                        return new ConfigurationManagerPanel(mgr, configActions);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -144,7 +254,8 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     }
 
     private BackupConfiguration createConfiguration(int i) {
-        return ConfigurationManagerTest.createConfiguration("name" + i);
+        Path targetDirectory = tempFolder.newFolder("archiveDirectory").toPath();
+        return ConfigurationManagerTest.createConfiguration("name" + i, targetDirectory);
     }
 
     private void assertFormValues(List<BackupConfiguration> configs) {

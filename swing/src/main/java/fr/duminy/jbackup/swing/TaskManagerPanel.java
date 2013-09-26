@@ -32,7 +32,7 @@ import java.util.Map;
 /**
  * This is the panel that show current tasks.
  */
-public class TaskManagerPanel extends JPanel {
+public class TaskManagerPanel extends JPanel implements BackupConfigurationActions {
     private final JBackup jBackup;
     private final Map<String, ProgressPanel> taskPanels = new HashMap<>();
 
@@ -41,11 +41,13 @@ public class TaskManagerPanel extends JPanel {
         this.jBackup = jBackup;
     }
 
+    @Override
     public void backup(BackupConfiguration config) throws DuplicateTaskException {
         checkNoTaskIsAlreadyRunningFor(config);
         jBackup.backup(config, createProgressPanel(config));
     }
 
+    @Override
     public void restore(BackupConfiguration config, File archive, File targetDirectory) throws DuplicateTaskException {
         checkNoTaskIsAlreadyRunningFor(config);
         jBackup.restore(config, archive, targetDirectory, createProgressPanel(config));

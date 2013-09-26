@@ -40,7 +40,7 @@ public class ConfigurationManagerPanel extends ListPanel<JList<BackupConfigurati
     static final Comparator<BackupConfiguration> COMPARATOR = new BeanComparator("name");
     public static final String DEFAULT_CONFIG_NAME = "newConfiguration";
 
-    public ConfigurationManagerPanel(final ConfigurationManager manager) throws Exception {
+    public ConfigurationManagerPanel(final ConfigurationManager manager, final BackupConfigurationActions configActions) throws Exception {
         super(createList(manager), new Supplier<BackupConfiguration>() {
             @Override
             public BackupConfiguration get() {
@@ -49,6 +49,9 @@ public class ConfigurationManagerPanel extends ListPanel<JList<BackupConfigurati
                 return config;
             }
         });
+
+        addUserButton("backupButton", new BackupAction(configActions));
+        addUserButton("restoreButton", new RestoreAction(this, configActions));
     }
 
     private static JList<BackupConfiguration> createList(ConfigurationManager manager) {
