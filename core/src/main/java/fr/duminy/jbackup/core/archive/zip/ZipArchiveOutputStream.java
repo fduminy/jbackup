@@ -1,7 +1,7 @@
 /**
  * JBackup is a software managing backups.
  *
- * Copyright (C) 2013-2013 Fabien DUMINY (fabien [dot] duminy [at] webmails [dot] com)
+ * Copyright (C) 2013-2014 Fabien DUMINY (fabien [dot] duminy [at] webmails [dot] com)
  *
  * JBackup is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
