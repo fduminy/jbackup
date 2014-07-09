@@ -20,20 +20,18 @@
  */
 package fr.duminy.jbackup.swing;
 
+import fr.duminy.components.swing.form.DefaultFormBuilder;
+import fr.duminy.components.swing.form.FormBuilder;
 import fr.duminy.components.swing.form.JFormPane;
 import fr.duminy.components.swing.listpanel.AbstractUserItemAction;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.ConfigurationManager;
-import org.formbuilder.FormBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
 import java.io.File;
-
-import static org.formbuilder.FormBuilder.map;
-import static org.formbuilder.mapping.form.FormFactories.REPLICATING;
 
 public class RestoreAction extends AbstractUserItemAction<BackupConfiguration, Messages> {
     private static final Logger LOG = LoggerFactory.getLogger(RestoreAction.class);
@@ -57,11 +55,11 @@ public class RestoreAction extends AbstractUserItemAction<BackupConfiguration, M
 
     @Override
     public void executeAction(BackupConfiguration config) {
-        FormBuilder<RestoreParameters> builder = map(RestoreParameters.class).formsOf(REPLICATING);
+        FormBuilder<RestoreParameters> builder = new DefaultFormBuilder<>(RestoreParameters.class);
         RestoreParameters params = new RestoreParameters();
         params.setArchive(ConfigurationManager.getLatestArchive(config));
         String title = getBundle().restoreDialogTitle(config.getName());
-        if ((params = JFormPane.showFormDialog(parent, builder, params, title)) != null) {
+        if ((params = JFormPane.showFormDialog(parent, builder, params, title, JFormPane.Mode.CREATE)) != null) {
             try {
                 configActions.restore(config, params.getArchive(), params.getTargetDirectory());
             } catch (DuplicateTaskException e) {

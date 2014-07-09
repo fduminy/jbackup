@@ -20,11 +20,14 @@
  */
 package fr.duminy.jbackup.swing;
 
-import com.google.common.base.Supplier;
+import fr.duminy.components.swing.form.DefaultFormBuilder;
+import fr.duminy.components.swing.form.FormBuilder;
 import fr.duminy.components.swing.list.AbstractMutableListModel;
 import fr.duminy.components.swing.listpanel.ListPanel;
+import fr.duminy.components.swing.listpanel.SimpleItemManager;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.ConfigurationManager;
+import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import org.apache.commons.beanutils.BeanComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +36,8 @@ import javax.swing.*;
 import java.io.IOException;
 import java.util.Comparator;
 
+import static fr.duminy.components.swing.listpanel.SimpleItemManager.ContainerType.DIALOG;
+
 /**
  * Panel representing a {@link fr.duminy.jbackup.core.ConfigurationManager}.
  */
@@ -40,18 +45,27 @@ public class ConfigurationManagerPanel extends ListPanel<JList<BackupConfigurati
     static final Comparator<BackupConfiguration> COMPARATOR = new BeanComparator("name");
     public static final String DEFAULT_CONFIG_NAME = "newConfiguration";
 
-    public ConfigurationManagerPanel(final ConfigurationManager manager, final BackupConfigurationActions configActions) throws Exception {
-        super(createList(manager), new Supplier<BackupConfiguration>() {
+    public ConfigurationManagerPanel(final ConfigurationManager manager, final BackupConfigurationActions configActions, JComponent parent, ArchiveFactory... factories) throws Exception {
+        super(createList(manager), new SimpleItemManager<BackupConfiguration>(BackupConfiguration.class, createBuilder(parent, factories), parent, "Configuration", DIALOG) {
             @Override
-            public BackupConfiguration get() {
-                BackupConfiguration config = new BackupConfiguration();
-                config.setName(DEFAULT_CONFIG_NAME);
-                return config;
+            protected void initItem(BackupConfiguration item) {
+                item.setName(DEFAULT_CONFIG_NAME);
             }
         });
 
         addUserButton("backupButton", new BackupAction(configActions));
         addUserButton("restoreButton", new RestoreAction(this, configActions));
+    }
+
+    private static FormBuilder<BackupConfiguration> createBuilder(final JComponent parent, final ArchiveFactory... factories) {
+        return new DefaultFormBuilder<BackupConfiguration>(BackupConfiguration.class) {
+            @Override
+            protected void configureBuilder(org.formbuilder.FormBuilder<BackupConfiguration> builder) {
+                super.configureBuilder(builder);
+                builder.useForProperty("sources", new SourceListTypeMapper(parent));
+                builder.useForProperty("archiveFactory", new ArchiveFactoryTypeMapper(factories));
+            }
+        };
     }
 
     private static JList<BackupConfiguration> createList(ConfigurationManager manager) {
@@ -93,6 +107,12 @@ public class ConfigurationManagerPanel extends ListPanel<JList<BackupConfigurati
             } catch (Exception e) {
                 LOG.error(e.getMessage(), e);
             }
+        }
+
+        @Override
+        public BackupConfiguration set(int i, BackupConfiguration item) {
+            return null; //TODO implement this
+            //return manager.getBackupConfigurations().set(i, item);
         }
 
         @Override

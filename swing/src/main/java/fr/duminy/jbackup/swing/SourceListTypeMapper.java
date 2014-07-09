@@ -20,9 +20,9 @@
  */
 package fr.duminy.jbackup.swing;
 
-import com.google.common.base.Supplier;
 import fr.duminy.components.swing.list.DefaultMutableListModel;
 import fr.duminy.components.swing.listpanel.ListPanel;
+import fr.duminy.components.swing.listpanel.SimpleItemManager;
 import org.formbuilder.TypeMapper;
 import org.formbuilder.mapping.change.ChangeHandler;
 
@@ -32,6 +32,7 @@ import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static fr.duminy.components.swing.listpanel.SimpleItemManager.ContainerType.DIALOG;
 import static fr.duminy.jbackup.core.BackupConfiguration.Source;
 
 /**
@@ -56,20 +57,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<JList<Source>,
         list.setName("sources");
         list.setCellRenderer(SourceRenderer.INSTANCE);
 
-        Supplier<Source> sourceProvider = new Supplier<Source>() {
-            @Override
-            public Source get() {
-                Source source = null;
-                JFileChooser chooser = new JFileChooser();
-                chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-                chooser.setMultiSelectionEnabled(false);
-                if (chooser.showOpenDialog(parent) == JFileChooser.APPROVE_OPTION) {
-                    source = new Source();
-                    source.setSourceDirectory(chooser.getSelectedFile());
-                }
-                return source;
-            }
-        };
+        SimpleItemManager<Source> sourceProvider = new SimpleItemManager<>(Source.class, parent, "Sources", DIALOG);
         return new ListPanel<>(list, sourceProvider);
     }
 

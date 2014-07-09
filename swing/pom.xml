@@ -81,6 +81,11 @@
             <artifactId>cacio-tta</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.ez18n</groupId>
+            <artifactId>ez18n-base</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>

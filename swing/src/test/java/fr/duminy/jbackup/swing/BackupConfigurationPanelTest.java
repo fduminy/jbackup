@@ -22,6 +22,9 @@ package fr.duminy.jbackup.swing;
 
 import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
+import fr.duminy.components.swing.form.JFormPaneFixture;
+import fr.duminy.components.swing.path.JPath;
+import fr.duminy.components.swing.path.JPathFixture;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ArchiveInputStream;
@@ -29,11 +32,9 @@ import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
 import org.fest.swing.edt.GuiActionRunner;
 import org.fest.swing.edt.GuiQuery;
 import org.fest.swing.fixture.JComboBoxFixture;
-import org.fest.swing.fixture.JFileChooserFixture;
 import org.fest.swing.fixture.JListFixture;
 import org.junit.Test;
 
-import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -42,7 +43,8 @@ import java.util.Collections;
 import java.util.List;
 
 import static fr.duminy.jbackup.core.BackupConfiguration.Source;
-import static fr.duminy.jbackup.core.ConfigurationManagerTest.*;
+import static fr.duminy.jbackup.core.ConfigurationManagerTest.ZIP_ARCHIVE_FACTORY;
+import static fr.duminy.jbackup.core.ConfigurationManagerTest.createConfiguration;
 import static org.fest.assertions.Assertions.assertThat;
 
 /**
@@ -96,20 +98,6 @@ public class BackupConfigurationPanelTest extends AbstractSwingTest {
         assertFormValues("", NO_SOURCE, "", null);
     }
 
-    @Test
-    public void testSetConfiguration() throws Exception {
-        final BackupConfiguration expectedConfiguration = createConfiguration();
-
-        GuiActionRunner.execute(new GuiQuery<Object>() {
-            protected Object executeInEDT() {
-                panel.setConfiguration(expectedConfiguration);
-                return null;
-            }
-        });
-
-        assertFormValues(expectedConfiguration);
-    }
-
     /**
      * Especially test the interactions while adding sources and their rendering in the list.
      */
@@ -118,17 +106,6 @@ public class BackupConfigurationPanelTest extends AbstractSwingTest {
         final BackupConfiguration expectedConfig = fillForm();
 
         assertFormValues(expectedConfig);
-    }
-
-    @Test
-    public void testGetConfiguration() throws Exception {
-        final BackupConfiguration expectedConfig = fillForm();
-
-        // test
-        BackupConfiguration actualConfig = panel.getConfiguration();
-
-        // assertions
-        assertAreEquals(expectedConfig, actualConfig);
     }
 
     private BackupConfiguration fillForm() {
@@ -141,15 +118,25 @@ public class BackupConfigurationPanelTest extends AbstractSwingTest {
         }
 
         window.textBox("name").enterText(expectedConfig.getName());
-        for (Source source : expectedConfig.getSources()) {
+        for (final Source source : expectedConfig.getSources()) {
             window.button("addButton").click();
-            JFileChooserFixture jfc = window.fileChooser();
+
+            final JPathFixture jpf = new JPathFixture(robot(), "sourceDirectory");
+            jpf.requireSelectionMode(JPath.SelectionMode.FILES_AND_DIRECTORIES);
 
             //TODO also support multiple files/directories in listpanel
-            assertThat(jfc.component().isMultiSelectionEnabled()).as("multiSelectionEnabled").isFalse(); //TODO add that to fest assert
-            assertThat(jfc.component().getFileSelectionMode()).as("fileSelectionMode").isEqualTo(JFileChooser.FILES_AND_DIRECTORIES); // TODO add that to fest assert
+//            assertThat(jfc.component().isMultiSelectionEnabled()).as("multiSelectionEnabled").isFalse(); //TODO add that to fest assert
 
-            jfc.selectFile(source.getSourceDirectory()).approve();
+            GuiActionRunner.execute(new GuiQuery<Object>() {
+                protected Object executeInEDT() {
+                    jpf.selectPath(source.getSourceDirectory().toPath());
+                    return null;
+                }
+            });
+
+            JFormPaneFixture jfpFixture = new JFormPaneFixture(robot(), Source.class);
+            jfpFixture.requireInDialog(true);
+            jfpFixture.okButton().click();
         }
         window.textBox("targetDirectory").enterText(expectedConfig.getTargetDirectory());
         window.comboBox("archiveFactory").selectItem("zip");
