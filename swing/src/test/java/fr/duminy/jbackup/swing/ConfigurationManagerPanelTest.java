@@ -27,6 +27,8 @@ import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.components.swing.TestUtilities;
 import fr.duminy.components.swing.form.JFormPane;
 import fr.duminy.components.swing.form.JFormPaneFixture;
+import fr.duminy.components.swing.listpanel.ListPanelFixture;
+import fr.duminy.components.swing.path.JPath;
 import fr.duminy.components.swing.path.JPathFixture;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.ConfigurationManager;
@@ -39,7 +41,10 @@ import org.apache.commons.io.IOUtils;
 import org.fest.assertions.Assertions;
 import org.fest.swing.edt.GuiActionRunner;
 import org.fest.swing.edt.GuiQuery;
-import org.fest.swing.fixture.*;
+import org.fest.swing.edt.GuiTask;
+import org.fest.swing.fixture.JButtonFixture;
+import org.fest.swing.fixture.JComboBoxFixture;
+import org.fest.swing.fixture.JListFixture;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
@@ -60,7 +65,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static fr.duminy.components.swing.form.JFormPaneTest.formPane;
 import static fr.duminy.jbackup.core.ConfigurationManagerTest.ZIP_ARCHIVE_FACTORY;
 import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.COMPARATOR;
 import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.DEFAULT_CONFIG_NAME;
@@ -362,7 +366,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     }
 
     private BackupConfiguration fillConfigurationForm() {
-        JPanelFixture configForm = formPane(robot(), BackupConfiguration.class);
+        JFormPaneFixture configForm = new JFormPaneFixture(robot(), BackupConfiguration.class);
         final BackupConfiguration expectedConfig = ConfigurationManagerTest.createConfiguration();
 
         //TODO support dirFilter and fileFilter
@@ -372,21 +376,19 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         }
 
         configForm.textBox("name").deleteText().enterText(expectedConfig.getName());
-        JButtonFixture addSource = configForm.button("addButton");
-        for (BackupConfiguration.Source source : expectedConfig.getSources()) {
+        JButtonFixture addSource = configForm.listPanel().addButton();
+        for (final BackupConfiguration.Source source : expectedConfig.getSources()) {
             addSource.click();
             robot().waitForIdle();
 
-            JPanelFixture sourceForm = formPane(robot(), BackupConfiguration.Source.class);
-            sourceForm.button("chooseButton").click();
-
-            JFileChooserFixture jfc = configForm.fileChooser();
-
-            //TODO also support multiple files/directories in listpanel
-            Assertions.assertThat(jfc.component().isMultiSelectionEnabled()).as("multiSelectionEnabled").isFalse(); //TODO add that to fest assert
-            Assertions.assertThat(jfc.component().getFileSelectionMode()).as("fileSelectionMode").isEqualTo(JFileChooser.FILES_AND_DIRECTORIES); // TODO add that to fest assert
-
-            jfc.selectFile(source.getSourceDirectory()).approve();
+            JFormPaneFixture sourceForm = new JFormPaneFixture(robot(), BackupConfiguration.Source.class);
+            final JPathFixture sourcePath = sourceForm.path();
+            sourcePath.requireSelectionMode(JPath.SelectionMode.FILES_AND_DIRECTORIES);
+            GuiActionRunner.execute(new GuiTask() {
+                protected void executeInEDT() {
+                    sourcePath.selectPath(source.getSourceDirectory().toPath());
+                }
+            });
 
             clickOkButton(BackupConfiguration.Source.class);
         }
@@ -433,15 +435,16 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     }
 
     private void assertConfigurationFormValues(String name, List<BackupConfiguration.Source> sources, String targetDirectory, ArchiveFactory selectedArchiveFactory) {
-        JPanelFixture formPane = formPane(robot(), BackupConfiguration.class);
+        JFormPaneFixture formPane = new JFormPaneFixture(robot(), BackupConfiguration.class);
         formPane.textBox("name").requireVisible().requireEnabled().requireEditable().requireText(name);
 
-        JListFixture jl = formPane.list("sources").requireVisible()/*.requireEnabled()*/;
+        ListPanelFixture<BackupConfiguration.Source, JList<BackupConfiguration.Source>> listPanel = formPane.listPanel();
+        listPanel.requireVisible()/*.requireEnabled()*/;
         String[] renderedSources = new String[sources.size()];
         for (int i = 0; i < renderedSources.length; i++) {
             renderedSources[i] = sources.get(i).getSourceDirectory().getAbsolutePath();
         }
-        Assertions.assertThat(jl.contents()).as("sources").isEqualTo(renderedSources);
+        Assertions.assertThat(listPanel.list().contents()).as("sources").isEqualTo(renderedSources);
 
         formPane.textBox("targetDirectory").requireVisible().requireEnabled().requireEditable().requireText(targetDirectory);
 

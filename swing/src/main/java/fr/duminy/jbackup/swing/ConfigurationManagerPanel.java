@@ -41,7 +41,7 @@ import static fr.duminy.components.swing.listpanel.SimpleItemManager.ContainerTy
 /**
  * Panel representing a {@link fr.duminy.jbackup.core.ConfigurationManager}.
  */
-public class ConfigurationManagerPanel extends ListPanel<JList<BackupConfiguration>, BackupConfiguration> {
+public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JList<BackupConfiguration>> {
     static final Comparator<BackupConfiguration> COMPARATOR = new BeanComparator("name");
     public static final String DEFAULT_CONFIG_NAME = "newConfiguration";
 

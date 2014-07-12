@@ -37,8 +37,9 @@ import static fr.duminy.jbackup.core.BackupConfiguration.Source;
 
 /**
  * A {@link org.formbuilder.TypeMapper} for {@link fr.duminy.jbackup.core.archive.ArchiveFactory}.
+ * TODO : create a generic version from this in swing-components and (try to) associate it to list (and other collections ?) properties by default.
  */
-public class SourceListTypeMapper implements TypeMapper<ListPanel<JList<Source>, Source>, Object> {
+public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<Source>>, Object> {
     private final JComponent parent;
 
     public SourceListTypeMapper(JComponent parent) {
@@ -52,7 +53,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<JList<Source>,
 
     @Nonnull
     @Override
-    public ListPanel<JList<Source>, Source> createEditorComponent() {
+    public ListPanel<Source, JList<Source>> createEditorComponent() {
         JList<Source> list = new JList(new DefaultMutableListModel<Source>());
         list.setName("sources");
         list.setCellRenderer(SourceRenderer.INSTANCE);
@@ -63,7 +64,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<JList<Source>,
 
     @Nullable
     @Override
-    public Object getValue(@Nonnull ListPanel<JList<Source>, Source> listPanel) {
+    public Object getValue(@Nonnull ListPanel<Source, JList<Source>> listPanel) {
         List<Source> result = new ArrayList<>();
 
         DefaultListModel<Source> model = getModel(listPanel);
@@ -81,7 +82,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<JList<Source>,
     }
 
     @Override
-    public void setValue(@Nonnull ListPanel<JList<Source>, Source> listPanel, @Nullable Object o) {
+    public void setValue(@Nonnull ListPanel<Source, JList<Source>> listPanel, @Nullable Object o) {
         DefaultListModel<Source> model = getModel(listPanel);
         model.clear();
         if (o != null) {
@@ -91,7 +92,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<JList<Source>,
         }
     }
 
-    private DefaultListModel<Source> getModel(ListPanel<JList<Source>, Source> listPanel) {
+    private DefaultListModel<Source> getModel(ListPanel<Source, JList<Source>> listPanel) {
         JList<Source> list = listPanel.getListComponent();
         return (DefaultListModel<Source>) list.getModel();
     }
