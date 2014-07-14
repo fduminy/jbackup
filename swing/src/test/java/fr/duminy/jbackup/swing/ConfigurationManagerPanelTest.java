@@ -361,15 +361,9 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
 
     private void assertFormValues(List<BackupConfiguration> configs) {
         JListFixture jl = window.list(CONFIG_MANAGER_PANEL_NAME).requireVisible().requireEnabled();
-        String[] renderedConfigs = new String[configs.size()];
-        for (int i = 0; i < renderedConfigs.length; i++) {
-            renderedConfigs[i] = configs.get(i).getName();
-        }
 
-        String[] actualContents = jl.contents();
-        Arrays.sort(actualContents); //TODO enable sort directly in the ListModel
-        Arrays.sort(renderedConfigs);
-        Assertions.assertThat(actualContents).as(CONFIG_MANAGER_PANEL_NAME).isEqualTo(renderedConfigs);
+        //TODO enable sort directly in the ListModel (contents)
+        Assertions.assertThat(sort(jl.contents())).as(CONFIG_MANAGER_PANEL_NAME).isEqualTo(renderedConfigs(configs));
     }
 
     private BackupConfiguration fillConfigurationForm() {
@@ -427,20 +421,6 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         LOG.debug("{} :\n{}", context, TestUtilities.dumpComponents(robot()));
     }
 
-//    private static GenericTypeMatcher<JDialog> withTitle(final String title) {
-//        return new GenericTypeMatcher<JDialog>(JDialog.class) {
-//            @Override
-//            protected boolean isMatching(JDialog component) {
-//                return component.getTitle().equals(title);
-//            }
-//
-//            @Override
-//            public String toString() {
-//                return "<Dialog with title '" + title + "'>";
-//            }
-//        };
-//    }
-
     private void assertConfigurationFormValues(BackupConfiguration config) {
         assertConfigurationFormValues(config.getName(), config.getSources(), config.getTargetDirectory(), config.getArchiveFactory());
     }
@@ -473,5 +453,18 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         } else {
             cb.requireSelection(selectedArchiveFactory.getExtension());
         }
+    }
+
+    private String[] renderedConfigs(List<BackupConfiguration> configs) {
+        String[] renderedConfigs = new String[configs.size()];
+        for (int i = 0; i < renderedConfigs.length; i++) {
+            renderedConfigs[i] = configs.get(i).getName();
+        }
+        return sort(renderedConfigs);
+    }
+
+    private static String[] sort(String[] strings) {
+        Arrays.sort(strings);
+        return strings;
     }
 }
