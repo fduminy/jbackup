@@ -20,33 +20,32 @@
  */
 package fr.duminy.jbackup.swing;
 
+import fr.duminy.components.swing.form.DefaultFormBuilder;
+import fr.duminy.components.swing.form.JFormPane;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
-import org.formbuilder.Form;
-import org.formbuilder.FormBuilder;
 
 import javax.swing.*;
 import java.awt.*;
-
-import static org.formbuilder.FormBuilder.map;
-import static org.formbuilder.mapping.form.FormFactories.REPLICATING;
 
 /**
  * Panel representing a {@link fr.duminy.jbackup.core.BackupConfiguration}.
  */
 public class BackupConfigurationPanel extends JPanel {
-    private final Form<BackupConfiguration> form;
+    private final JFormPane<BackupConfiguration> form;
 
-    public BackupConfigurationPanel(ArchiveFactory... factories) {
-        FormBuilder<BackupConfiguration> builder = map(BackupConfiguration.class).formsOf(REPLICATING);
-
-        builder.useForProperty("sources", new SourceListTypeMapper(this));
-        builder.useForProperty("archiveFactory", new ArchiveFactoryTypeMapper(factories));
-
-        form = builder.buildForm();
-
+    public BackupConfigurationPanel(final ArchiveFactory... factories) {
+        DefaultFormBuilder<BackupConfiguration> formBuilder = new DefaultFormBuilder<BackupConfiguration>(BackupConfiguration.class) {
+            @Override
+            protected void configureBuilder(org.formbuilder.FormBuilder<BackupConfiguration> builder) {
+                super.configureBuilder(builder);
+                builder.useForProperty("sources", new SourceListTypeMapper(BackupConfigurationPanel.this));
+                builder.useForProperty("archiveFactory", new ArchiveFactoryTypeMapper(factories));
+            }
+        };
         setLayout(new BorderLayout());
-        add(form.asComponent(), BorderLayout.CENTER);
+        form = new JFormPane<>(formBuilder, "Configuration", JFormPane.Mode.CREATE);
+        add(form, BorderLayout.CENTER);
     }
 
     public void setConfiguration(BackupConfiguration config) {

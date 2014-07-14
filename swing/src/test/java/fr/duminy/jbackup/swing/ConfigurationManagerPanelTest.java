@@ -22,10 +22,8 @@ package fr.duminy.jbackup.swing;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
-import fr.duminy.components.swing.AbstractFormTest;
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.components.swing.TestUtilities;
-import fr.duminy.components.swing.form.JFormPane;
 import fr.duminy.components.swing.form.JFormPaneFixture;
 import fr.duminy.components.swing.listpanel.ListPanelFixture;
 import fr.duminy.components.swing.path.JPath;
@@ -39,6 +37,7 @@ import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import org.apache.commons.io.IOUtils;
 import org.fest.assertions.Assertions;
+import org.fest.swing.core.Robot;
 import org.fest.swing.edt.GuiActionRunner;
 import org.fest.swing.edt.GuiQuery;
 import org.fest.swing.edt.GuiTask;
@@ -66,8 +65,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static fr.duminy.jbackup.core.ConfigurationManagerTest.ZIP_ARCHIVE_FACTORY;
-import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.COMPARATOR;
-import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.DEFAULT_CONFIG_NAME;
+import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Matchers.eq;
@@ -112,7 +110,8 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
      * This array must not be sorted in ascending order on the extension property
      */
     private static final ArchiveFactory[] ARCHIVE_FACTORIES = {ZIP_ARCHIVE_FACTORY, FAKE_ARCHIVE_FACTORY};
-    
+    private static final String CONFIG_MANAGER_PANEL_NAME = "configurations";
+
     private ConfigurationManagerPanel panel;
     private File configDir;
     private ConfigurationManager manager;
@@ -146,10 +145,11 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         config.setName(DEFAULT_CONFIG_NAME);
         expectedConfigs.add(config);
 
-        window.button("addButton").click();
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.addButton().click();
         assertConfigurationFormValues(DEFAULT_CONFIG_NAME, NO_SOURCE, "", null);
 
-        clickOkButton(BackupConfiguration.class);
+        new JFormPaneFixture(robot(), BackupConfiguration.class).okButton().click();
 
         assertFormValues(expectedConfigs);
         assertThat(manager.getBackupConfigurations()).usingElementComparator(COMPARATOR).containsOnlyOnce(Iterables.toArray(expectedConfigs, BackupConfiguration.class));
@@ -164,13 +164,15 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
 
         List<BackupConfiguration> expectedConfigs = init(nbConfigurations);
 
-        window.button("addButton").click();
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.addButton().click();
+
         robot().waitForIdle();
         final BackupConfiguration expectedConfig = fillConfigurationForm();
         expectedConfigs.add(expectedConfig);
 
         assertConfigurationFormValues(expectedConfig);
-        clickOkButton(BackupConfiguration.class);
+        new JFormPaneFixture(robot(), BackupConfiguration.class).okButton().click();
 
         assertFormValues(expectedConfigs);
         assertThat(manager.getBackupConfigurations()).usingElementComparator(COMPARATOR).containsOnlyOnce(Iterables.toArray(expectedConfigs, BackupConfiguration.class));
@@ -189,8 +191,9 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
             }
         }
 
-        window.list("configurations").selectItem(config.getName());
-        window.button("removeButton").click();
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.list().selectItem(config.getName());
+        configurationList.removeButton().click();
 
         assertFormValues(expectedConfigs);
         assertThat(manager.getBackupConfigurations()).usingElementComparator(COMPARATOR).containsOnlyOnce(Iterables.toArray(expectedConfigs, BackupConfiguration.class));
@@ -202,9 +205,10 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         List<BackupConfiguration> configs = init(nbConfigurations);
 
         BackupConfiguration expectedConfig = configs.get(nbConfigurations - 1);
-        window.list("configurations").selectItem(expectedConfig.getName());
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.list().selectItem(expectedConfig.getName());
         robot().waitForIdle();
-        window.button("backupButton").requireToolTip(Messages.BACKUP_MESSAGE).click();
+        configurationList.userButton(BACKUP_BUTTON_NAME).requireToolTip(Messages.BACKUP_MESSAGE).click();
         robot().waitForIdle();
         
         ArgumentCaptor<BackupConfiguration> actualConfig = ArgumentCaptor.forClass(BackupConfiguration.class);
@@ -218,16 +222,18 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     public void testBackup_noSelection() throws Exception {
         init(1);
 
-        window.list("configurations").selectItem(0).clearSelection();
-        window.button("backupButton").requireDisabled();
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.list().selectItem(0).clearSelection();
+        configurationList.userButton(BACKUP_BUTTON_NAME).requireDisabled();
     }
 
     @Test
     public void testBackup_multipleSelection() throws Exception {
         init(3);
 
-        window.list("configurations").selectItems(0, 2);
-        window.button("backupButton").requireEnabled();
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.list().selectItems(0, 2);
+        configurationList.userButton(BACKUP_BUTTON_NAME).requireEnabled();
     }
 
     @Theory
@@ -247,8 +253,9 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         BackupConfiguration expectedConfig = configs.get(nbConfigurations - 1);
         File expectedArchive = createArchive(expectedConfig);
         final File expectedTargetDirectory = tempFolder.newFile("targetDir");
-        window.list("configurations").selectItem(expectedConfig.getName());
-        window.button("restoreButton").requireToolTip(Messages.RESTORE_MESSAGE).click();
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.list().selectItem(expectedConfig.getName());
+        configurationList.userButton(RESTORE_BUTTON_NAME).requireToolTip(Messages.RESTORE_MESSAGE).click();
 
         JFormPaneFixture fixture = new JFormPaneFixture(robot(), RestoreAction.RestoreParameters.class);
         fixture.requireInDialog(true).requireModeCreate();
@@ -281,24 +288,22 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         }
     }
 
-    private <T extends java.awt.Container> void clickOkButton(Class<?> beanClass) {
-        AbstractFormTest.OpenInDialog.INSTANCE.clickOkButton(LOG, robot(), JFormPane.getDefaultPanelName(beanClass), JFormPane.Mode.CREATE);
-    }
-
     @Test
     public void testRestore_noSelection() throws Exception {
         init(1);
 
-        window.list("configurations").selectItem(0).clearSelection();
-        window.button("restoreButton").requireDisabled();
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.list().selectItem(0).clearSelection();
+        configurationList.userButton(RESTORE_BUTTON_NAME).requireDisabled();
     }
 
     @Test
     public void testRestore_multipleSelection() throws Exception {
         init(3);
 
-        window.list("configurations").selectItems(0, 2);
-        window.button("restoreButton").requireDisabled();
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.list().selectItems(0, 2);
+        configurationList.userButton(RESTORE_BUTTON_NAME).requireDisabled();
     }
 
     private File createArchive(BackupConfiguration config) throws IOException {
@@ -326,7 +331,9 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
                 @Override
                 public ConfigurationManagerPanel get() {
                     try {
-                        return new ConfigurationManagerPanel(mgr, configActions, (JComponent) getFrame().getContentPane(), ARCHIVE_FACTORIES);
+                        final ConfigurationManagerPanel panel = new ConfigurationManagerPanel(mgr, configActions, (JComponent) getFrame().getContentPane(), ARCHIVE_FACTORIES);
+                        panel.setName(CONFIG_MANAGER_PANEL_NAME);
+                        return panel;                        
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -353,7 +360,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     }
 
     private void assertFormValues(List<BackupConfiguration> configs) {
-        JListFixture jl = window.list("configurations").requireVisible().requireEnabled();
+        JListFixture jl = window.list(CONFIG_MANAGER_PANEL_NAME).requireVisible().requireEnabled();
         String[] renderedConfigs = new String[configs.size()];
         for (int i = 0; i < renderedConfigs.length; i++) {
             renderedConfigs[i] = configs.get(i).getName();
@@ -362,11 +369,15 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         String[] actualContents = jl.contents();
         Arrays.sort(actualContents); //TODO enable sort directly in the ListModel
         Arrays.sort(renderedConfigs);
-        Assertions.assertThat(actualContents).as("configurations").isEqualTo(renderedConfigs);
+        Assertions.assertThat(actualContents).as(CONFIG_MANAGER_PANEL_NAME).isEqualTo(renderedConfigs);
     }
 
     private BackupConfiguration fillConfigurationForm() {
-        JFormPaneFixture configForm = new JFormPaneFixture(robot(), BackupConfiguration.class);
+        return fillConfigurationForm(robot());
+    }
+
+    public static BackupConfiguration fillConfigurationForm(Robot robot) {
+        JFormPaneFixture configForm = new JFormPaneFixture(robot, BackupConfiguration.class);
         final BackupConfiguration expectedConfig = ConfigurationManagerTest.createConfiguration();
 
         //TODO support dirFilter and fileFilter
@@ -379,9 +390,9 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         JButtonFixture addSource = configForm.listPanel().addButton();
         for (final BackupConfiguration.Source source : expectedConfig.getSources()) {
             addSource.click();
-            robot().waitForIdle();
+            robot.waitForIdle();
 
-            JFormPaneFixture sourceForm = new JFormPaneFixture(robot(), BackupConfiguration.Source.class);
+            JFormPaneFixture sourceForm = new JFormPaneFixture(robot, BackupConfiguration.Source.class);
             final JPathFixture sourcePath = sourceForm.path();
             sourcePath.requireSelectionMode(JPath.SelectionMode.FILES_AND_DIRECTORIES);
             GuiActionRunner.execute(new GuiTask() {
@@ -390,7 +401,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
                 }
             });
 
-            clickOkButton(BackupConfiguration.Source.class);
+            sourceForm.okButton().click();
         }
         configForm.textBox("targetDirectory").enterText(expectedConfig.getTargetDirectory());
         configForm.comboBox("archiveFactory").selectItem("zip");

@@ -23,18 +23,15 @@ package fr.duminy.jbackup.swing;
 import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.components.swing.form.JFormPaneFixture;
-import fr.duminy.components.swing.path.JPath;
-import fr.duminy.components.swing.path.JPathFixture;
+import fr.duminy.components.swing.listpanel.ListPanelFixture;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ArchiveInputStream;
 import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
-import org.fest.swing.edt.GuiActionRunner;
-import org.fest.swing.edt.GuiQuery;
 import org.fest.swing.fixture.JComboBoxFixture;
-import org.fest.swing.fixture.JListFixture;
 import org.junit.Test;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -44,7 +41,6 @@ import java.util.List;
 
 import static fr.duminy.jbackup.core.BackupConfiguration.Source;
 import static fr.duminy.jbackup.core.ConfigurationManagerTest.ZIP_ARCHIVE_FACTORY;
-import static fr.duminy.jbackup.core.ConfigurationManagerTest.createConfiguration;
 import static org.fest.assertions.Assertions.assertThat;
 
 /**
@@ -109,38 +105,7 @@ public class BackupConfigurationPanelTest extends AbstractSwingTest {
     }
 
     private BackupConfiguration fillForm() {
-        final BackupConfiguration expectedConfig = createConfiguration();
-
-        //TODO support dirFilter and fileFilter
-        for (Source source : expectedConfig.getSources()) {
-            source.setDirFilter(null);
-            source.setFileFilter(null);
-        }
-
-        window.textBox("name").enterText(expectedConfig.getName());
-        for (final Source source : expectedConfig.getSources()) {
-            window.button("addButton").click();
-
-            final JPathFixture jpf = new JPathFixture(robot(), "sourceDirectory");
-            jpf.requireSelectionMode(JPath.SelectionMode.FILES_AND_DIRECTORIES);
-
-            //TODO also support multiple files/directories in listpanel
-//            assertThat(jfc.component().isMultiSelectionEnabled()).as("multiSelectionEnabled").isFalse(); //TODO add that to fest assert
-
-            GuiActionRunner.execute(new GuiQuery<Object>() {
-                protected Object executeInEDT() {
-                    jpf.selectPath(source.getSourceDirectory().toPath());
-                    return null;
-                }
-            });
-
-            JFormPaneFixture jfpFixture = new JFormPaneFixture(robot(), Source.class);
-            jfpFixture.requireInDialog(true);
-            jfpFixture.okButton().click();
-        }
-        window.textBox("targetDirectory").enterText(expectedConfig.getTargetDirectory());
-        window.comboBox("archiveFactory").selectItem("zip");
-        return expectedConfig;
+        return ConfigurationManagerPanelTest.fillConfigurationForm(robot());
     }
 
     private void assertFormValues(BackupConfiguration config) {
@@ -148,30 +113,40 @@ public class BackupConfigurationPanelTest extends AbstractSwingTest {
     }
 
     private void assertFormValues(String name, List<Source> sources, String targetDirectory, ArchiveFactory selectedArchiveFactory) {
-        window.textBox("name").requireVisible().requireEnabled().requireEditable().requireText(name);
+        JFormPaneFixture configForm = new JFormPaneFixture(robot(), BackupConfiguration.class);
+        configForm.textBox("name").requireVisible().requireEnabled().requireEditable().requireText(name);
 
-        JListFixture jl = window.list("sources").requireVisible()/*.requireEnabled()*/;
-        String[] renderedSources = new String[sources.size()];
-        for (int i = 0; i < renderedSources.length; i++) {
-            renderedSources[i] = sources.get(i).getSourceDirectory().getAbsolutePath();
-        }
-        assertThat(jl.contents()).as("sources").isEqualTo(renderedSources);
+        ListPanelFixture<BackupConfiguration, JList<BackupConfiguration>> sourcesList = configForm.listPanel();
+        sourcesList.requireVisible()/*.requireEnabled()*/;
+        assertThat(sourcesList.list().contents()).as("sources").isEqualTo(renderedSources(sources));
 
-        window.textBox("targetDirectory").requireVisible().requireEnabled().requireEditable().requireText(targetDirectory);
+        configForm.textBox("targetDirectory").requireVisible().requireEnabled().requireEditable().requireText(targetDirectory);
 
-        JComboBoxFixture cb = window.comboBox("archiveFactory").requireVisible().requireEnabled().requireNotEditable();
-        String[] expectedExtensions = new String[ARCHIVE_FACTORIES.length + 1];
-        expectedExtensions[0] = "";
-        for (int i = 0; i < ARCHIVE_FACTORIES.length; i++) {
-            expectedExtensions[i + 1] = ARCHIVE_FACTORIES[i].getExtension();
-        }
-        Arrays.sort(expectedExtensions);
-        assertThat(cb.contents()).as("archive factories").isEqualTo(expectedExtensions);
+        JComboBoxFixture cb = configForm.comboBox("archiveFactory").requireVisible().requireEnabled().requireNotEditable();
+        assertThat(cb.contents()).as("archive factories").isEqualTo(expectedExtensions());
 
         if (selectedArchiveFactory == null) {
             cb.requireNoSelection();
         } else {
             cb.requireSelection(selectedArchiveFactory.getExtension());
         }
+    }
+
+    private String[] expectedExtensions() {
+        String[] expectedExtensions = new String[ARCHIVE_FACTORIES.length + 1];
+        expectedExtensions[0] = "";
+        for (int i = 0; i < ARCHIVE_FACTORIES.length; i++) {
+            expectedExtensions[i + 1] = ARCHIVE_FACTORIES[i].getExtension();
+        }
+        Arrays.sort(expectedExtensions);
+        return expectedExtensions;
+    }
+
+    private String[] renderedSources(List<Source> sources) {
+        String[] renderedSources = new String[sources.size()];
+        for (int i = 0; i < renderedSources.length; i++) {
+            renderedSources[i] = sources.get(i).getSourceDirectory().getAbsolutePath();
+        }
+        return renderedSources;
     }
 }

@@ -43,6 +43,9 @@ import static fr.duminy.components.swing.listpanel.SimpleItemManager.ContainerTy
  */
 public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JList<BackupConfiguration>> {
     static final Comparator<BackupConfiguration> COMPARATOR = new BeanComparator("name");
+    static final String BACKUP_BUTTON_NAME = "backupButton";
+    static final String RESTORE_BUTTON_NAME = "restoreButton";
+
     public static final String DEFAULT_CONFIG_NAME = "newConfiguration";
 
     public ConfigurationManagerPanel(final ConfigurationManager manager, final BackupConfigurationActions configActions, JComponent parent, ArchiveFactory... factories) throws Exception {
@@ -53,8 +56,8 @@ public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JL
             }
         });
 
-        addUserButton("backupButton", new BackupAction(configActions));
-        addUserButton("restoreButton", new RestoreAction(this, configActions));
+        addUserButton(BACKUP_BUTTON_NAME, new BackupAction(configActions));
+        addUserButton(RESTORE_BUTTON_NAME, new RestoreAction(this, configActions));
     }
 
     private static FormBuilder<BackupConfiguration> createBuilder(final JComponent parent, final ArchiveFactory... factories) {
