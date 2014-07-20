@@ -22,7 +22,7 @@ package fr.duminy.jbackup.swing;
 
 import fr.duminy.jbackup.core.BackupConfiguration;
 
-import java.io.File;
+import java.nio.file.Path;
 
 /**
  * Interface for JBackup specific actions that can be done on a {@link BackupConfiguration}.
@@ -30,5 +30,5 @@ import java.io.File;
 public interface BackupConfigurationActions {
     void backup(BackupConfiguration config) throws DuplicateTaskException;
 
-    void restore(BackupConfiguration config, File archive, File targetDirectory) throws DuplicateTaskException;
+    void restore(BackupConfiguration config, Path archive, Path targetDirectory) throws DuplicateTaskException;
 }

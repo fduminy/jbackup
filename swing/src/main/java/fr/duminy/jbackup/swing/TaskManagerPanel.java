@@ -25,7 +25,7 @@ import fr.duminy.jbackup.core.JBackup;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,7 +48,7 @@ public class TaskManagerPanel extends JPanel implements BackupConfigurationActio
     }
 
     @Override
-    public void restore(BackupConfiguration config, File archive, File targetDirectory) throws DuplicateTaskException {
+    public void restore(BackupConfiguration config, Path archive, Path targetDirectory) throws DuplicateTaskException {
         checkNoTaskIsAlreadyRunningFor(config);
         jBackup.restore(config, archive, targetDirectory, createProgressPanel(config));
     }

@@ -20,8 +20,7 @@
  */
 package fr.duminy.jbackup.core;
 
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.filefilter.FileFilterUtils;
+import fr.duminy.components.swing.form.StringPathTypeMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,10 +28,10 @@ import javax.naming.InvalidNameException;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -42,27 +41,29 @@ import java.util.List;
  */
 public class ConfigurationManager {
     private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManager.class);
-    private static final String FILE_EXTENSION = "xml";
-    private static final FilenameFilter XML_FILE_FILTER = FileFilterUtils.suffixFileFilter(FILE_EXTENSION);
+    private static final String FILE_EXTENSION = ".xml";
+    private static final String XML_FILE_FILTER = '*' + FILE_EXTENSION;
 
     private final List<BackupConfiguration> configurations = new ArrayList<>();
-    private final File configurationDir;
+    private final Path configurationDir;
 
-    public ConfigurationManager(File configurationDir) {
+    public ConfigurationManager(Path configurationDir) {
         if (configurationDir == null) {
             throw new NullPointerException("configurationDir is null");
         }
-        if (!configurationDir.isDirectory()) {
-            if (configurationDir.exists()) {
-                throw new IllegalArgumentException("'" + configurationDir.getAbsolutePath() + "' is not a directory");
+        if (!Files.isDirectory(configurationDir)) {
+            if (Files.exists(configurationDir)) {
+                throw new IllegalArgumentException("'" + configurationDir.toAbsolutePath() + "' is not a directory");
             } else {
-                if (!configurationDir.mkdirs()) {
-                    throw new IllegalArgumentException("Can't create directory '" + configurationDir.getAbsolutePath() + "'");
+                try {
+                    Files.createDirectories(configurationDir);
+                } catch (IOException e) {
+                    throw new IllegalArgumentException("Can't create directory '" + configurationDir.toAbsolutePath() + "'", e);
                 }
             }
         }
-        if (!configurationDir.canWrite()) {
-            throw new IllegalArgumentException("can't write into directory '" + configurationDir.getAbsolutePath() + "'");
+        if (!Files.isWritable(configurationDir)) {
+            throw new IllegalArgumentException("can't write into directory '" + configurationDir.toAbsolutePath() + "'");
         }
         this.configurationDir = configurationDir;
     }
@@ -77,10 +78,12 @@ public class ConfigurationManager {
 
     void loadAllConfigurations() throws Exception {
         configurations.clear();
-        for (File configFile : configurationDir.listFiles(XML_FILE_FILTER)) {
+        for (Path configFile : Files.newDirectoryStream(configurationDir, XML_FILE_FILTER)) {
             try {
                 BackupConfiguration config = loadBackupConfiguration(configFile);
-                if (FilenameUtils.getBaseName(configFile.getAbsolutePath()).equals(config.getName())) {
+                String fileName = StringPathTypeMapper.toString(configFile.getFileName());
+                fileName = fileName.substring(0, fileName.length() - FILE_EXTENSION.length());
+                if (fileName.equals(config.getName())) {
                     doAddBackupConfiguration(config);
                 }
             } catch (Exception e) {
@@ -89,27 +92,27 @@ public class ConfigurationManager {
         }
     }
 
-    public static File getLatestArchive(BackupConfiguration configuration) {
-        File result = null;
-        for (File file : new File(configuration.getTargetDirectory()).listFiles()) {
+    public static Path getLatestArchive(BackupConfiguration configuration) throws IOException {
+        Path result = null;
+        for (Path path : Files.newDirectoryStream(Paths.get(configuration.getTargetDirectory()))) {
             if (result == null) {
-                result = file;
-            } else if (file.lastModified() > result.lastModified()) {
-                result = file;
+                result = path;
+            } else if (path.toFile().lastModified() > result.toFile().lastModified()) {
+                result = path;
             }
         }
         return result;
     }
 
-    BackupConfiguration loadBackupConfiguration(File input) throws Exception {
+    BackupConfiguration loadBackupConfiguration(Path input) throws Exception {
         JAXBContext jaxbContext = JAXBContext.newInstance(BackupConfiguration.class);
 
         Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-        return (BackupConfiguration) jaxbUnmarshaller.unmarshal(input);
+        return (BackupConfiguration) jaxbUnmarshaller.unmarshal(Files.newInputStream(input));
     }
 
-    public File saveBackupConfiguration(BackupConfiguration config) throws Exception {
-        File output = configFileFor(config);
+    public Path saveBackupConfiguration(BackupConfiguration config) throws Exception {
+        Path output = configFileFor(config);
 
         JAXBContext jaxbContext = JAXBContext.newInstance(BackupConfiguration.class);
         Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
@@ -117,7 +120,7 @@ public class ConfigurationManager {
         // output pretty printed
         jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 
-        jaxbMarshaller.marshal(config, output);
+        jaxbMarshaller.marshal(config, Files.newOutputStream(output));
 
         return output;
     }
@@ -132,11 +135,11 @@ public class ConfigurationManager {
         int index = indexOf(config);
         if (index >= 0) {
             configurations.remove(index);
-            Files.delete(configFileFor(config).toPath());
+            Files.delete(configFileFor(config));
         }
     }
 
-    File configFileFor(BackupConfiguration config) {
+    Path configFileFor(BackupConfiguration config) {
         return configFileFor(config.getName());
     }
 
@@ -152,8 +155,8 @@ public class ConfigurationManager {
         return index;
     }
 
-    private File configFileFor(String configName) {
-        return new File(configurationDir, configName + "." + FILE_EXTENSION);
+    private Path configFileFor(String configName) {
+        return configurationDir.resolve(configName + FILE_EXTENSION);
     }
 
     private void doAddBackupConfiguration(BackupConfiguration config) throws Exception {
@@ -176,8 +179,8 @@ public class ConfigurationManager {
         configurations.add(config);
     }
 
-    public File saveRenamedBackupConfiguration(String oldName, BackupConfiguration config) throws Exception {
-        Files.delete(configFileFor(oldName).toPath());
+    public Path saveRenamedBackupConfiguration(String oldName, BackupConfiguration config) throws Exception {
+        Files.delete(configFileFor(oldName));
         return saveBackupConfiguration(config);
     }
 }

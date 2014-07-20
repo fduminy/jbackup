@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
 
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
@@ -47,9 +48,9 @@ public class FileCollector extends DirectoryWalker<File> {
         super(directoryFilter, fileFilter, -1);
     }
 
-    public long collect(Collection<File> results, File startDirectory) throws IOException {
+    public long collect(Collection<File> results, Path startDirectory) throws IOException {
         totalSize = 0L;
-        walk(startDirectory, results);
+        walk(startDirectory.toFile(), results); // use jdk FileWalker instead ?
         return totalSize;
     }
 

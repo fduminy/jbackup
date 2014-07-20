@@ -21,7 +21,6 @@
 package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.JBackupTest;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
@@ -37,7 +36,13 @@ import org.mockito.InOrder;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,7 +70,7 @@ abstract public class AbstractArchivingTest {
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final Class<FileNotFoundException> ERROR_CLASS = FileNotFoundException.class;
+    private static final Class<AccessDeniedException> ERROR_CLASS = AccessDeniedException.class;
 
     private final boolean testJBackup;
 
@@ -96,16 +101,17 @@ abstract public class AbstractArchivingTest {
         ArchiveFactory mockFactory = mock(ArchiveFactory.class);
         when(mockFactory.create(any(InputStream.class))).thenReturn(mockInput);
 
-        File archive = tempFolder.newFile("archive.mock");
-        File directory = tempFolder.newFolder("targetDir");
-        FileUtils.write(archive, StringUtils.repeat("A", (int) expectedTotalSize));
+        Path archive = tempFolder.newFile("archive.mock").toPath();
+        Path directory = tempFolder.newFolder("targetDir").toPath();
+        Files.write(archive, StringUtils.repeat("A", (int) expectedTotalSize).getBytes());
 
         ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
 
         // test decompression
         try {
             if (errorIsExpected) {
-                archive.setReadable(false);
+                archive.toFile().setReadable(false);
+                assertThat(Files.isReadable(archive)).isFalse();
             }
 
             decompress(mockFactory, archive, directory, listener, errorIsExpected);
@@ -120,20 +126,21 @@ abstract public class AbstractArchivingTest {
         } catch (Throwable t) {
             checkErrorIsExpected(errorIsExpected, t);
         } finally {
-            archive.setReadable(true);
+            archive.toFile().setReadable(true);
+            assertThat(Files.isReadable(archive)).isTrue();
         }
 
         assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorIsExpected);
     }
 
-    abstract protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener, boolean errorIsExpected) throws Throwable;
+    abstract protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws Throwable;
 
     @Theory
     public void testCompress(EntryData[] entries, boolean useListener, ErrorType errorType) throws Throwable {
         boolean errorIsExpected = ErrorType.ERROR == errorType;
         Assume.assumeTrue(!errorIsExpected || testJBackup);
 
-        File archive = tempFolder.newFile("archive.mock");
+        Path archive = tempFolder.newFile("archive.mock").toPath();
 
         // preparation of archiver & mocks
         ArchiveOutputStream mockOutput = mock(ArchiveOutputStream.class);
@@ -150,17 +157,17 @@ abstract public class AbstractArchivingTest {
         when(mockFactory.create(any(OutputStream.class))).thenReturn(mockOutput);
         when(mockFactory.getExtension()).thenReturn("mock");
 
-        File[] files = new File[entries.length - 1];
-        File sourceDirectory = tempFolder.newFolder("sourceDirectory");
+        Path[] files = new Path[entries.length - 1];
+        Path sourceDirectory = tempFolder.newFolder("sourceDirectory").toPath();
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
         for (int i = 0; i < files.length; i++) {
             EntryData e = entries[i];
-            File file = new File(sourceDirectory, e.name);
+            Path file = sourceDirectory.resolve(e.name);
             files[i] = file;
-            FileUtils.write(file, StringUtils.repeat("A", (int) e.compressedSize));
+            Files.write(file, StringUtils.repeat("A", (int) e.compressedSize).getBytes());
 
-            expectedTotalSize += file.length();
+            expectedTotalSize += Files.size(file);
             expectedNotifications.add(expectedTotalSize);
         }
 
@@ -168,7 +175,7 @@ abstract public class AbstractArchivingTest {
 
         try {
             if (errorIsExpected) {
-                sourceDirectory.setReadable(false);
+                sourceDirectory.toFile().setReadable(false);
             }
 
             // test compression
@@ -182,8 +189,8 @@ abstract public class AbstractArchivingTest {
             verifyNoMoreInteractions(mockFactory);
 
             if (!errorIsExpected) {
-                for (File file : files) {
-                    verify(mockOutput, times(1)).addEntry(eq(file.getAbsolutePath()), any(InputStream.class));
+                for (Path file : files) {
+                    verify(mockOutput, times(1)).addEntry(eq(file.toFile().getAbsolutePath()), any(InputStream.class));
                 }
             }
             verify(mockOutput, times(1)).close();
@@ -191,7 +198,7 @@ abstract public class AbstractArchivingTest {
         } catch (Throwable t) {
             checkErrorIsExpected(errorIsExpected, t);
         } finally {
-            sourceDirectory.setReadable(true);
+            sourceDirectory.toFile().setReadable(true);
         }
 
         assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorIsExpected);
@@ -237,7 +244,7 @@ abstract public class AbstractArchivingTest {
         }
     }
 
-    abstract protected void compress(ArchiveFactory mockFactory, File sourceDirectory, File[] files, File archive, ProgressListener listener, boolean errorIsExpected) throws Throwable;
+    abstract protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, Path[] files, Path archive, ProgressListener listener, boolean errorIsExpected) throws Throwable;
 
     private ArchiveInputStream.Entry[] nextMockEntries(EntryData[] entries) {
         ArchiveInputStream.Entry[] result = new ArchiveInputStream.Entry[entries.length - 1];

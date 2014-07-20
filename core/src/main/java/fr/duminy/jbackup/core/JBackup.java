@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -53,11 +55,11 @@ public class JBackup {
         return executor.submit(new BackupTask(this, config, listener));
     }
 
-    public Future<Object> restore(BackupConfiguration config, File archive, File directory) {
+    public Future<Object> restore(BackupConfiguration config, Path archive, Path directory) {
         return restore(config, archive, directory, null);
     }
 
-    public Future<Object> restore(BackupConfiguration config, File archive, File targetDirectory, ProgressListener listener) {
+    public Future<Object> restore(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
         return executor.submit(new RestoreTask(this, config, archive, targetDirectory, listener));
     }
 
@@ -125,12 +127,12 @@ public class JBackup {
         protected void execute() throws IOException {
             ArchiveFactory factory = config.getArchiveFactory();
 
-            File target = new File(config.getTargetDirectory());
-            Files.createDirectories(target.toPath());
+            Path target = Paths.get(config.getTargetDirectory());
+            Files.createDirectories(target);
 
             String archiveName = generateName(config.getName(), config.getArchiveFactory());
 
-            File archive = new File(target, archiveName);
+            Path archive = target.resolve(archiveName);
 
             Collection<File> files = new ArrayList<>(10000);
             long size = 0L;
@@ -138,21 +140,34 @@ public class JBackup {
                 IOFileFilter dirFilter = config.createIOFileFilter("_dir", filter.getDirFilter());
                 IOFileFilter fileFilter = config.createIOFileFilter("_file", filter.getFileFilter());
                 FileCollector walker = new FileCollector(dirFilter, fileFilter);
-                size += walker.collect(files, filter.getSourceDirectory());
+                size += walker.collect(files, Paths.get(filter.getSourceDirectory()));
             }
             LOG.info("Backup '{}': {} files ({}) to compress", new Object[]{config.getName(), files.size(), FileUtils.byteCountToDisplaySize(size)});
 
-            jbackup.createArchiver(factory).compress(files.toArray(new File[files.size()]), archive, listener);
+            Path[] paths = toPaths(files);
+
+            jbackup.createArchiver(factory).compress(paths, archive, listener);
         }
+    }
+
+    //TODO remove this conversion later
+    public static Path[] toPaths(Collection<File> files) {
+        Path[] paths = new Path[files.size()];
+        int i = 0;
+        for (File file : files) {
+            paths[i] = file.toPath();
+            i++;
+        }
+        return paths;
     }
 
     private static class RestoreTask extends Task {
         private final BackupConfiguration config;
-        private final File archive;
-        private final File targetDirectory;
+        private final Path archive;
+        private final Path targetDirectory;
         private final ProgressListener listener;
 
-        private RestoreTask(JBackup jbackup, BackupConfiguration config, File archive, File targetDirectory, ProgressListener listener) {
+        private RestoreTask(JBackup jbackup, BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
             super(jbackup, listener);
             this.config = config;
             this.archive = archive;

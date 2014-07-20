@@ -26,7 +26,7 @@ import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
+import java.nio.file.Paths;
 
 /**
  * The main class of the application.
@@ -66,7 +66,7 @@ public class Application extends JPanel {
         super(new BorderLayout());
 
         jBackup = new JBackup();
-        manager = new ConfigurationManager(new File(System.getProperty("user.home"), ".jbackup"));
+        manager = new ConfigurationManager(Paths.get(System.getProperty("user.home"), ".jbackup"));
 
         taskManagerPanel = new TaskManagerPanel(jBackup);
         add(taskManagerPanel, BorderLayout.SOUTH);

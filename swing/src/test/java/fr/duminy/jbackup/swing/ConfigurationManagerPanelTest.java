@@ -23,7 +23,6 @@ package fr.duminy.jbackup.swing;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import fr.duminy.components.swing.AbstractSwingTest;
-import fr.duminy.components.swing.TestUtilities;
 import fr.duminy.components.swing.form.JFormPaneFixture;
 import fr.duminy.components.swing.listpanel.ListPanelFixture;
 import fr.duminy.components.swing.path.JPath;
@@ -35,7 +34,6 @@ import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ArchiveInputStream;
 import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
-import org.apache.commons.io.IOUtils;
 import org.fest.assertions.Assertions;
 import org.fest.swing.core.Robot;
 import org.fest.swing.edt.GuiActionRunner;
@@ -57,8 +55,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -113,7 +115,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     private static final String CONFIG_MANAGER_PANEL_NAME = "configurations";
 
     private ConfigurationManagerPanel panel;
-    private File configDir;
+    private Path configDir;
     private ConfigurationManager manager;
     private BackupConfigurationActions configActions;
 
@@ -147,7 +149,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
 
         ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.addButton().click();
-        assertConfigurationFormValues(DEFAULT_CONFIG_NAME, NO_SOURCE, "", null);
+        assertConfigurationFormValues(DEFAULT_CONFIG_NAME, NO_SOURCE, null, null);
 
         new JFormPaneFixture(robot(), BackupConfiguration.class).okButton().click();
 
@@ -251,8 +253,8 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         List<BackupConfiguration> configs = init(nbConfigurations);
 
         BackupConfiguration expectedConfig = configs.get(nbConfigurations - 1);
-        File expectedArchive = createArchive(expectedConfig);
-        final File expectedTargetDirectory = tempFolder.newFile("targetDir");
+        Path expectedArchive = createArchive(expectedConfig);
+        final Path expectedTargetDirectory = tempFolder.newFile("targetDir").toPath();
         ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.list().selectItem(expectedConfig.getName());
         configurationList.userButton(RESTORE_BUTTON_NAME).requireToolTip(Messages.RESTORE_MESSAGE).click();
@@ -261,13 +263,13 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         fixture.requireInDialog(true).requireModeCreate();
 //TODO        fixture.requireQuestionMessage();
 //TODO        fixture.requireTitle("Restore backup '" + expectedConfig.getName() + "'");
-        fixture.path("archive").requireSelectedPath(expectedArchive.toPath());
+        fixture.path("archive").requireSelectedPath(expectedArchive);
         final JPathFixture pathFixture = fixture.path("targetDirectory");
         pathFixture.requireSelectedPath(null);
 
         GuiActionRunner.execute(new GuiQuery<Object>() {
             protected Object executeInEDT() {
-                pathFixture.selectPath(expectedTargetDirectory.toPath());
+                pathFixture.selectPath(expectedTargetDirectory);
                 return null;
             }
         });
@@ -283,7 +285,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         } else {
             fixture.cancelButton().click();
 
-            verify(configActions, never()).restore(any(BackupConfiguration.class), any(File.class), any(File.class));
+            verify(configActions, never()).restore(any(BackupConfiguration.class), any(Path.class), any(Path.class));
             verifyNoMoreInteractions(configActions);
         }
     }
@@ -306,15 +308,15 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         configurationList.userButton(RESTORE_BUTTON_NAME).requireDisabled();
     }
 
-    private File createArchive(BackupConfiguration config) throws IOException {
-        File result = new File(config.getTargetDirectory(), "archive.zip");
-        IOUtils.copy(ZipArchiveFactoryTest.getArchive(), new FileOutputStream(result));
+    private Path createArchive(BackupConfiguration config) throws IOException {
+        Path result = Paths.get(config.getTargetDirectory()).resolve("archive.zip");
+        Files.copy(ZipArchiveFactoryTest.getArchive(), result);
         return result;
     }
 
     private List<BackupConfiguration> init(int nbConfigurations) {
         try {
-            configDir = tempFolder.newFolder();
+            configDir = tempFolder.newFolder().toPath();
 
             // add configurations in the directory
             ConfigurationManager tmpManager = new ConfigurationManager(configDir);
@@ -371,7 +373,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     }
 
     public static BackupConfiguration fillConfigurationForm(Robot robot) {
-        JFormPaneFixture configForm = new JFormPaneFixture(robot, BackupConfiguration.class);
+        final JFormPaneFixture configForm = new JFormPaneFixture(robot, BackupConfiguration.class);
         final BackupConfiguration expectedConfig = ConfigurationManagerTest.createConfiguration();
 
         //TODO support dirFilter and fileFilter
@@ -391,13 +393,17 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
             sourcePath.requireSelectionMode(JPath.SelectionMode.FILES_AND_DIRECTORIES);
             GuiActionRunner.execute(new GuiTask() {
                 protected void executeInEDT() {
-                    sourcePath.selectPath(source.getSourceDirectory().toPath());
+                    sourcePath.selectPath(Paths.get(source.getSourceDirectory()));
                 }
             });
 
             sourceForm.okButton().click();
         }
-        configForm.textBox("targetDirectory").enterText(expectedConfig.getTargetDirectory());
+        GuiActionRunner.execute(new GuiTask() {
+            protected void executeInEDT() {
+                configForm.path("targetDirectory").selectPath(Paths.get(expectedConfig.getTargetDirectory()));
+            }
+        });
         configForm.comboBox("archiveFactory").selectItem("zip");
         return expectedConfig;
     }
@@ -416,16 +422,11 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         LOG.debug(sb.toString());
     }
 
-    private void dumpComponents(String context) {
-        //TODO move this to a utility class
-        LOG.debug("{} :\n{}", context, TestUtilities.dumpComponents(robot()));
-    }
-
     private void assertConfigurationFormValues(BackupConfiguration config) {
-        assertConfigurationFormValues(config.getName(), config.getSources(), config.getTargetDirectory(), config.getArchiveFactory());
+        assertConfigurationFormValues(config.getName(), config.getSources(), Paths.get(config.getTargetDirectory()), config.getArchiveFactory());
     }
 
-    private void assertConfigurationFormValues(String name, List<BackupConfiguration.Source> sources, String targetDirectory, ArchiveFactory selectedArchiveFactory) {
+    private void assertConfigurationFormValues(String name, List<BackupConfiguration.Source> sources, Path targetDirectory, ArchiveFactory selectedArchiveFactory) {
         JFormPaneFixture formPane = new JFormPaneFixture(robot(), BackupConfiguration.class);
         formPane.textBox("name").requireVisible().requireEnabled().requireEditable().requireText(name);
 
@@ -433,26 +434,32 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         listPanel.requireVisible()/*.requireEnabled()*/;
         String[] renderedSources = new String[sources.size()];
         for (int i = 0; i < renderedSources.length; i++) {
-            renderedSources[i] = sources.get(i).getSourceDirectory().getAbsolutePath();
+            renderedSources[i] = sources.get(i).getSourceDirectory();
         }
         Assertions.assertThat(listPanel.list().contents()).as("sources").isEqualTo(renderedSources);
 
-        formPane.textBox("targetDirectory").requireVisible().requireEnabled().requireEditable().requireText(targetDirectory);
+        //TODO later : swap the following lines
+        //formPane.path("targetDirectory").requireVisible().requireEnabled().requireEditable().requireSelectedPath(targetDirectory);
+        formPane.path("targetDirectory").requireSelectedPath(targetDirectory).requireVisible().requireEnabled();
 
         JComboBoxFixture cb = formPane.comboBox("archiveFactory").requireVisible().requireEnabled().requireNotEditable();
-        String[] expectedExtensions = new String[ARCHIVE_FACTORIES.length + 1];
-        expectedExtensions[0] = "";
-        for (int i = 0; i < ARCHIVE_FACTORIES.length; i++) {
-            expectedExtensions[i + 1] = ARCHIVE_FACTORIES[i].getExtension();
-        }
-        Arrays.sort(expectedExtensions);
-        Assertions.assertThat(cb.contents()).as("archive factories").isEqualTo(expectedExtensions);
+        Assertions.assertThat(cb.contents()).as("archive factories").isEqualTo(expectedExtensions());
 
         if (selectedArchiveFactory == null) {
             cb.requireNoSelection();
         } else {
             cb.requireSelection(selectedArchiveFactory.getExtension());
         }
+    }
+
+    private String[] expectedExtensions() {
+        String[] expectedExtensions = new String[ARCHIVE_FACTORIES.length + 1];
+        expectedExtensions[0] = "";
+        for (int i = 0; i < ARCHIVE_FACTORIES.length; i++) {
+            expectedExtensions[i + 1] = ARCHIVE_FACTORIES[i].getExtension();
+        }
+        Arrays.sort(expectedExtensions);
+        return expectedExtensions;
     }
 
     private String[] renderedConfigs(List<BackupConfiguration> configs) {

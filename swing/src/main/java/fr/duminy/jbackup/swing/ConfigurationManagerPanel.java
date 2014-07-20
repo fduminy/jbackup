@@ -22,6 +22,7 @@ package fr.duminy.jbackup.swing;
 
 import fr.duminy.components.swing.form.DefaultFormBuilder;
 import fr.duminy.components.swing.form.FormBuilder;
+import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.components.swing.list.AbstractMutableListModel;
 import fr.duminy.components.swing.listpanel.ListPanel;
 import fr.duminy.components.swing.listpanel.SimpleItemManager;
@@ -67,6 +68,7 @@ public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JL
                 super.configureBuilder(builder);
                 builder.useForProperty("sources", new SourceListTypeMapper(parent));
                 builder.useForProperty("archiveFactory", new ArchiveFactoryTypeMapper(factories));
+                builder.useForProperty("targetDirectory", StringPathTypeMapper.INSTANCE);
             }
         };
     }

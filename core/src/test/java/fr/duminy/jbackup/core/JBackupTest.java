@@ -20,14 +20,16 @@
  */
 package fr.duminy.jbackup.core;
 
+import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.AbstractArchivingTest;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.Archiver;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import org.apache.commons.lang.mutable.MutableObject;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -38,12 +40,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class JBackupTest extends AbstractArchivingTest {
     @Override
-    protected void decompress(ArchiveFactory mockFactory, File archive, File directory, ProgressListener listener, boolean errorIsExpected) throws Throwable {
+    protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws Throwable {
         JBackup jbackup = new JBackup();
-        File archiveDirectory = new File(archive.getParent());
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testDecompress");
-        config.setTargetDirectory(archiveDirectory.getAbsolutePath());
+        config.setTargetDirectory(StringPathTypeMapper.toString(archive.getParent().toAbsolutePath()));
         config.setArchiveFactory(mockFactory);
 
         Future<Object> future;
@@ -60,14 +61,14 @@ public class JBackupTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, File sourceDirectory, final File[] expectedFiles, File archive, ProgressListener listener, boolean errorIsExpected) throws Throwable {
+    protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, final Path[] expectedFiles, Path archive, ProgressListener listener, boolean errorIsExpected) throws Throwable {
         final MutableObject actualFilesWrapper = new MutableObject();
         JBackup jbackup = new JBackup() {
             @Override
             Archiver createArchiver(ArchiveFactory factory) {
                 return new Archiver(factory) {
                     @Override
-                    public void compress(File[] actualFiles, File archive, ProgressListener listener) throws IOException {
+                    public void compress(Path[] actualFiles, Path archive, ProgressListener listener) throws IOException {
                         actualFilesWrapper.setValue(actualFiles);
 
                         // now compress files in the order given by expectedFiles
@@ -80,8 +81,8 @@ public class JBackupTest extends AbstractArchivingTest {
 
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testCompress");
-        config.setTargetDirectory(archive.getParent());
-        config.addSource(sourceDirectory.getAbsolutePath());
+        config.setTargetDirectory(StringPathTypeMapper.toString(archive.getParent().toAbsolutePath()));
+        config.addSource(Paths.get(StringPathTypeMapper.toString(sourceDirectory.toAbsolutePath())));
         config.setArchiveFactory(mockFactory);
 
         Future<Object> future;

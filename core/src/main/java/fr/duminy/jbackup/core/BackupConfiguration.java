@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core;
 
+import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.filter.JexlFileFilter;
 import org.apache.commons.io.filefilter.IOFileFilter;
@@ -28,7 +29,7 @@ import org.apache.commons.lang.StringUtils;
 import javax.xml.bind.annotation.*;
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,13 +49,13 @@ public class BackupConfiguration {
 
     private ArchiveFactory archiveFactory;
 
-    public void addSource(String sourceDirectory) {
+    public void addSource(Path sourceDirectory) {
         addSource(sourceDirectory, null, null);
     }
 
-    public void addSource(String sourceDirectory, String dirFilter, String fileFilter) {
+    public void addSource(Path sourceDirectory, String dirFilter, String fileFilter) {
         Source source = new Source();
-        source.setSourceDirectory(new File(sourceDirectory));
+        source.setSourceDirectory(StringPathTypeMapper.toString(sourceDirectory));
         source.setDirFilter(dirFilter);
         source.setFileFilter(fileFilter);
         sources.add(source);
@@ -122,11 +123,11 @@ public class BackupConfiguration {
     }
 
     public static class Source {
-        private File sourceDirectory;
+        private String sourceDirectory;
         private String dirFilter;
         private String fileFilter;
 
-        public void setSourceDirectory(File sourceDirectory) {
+        public void setSourceDirectory(String sourceDirectory) {
             this.sourceDirectory = sourceDirectory;
         }
 
@@ -138,7 +139,7 @@ public class BackupConfiguration {
             this.fileFilter = fileFilter;
         }
 
-        public File getSourceDirectory() {
+        public String getSourceDirectory() {
             return sourceDirectory;
         }
 

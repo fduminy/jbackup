@@ -20,12 +20,11 @@
  */
 package fr.duminy.jbackup.core;
 
+import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
@@ -39,7 +38,10 @@ import org.slf4j.LoggerFactory;
 import javax.naming.InvalidNameException;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.util.*;
 
 import static java.lang.Thread.sleep;
@@ -78,7 +80,7 @@ public class ConfigurationManagerTest {
 
     public static final ArchiveFactory ZIP_ARCHIVE_FACTORY = new ZipArchiveFactory();
 
-    private File configDir;
+    private Path configDir;
     private ConfigurationManager manager;
 
     @Rule
@@ -86,7 +88,7 @@ public class ConfigurationManagerTest {
 
     @Before
     public void setUp() throws Exception {
-        configDir = tempFolder.newFolder();
+        configDir = tempFolder.newFolder().toPath();
         manager = new ConfigurationManager(configDir);
     }
 
@@ -97,26 +99,26 @@ public class ConfigurationManagerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testInit_notWritableDirectory() throws Exception {
-        File dir = tempFolder.newFolder();
-        dir.setWritable(false);
+        Path dir = tempFolder.newFolder().toPath();
+        dir.toFile().setWritable(false);
         new ConfigurationManager(dir);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testInit_notADirectory() throws Exception {
-        File dir = tempFolder.newFile();
+        Path dir = tempFolder.newFile().toPath();
         new ConfigurationManager(dir);
     }
 
     @Test
     public void testInit_nonExistingDirectory() throws Exception {
-        File dir = tempFolder.newFolder();
-        assertThat(dir.delete()).isTrue();
-        assertThat(dir).doesNotExist();
+        Path dir = tempFolder.newFolder().toPath();
+        Files.delete(dir);
+        assertThat(Files.exists(dir)).as("directory exists").isFalse();
 
         new ConfigurationManager(dir);
 
-        assertThat(dir).exists();
+        assertThat(Files.exists(dir)).as("directory exists").isTrue();
     }
 
     @Test
@@ -160,13 +162,13 @@ public class ConfigurationManagerTest {
         if (unknownName) {
             ConfigurationManagerAssert.assertThat(manager).hasBackupConfigurations(config); //TODO replace by hasOnlyOnceBackupConfigurations(config);
 
-            assertThat(configFileFor(config)).exists().canRead().canWrite();
-            assertThat(configFileFor(configToRemove)).doesNotExist();
+            existsRW(configFileFor(config));
+            assertThat(Files.exists(configFileFor(configToRemove))).as("configFileToRemove exists").isFalse();
         } else {
             ConfigurationManagerAssert.assertThat(manager).hasNoBackupConfigurations();
 
-            assertThat(configFileFor(config)).doesNotExist();
-            assertThat(configFileFor(configToRemove)).doesNotExist();
+            assertThat(Files.exists(configFileFor(config))).as("configFile exists").isFalse();
+            assertThat(Files.exists(configFileFor(configToRemove))).as("configFileToRemove exists").isFalse();
         }
     }
 
@@ -180,7 +182,13 @@ public class ConfigurationManagerTest {
         assertThat(configs).hasSize(1);
         BackupConfiguration actualConfiguration = configs.iterator().next();
         BackupConfigurationAssert.assertThat(actualConfiguration).isEqualTo(expectedConfiguration);
-        assertThat(configFileFor(expectedConfiguration)).exists().canRead().canWrite();
+        existsRW(configFileFor(expectedConfiguration));
+    }
+
+    private void existsRW(Path configFile) {
+        assertThat(Files.exists(configFile)).as("configFile exists").isTrue();
+        assertThat(Files.isReadable(configFile)).as("configFile is readable").isTrue();
+        assertThat(Files.isWritable(configFile)).as("configFile is writable").isTrue();
     }
 
     @Test(expected = DuplicateNameException.class)
@@ -209,8 +217,8 @@ public class ConfigurationManagerTest {
     @Test
     public void testLoadAllConfigurations() throws Exception {
         // prepare mock
-        File validXmlConfigFile1 = writeConfigFile(true); //config1=true
-        File validXmlConfigFile2 = writeConfigFile(false); //config1=false => config2
+        Path validXmlConfigFile1 = writeConfigFile(true); //config1=true
+        Path validXmlConfigFile2 = writeConfigFile(false); //config1=false => config2
 
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
@@ -229,8 +237,8 @@ public class ConfigurationManagerTest {
     @Test
     public void testLoadAllConfigurations_nonXmlFile() throws Exception {
         // prepare mock
-        File notAnXmlFile = new File(configDir, "notAnXmlFile");
-        FileUtils.write(notAnXmlFile, "");
+        Path notAnXmlFile = configDir.resolve("notAnXmlFile");
+        Files.write(notAnXmlFile, new byte[0]);
 
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
@@ -248,8 +256,8 @@ public class ConfigurationManagerTest {
     @Test
     public void testLoadAllConfigurations_wrongXmlConfigFile() throws Exception {
         // prepare mock
-        final File wrongXmlConfigFile = new File(configDir, "wrongXmlConfigFile.xml");
-        FileUtils.write(wrongXmlConfigFile, "<root></root>");
+        final Path wrongXmlConfigFile = configDir.resolve("wrongXmlConfigFile.xml");
+        Files.write(wrongXmlConfigFile, "<root></root>".getBytes());
 
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
@@ -257,7 +265,7 @@ public class ConfigurationManagerTest {
         doAnswer(new Answer() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                File file = (File) invocation.getArguments()[0];
+                Path file = (Path) invocation.getArguments()[0];
                 if (file.equals(wrongXmlConfigFile)) {
                     try {
                         return invocation.callRealMethod();
@@ -269,7 +277,7 @@ public class ConfigurationManagerTest {
                     return invocation.callRealMethod();
                 }
             }
-        }).when(mock).loadBackupConfiguration(any(File.class));
+        }).when(mock).loadBackupConfiguration(any(Path.class));
 
         // test
         LOG.warn("**************************************************************");
@@ -292,9 +300,9 @@ public class ConfigurationManagerTest {
     @Test
     public void testLoadAllConfigurations_wrongConfigName() throws Exception {
         // prepare mock
-        final File wrongConfigName = new File(configDir, "config4.xml");
+        final Path wrongConfigName = configDir.resolve("config4.xml");
         String otherTargetDirectory = TARGET_DIRECTORY + '2';
-        FileUtils.write(wrongConfigName, CONFIG_XML2.replace(TARGET_DIRECTORY, otherTargetDirectory));
+        Files.write(wrongConfigName, CONFIG_XML2.replace(TARGET_DIRECTORY, otherTargetDirectory).getBytes());
 
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
@@ -313,8 +321,8 @@ public class ConfigurationManagerTest {
     public void testLoadBackupConfiguration() throws Exception {
         BackupConfiguration expectedConfiguration = createConfiguration();
 
-        File input = tempFolder.newFile();
-        FileUtils.write(input, CONFIG_XML);
+        Path input = tempFolder.newFile().toPath();
+        Files.write(input, CONFIG_XML.getBytes());
         BackupConfiguration actualConfiguration = manager.loadBackupConfiguration(input);
 
         assertAreEquals(expectedConfiguration, actualConfiguration);
@@ -325,14 +333,14 @@ public class ConfigurationManagerTest {
         BackupConfiguration config = createConfiguration();
 
         String oldName = config.getName();
-        File output1 = manager.saveBackupConfiguration(config);
-        assertThat(output1).exists();
+        Path output1 = manager.saveBackupConfiguration(config);
+        assertThat(Files.exists(output1)).as("output1 exists").isTrue();
 
         config.setName("NewName");
 
-        File output2 = manager.saveRenamedBackupConfiguration(oldName, config);
-        assertThat(output1).doesNotExist();
-        assertThat(output2).exists();
+        Path output2 = manager.saveRenamedBackupConfiguration(oldName, config);
+        assertThat(Files.exists(output1)).as("output1 exists").isFalse();
+        assertThat(Files.exists(output2)).as("output2 exists").isTrue();
     }
 
     @Test
@@ -344,22 +352,22 @@ public class ConfigurationManagerTest {
     public void testSaveBackupConfiguration_updateConfig() throws Exception {
         BackupConfiguration config = createConfiguration();
 
-        File output = testSaveBackupConfiguration(config);
-        long t0 = output.lastModified();
+        Path output = testSaveBackupConfiguration(config);
+        FileTime t0 = Files.getLastModifiedTime(output);
 
         sleep(1000);
 
         output = testSaveBackupConfiguration(config);
-        long t1 = output.lastModified();
+        FileTime t1 = Files.getLastModifiedTime(output);
 
-        assertThat(t1).isGreaterThan(t0);
+        assertThat(t1.compareTo(t0) >= 0).as("t1 > t0").isTrue();
     }
 
-    private File testSaveBackupConfiguration(BackupConfiguration config) throws Exception {
-        File output = manager.saveBackupConfiguration(config);
+    private Path testSaveBackupConfiguration(BackupConfiguration config) throws Exception {
+        Path output = manager.saveBackupConfiguration(config);
 
-        assertThat(output.getParentFile()).isEqualTo(configDir);
-        Assertions.assertThat(output).hasContent(CONFIG_XML);
+        assertThat(output.getParent()).isEqualTo(configDir);
+        Assertions.assertThat(output.toFile()).hasContent(CONFIG_XML);
 
         return output;
     }
@@ -368,7 +376,7 @@ public class ConfigurationManagerTest {
     public void testGetLatestArchive_noArchive() throws IOException {
         BackupConfiguration config = createConfiguration("config", tempFolder.newFolder().toPath());
 
-        File configFile = ConfigurationManager.getLatestArchive(config);
+        Path configFile = ConfigurationManager.getLatestArchive(config);
 
         assertThat(configFile).isNull();
     }
@@ -385,15 +393,15 @@ public class ConfigurationManagerTest {
 
     private void initAndGetLatestArchive(int nbConfigurations) throws Exception {
         BackupConfiguration config = createConfiguration("config", tempFolder.newFolder().toPath());
-        File[] files = new File[nbConfigurations];
+        Path[] files = new Path[nbConfigurations];
         for (int i = 0; i < nbConfigurations; i++) {
-            File file = new File(config.getTargetDirectory(), "file" + i);
-            IOUtils.copy(ZipArchiveFactoryTest.getArchive(), new java.io.FileOutputStream(file));
+            Path file = Paths.get(config.getTargetDirectory()).resolve("file" + i);
+            Files.copy(ZipArchiveFactoryTest.getArchive(), file);
             Thread.sleep(1000);
             files[i] = file;
         }
 
-        File configFile = ConfigurationManager.getLatestArchive(config);
+        Path configFile = ConfigurationManager.getLatestArchive(config);
 
         assertThat(configFile).isEqualTo(files[files.length - 1]);
     }
@@ -411,10 +419,11 @@ public class ConfigurationManagerTest {
 
         config.setName(configName);
         config.setArchiveFactory(ZIP_ARCHIVE_FACTORY);
-        config.setTargetDirectory((targetDirectory == null) ? TARGET_DIRECTORY : targetDirectory.toFile().getAbsolutePath());
-        config.addSource(toAbsolutePath("aSource"), "aDirFilter", "aFileFilter");
-        config.addSource(toAbsolutePath("aSource2"));
-        config.addSource(toAbsolutePath("anotherSource"), "anotherDirFilter", "anotherFileFilter");
+        Path targetPath = (targetDirectory == null) ? Paths.get(TARGET_DIRECTORY) : targetDirectory.toAbsolutePath();
+        config.setTargetDirectory(StringPathTypeMapper.toString(targetPath));
+        config.addSource(Paths.get(toAbsolutePath("aSource")), "aDirFilter", "aFileFilter");
+        config.addSource(Paths.get(toAbsolutePath("aSource2")));
+        config.addSource(Paths.get(toAbsolutePath("anotherSource")), "anotherDirFilter", "anotherFileFilter");
 
         return config;
     }
@@ -423,13 +432,16 @@ public class ConfigurationManagerTest {
         return new File(file).getAbsolutePath();
     }
 
-    private File configFileFor(BackupConfiguration config) {
+    private Path configFileFor(BackupConfiguration config) {
         return manager.configFileFor(config);
     }
 
-    private File writeConfigFile(boolean config1) throws IOException {
-        File configFile = new File(configDir, (config1 ? CONFIG1 : CONFIG2) + ".xml");
-        FileUtils.write(configFile, (config1 ? CONFIG_XML : CONFIG_XML2));
+    private Path writeConfigFile(boolean config1) throws IOException {
+        Path configFile = configDir.resolve((config1 ? CONFIG1 : CONFIG2) + ".xml");
+        Files.createDirectories(configFile.getParent());
+        byte[] data = (config1 ? CONFIG_XML : CONFIG_XML2).getBytes();
+        Files.write(configFile, data);
+        assertThat(Files.size(configFile)).as("config file size").isEqualTo(data.length);
         return configFile;
     }
 

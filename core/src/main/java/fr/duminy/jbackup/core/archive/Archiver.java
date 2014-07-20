@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -28,11 +29,15 @@ import org.apache.commons.lang.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.apache.commons.io.FileUtils.openInputStream;
 
 /**
  * A high level class that can (de)compress files in a format managed by the provided {@link ArchiveFactory}.
@@ -45,7 +50,7 @@ public class Archiver {
 
     public static void main(String[] args) throws IOException {
         final String operation = args[0];
-        final File archive = new File(args[1]);
+        final Path archive = Paths.get(args[1]);
         final ZipArchiveFactory factory = new ZipArchiveFactory();
 
         switch (operation) {
@@ -53,10 +58,10 @@ public class Archiver {
                 new Archiver(factory).compress(toFiles(args, 2), archive);
                 break;
             case "-d":
-                File directory = null;
+                Path directory = null;
 
                 if (args.length > 2) {
-                    directory = new File(args[2]);
+                    directory = Paths.get(args[2]);
                 }
 
                 new Archiver(factory).decompress(archive, directory);
@@ -66,67 +71,42 @@ public class Archiver {
         }
     }
 
-    private static File[] toFiles(String[] files, int fromIndex) {
-        File[] result = new File[files.length - (fromIndex + 1)];
+    private static Path[] toFiles(String[] files, int fromIndex) {
+        Path[] result = new Path[files.length - (fromIndex + 1)];
         for (int i = fromIndex; i < files.length; i++) {
-            result[i - fromIndex] = new File(files[i]);
+            result[i - fromIndex] = Paths.get(files[i]);
         }
         return result;
-    }
-
-    private static class RelativeFile extends File {
-        private final String relativePath;
-
-        public RelativeFile(File baseDirectory, String relativePath) {
-            super(baseDirectory, relativePath);
-
-            if (relativePath.startsWith(File.separator)) {
-                relativePath = relativePath.substring(File.separator.length());
-            }
-            this.relativePath = relativePath;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            return super.equals(o);
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
-        }
     }
 
     public Archiver(ArchiveFactory factory) {
         this.factory = factory;
     }
 
-    public void compress(File[] files, File archive) throws IOException {
+    public void compress(Path[] files, Path archive) throws IOException {
         compress(files, archive, null);
 
     }
 
-    public void compress(File[] files, final File archive, final ProgressListener listener) throws IOException {
+    public void compress(Path[] files, final Path archive, final ProgressListener listener) throws IOException {
         MutableLong totalSize = new MutableLong();
         files = filterFiles(files, totalSize);
         if (listener != null) {
             listener.totalSizeComputed(totalSize.longValue());
         }
 
-        final String name = archive.getAbsolutePath();
-        FileOutputStream fos = FileUtils.openOutputStream(archive);
+        final String name = archive.toString();
+        OutputStream fos = Files.newOutputStream(archive);
         final ArchiveOutputStream output = factory.create(fos);
         final MutableLong processedSize = new MutableLong();
         try {
             LOG.info("Backup '{}': creating archive {}", name, archive);
-            for (final File file : files) {
-                if (!file.isDirectory()) {
-                    LOG.info("Backup '{}': compressing file {}", name, file.getAbsolutePath());
-                    final InputStream input = createCountingInputStream(listener, processedSize, openInputStream(file));
+            for (final Path file : files) {
+                if (!Files.isDirectory(file)) {
+                    LOG.info("Backup '{}': compressing file {}", name, file.toAbsolutePath());
+                    final InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file));
                     try {
-                        String path = (file instanceof RelativeFile) ? ((RelativeFile) file).relativePath : file.getAbsolutePath();
+                        String path = StringPathTypeMapper.toString(file);
                         LOG.info("Backup '{}': adding entry {}", new Object[]{name, path});
                         output.addEntry(path, input);
                     } finally {
@@ -134,7 +114,7 @@ public class Archiver {
                     }
                 }
             }
-            LOG.info("Backup '{}': archive {} created ({})", new Object[]{name, archive, FileUtils.byteCountToDisplaySize(archive.length())});
+            LOG.info("Backup '{}': archive {} created ({})", new Object[]{name, archive, FileUtils.byteCountToDisplaySize(Files.size(archive))});
         } finally {
             IOUtils.closeQuietly(output);
             IOUtils.closeQuietly(fos);
@@ -177,26 +157,26 @@ public class Archiver {
         }
     }
 
-    public void decompress(File archive, File directory) throws IOException {
+    public void decompress(Path archive, Path directory) throws IOException {
         decompress(archive, directory, null);
     }
 
-    public void decompress(File archive, File directory, ProgressListener listener) throws IOException {
+    public void decompress(Path archive, Path directory, ProgressListener listener) throws IOException {
         if (listener != null) {
-            listener.totalSizeComputed(archive.length());
+            listener.totalSizeComputed(Files.size(archive));
         }
 
-        directory = (directory == null) ? new File(".") : directory;
+        directory = (directory == null) ? Paths.get(".") : directory;
 
         MutableLong processedSize = new MutableLong();
 
-        try (InputStream archiveStream = new FileInputStream(archive);
+        try (InputStream archiveStream = Files.newInputStream(archive);
              ArchiveInputStream input = factory.create(archiveStream)) {
             ArchiveInputStream.Entry entry = input.getNextEntry();
             while (entry != null) {
                 InputStream entryStream = createCountingInputStream(listener, processedSize, entry.getInput());
                 try {
-                    decompress(entry.getName(), entryStream, directory);
+                    Files.copy(entryStream, directory.resolve(entry.getName()));
                 } finally {
                     entry.close();
                 }
@@ -205,36 +185,27 @@ public class Archiver {
         }
     }
 
-    private void decompress(String name, InputStream stream, File outputDirectory) throws IOException {
-        try (FileOutputStream output = new FileOutputStream(new File(outputDirectory, name))) {
-            IOUtils.copy(stream, output);
-        }
-    }
-
-    private File[] filterFiles(File[] files, MutableLong totalSize) throws IOException {
+    private Path[] filterFiles(Path[] files, MutableLong totalSize) throws IOException {
         totalSize.setValue(0L);
 
-        List<File> onlyFiles = new ArrayList<>();
-        FileCollector collector = new FileCollector();
-        for (File file : files) {
+        List<Path> onlyFiles = new ArrayList<>();
+        FileCollector collector = new FileCollector(); //TODO replace by jdk Files.walkFileTree(.....)
+        for (Path file : files) {
             long size;
 
-            if (file.isDirectory()) {
-                List<File> fileList = new ArrayList<>();
-                size = collector.collect(fileList, file);
-                for (int j = 0; j < fileList.size(); j++) {
-                    File f = fileList.get(j);
-                    String relativePath = f.getAbsolutePath().substring(file.getAbsolutePath().length());
-                    fileList.set(j, new RelativeFile(file, relativePath));
+            if (Files.isDirectory(file)) {
+                List<File> collectedFiles = new ArrayList<>();
+                size = collector.collect(collectedFiles, file);
+                for (File collectedFile : collectedFiles) {
+                    onlyFiles.add(collectedFile.toPath());
                 }
-                onlyFiles.addAll(fileList);
             } else {
                 onlyFiles.add(file);
-                size = file.length();
+                size = Files.size(file);
             }
 
             totalSize.add(size);
         }
-        return onlyFiles.toArray(new File[onlyFiles.size()]);
+        return onlyFiles.toArray(new Path[onlyFiles.size()]);
     }
 }

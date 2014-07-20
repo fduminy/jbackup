@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
-import java.io.File;
+import java.nio.file.Path;
 
 public class RestoreAction extends AbstractUserItemAction<BackupConfiguration, Messages> {
     private static final Logger LOG = LoggerFactory.getLogger(RestoreAction.class);
@@ -55,16 +55,16 @@ public class RestoreAction extends AbstractUserItemAction<BackupConfiguration, M
 
     @Override
     public void executeAction(BackupConfiguration config) {
-        FormBuilder<RestoreParameters> builder = new DefaultFormBuilder<>(RestoreParameters.class);
-        RestoreParameters params = new RestoreParameters();
-        params.setArchive(ConfigurationManager.getLatestArchive(config));
-        String title = getBundle().restoreDialogTitle(config.getName());
-        if ((params = JFormPane.showFormDialog(parent, builder, params, title, JFormPane.Mode.CREATE)) != null) {
-            try {
+        try {
+            FormBuilder<RestoreParameters> builder = new DefaultFormBuilder<>(RestoreParameters.class);
+            RestoreParameters params = new RestoreParameters();
+            params.setArchive(ConfigurationManager.getLatestArchive(config));
+            String title = getBundle().restoreDialogTitle(config.getName());
+            if ((params = JFormPane.showFormDialog(parent, builder, params, title, JFormPane.Mode.CREATE)) != null) {
                 configActions.restore(config, params.getArchive(), params.getTargetDirectory());
-            } catch (DuplicateTaskException e) {
-                LOG.error(e.getMessage(), e);
             }
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
         }
     }
 
@@ -74,22 +74,22 @@ public class RestoreAction extends AbstractUserItemAction<BackupConfiguration, M
     }
 
     public static class RestoreParameters {
-        private File archive;
-        private File targetDirectory;
+        private Path archive;
+        private Path targetDirectory;
 
-        public File getArchive() {
+        public Path getArchive() {
             return archive;
         }
 
-        public void setArchive(File archive) {
+        public void setArchive(Path archive) {
             this.archive = archive;
         }
 
-        public File getTargetDirectory() {
+        public Path getTargetDirectory() {
             return targetDirectory;
         }
 
-        public void setTargetDirectory(File targetDirectory) {
+        public void setTargetDirectory(Path targetDirectory) {
             this.targetDirectory = targetDirectory;
         }
     }

@@ -36,7 +36,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 
-import java.io.File;
+import java.nio.file.Path;
 
 import static fr.duminy.jbackup.core.ConfigurationManagerTest.createConfiguration;
 import static fr.duminy.jbackup.swing.ProgressPanelTest.assertThatPanelHasTitle;
@@ -118,13 +118,13 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
 
     @Theory
     public void testRestore(int nbConfigurations) throws Exception {
-        final File[] archives = new File[nbConfigurations];
-        final File[] targetDirectories = new File[nbConfigurations];
+        final Path[] archives = new Path[nbConfigurations];
+        final Path[] targetDirectories = new Path[nbConfigurations];
         final BackupConfiguration[] configs = new BackupConfiguration[nbConfigurations];
         for (int i = 0; i < nbConfigurations; i++) {
             configs[i] = createConfiguration("name" + i);
-            archives[i] = tempFolder.newFile();
-            targetDirectories[i] = tempFolder.newFolder();
+            archives[i] = tempFolder.newFile().toPath();
+            targetDirectories[i] = tempFolder.newFolder().toPath();
             runRestore(archives[i], targetDirectories[i], configs[i]);
         }
 
@@ -145,8 +145,8 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
     }
 
     private void testRestore_afterTaskFinished(Exception error) throws Exception {
-        File archive = tempFolder.newFile();
-        File targetDirectory = tempFolder.newFolder();
+        Path archive = tempFolder.newFile().toPath();
+        Path targetDirectory = tempFolder.newFolder().toPath();
         BackupConfiguration config = createConfiguration();
         runRestore(archive, targetDirectory, config);
 
@@ -169,8 +169,8 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
     @Test
     public void testDuplicateTask_restore() throws Exception {
         BackupConfiguration config = createConfigurationForDuplicateTaskTest();
-        File archive = tempFolder.newFile();
-        File targetDirectory = tempFolder.newFolder();
+        Path archive = tempFolder.newFile().toPath();
+        Path targetDirectory = tempFolder.newFolder().toPath();
 
         runRestore(archive, targetDirectory, config);
         runRestore(archive, targetDirectory, config);
@@ -179,8 +179,8 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
     @Test
     public void testDuplicateTask_restoreAndBackup() throws Exception {
         BackupConfiguration config = createConfigurationForDuplicateTaskTest();
-        File archive = tempFolder.newFile();
-        File targetDirectory = tempFolder.newFolder();
+        Path archive = tempFolder.newFile().toPath();
+        Path targetDirectory = tempFolder.newFolder().toPath();
 
         runRestore(archive, targetDirectory, config);
         runBackup(config);
@@ -190,8 +190,8 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
     @Test
     public void testDuplicateTask_backupAndRestore() throws Exception {
         BackupConfiguration config = createConfigurationForDuplicateTaskTest();
-        File archive = tempFolder.newFile();
-        File targetDirectory = tempFolder.newFolder();
+        Path archive = tempFolder.newFile().toPath();
+        Path targetDirectory = tempFolder.newFolder().toPath();
 
         runBackup(config);
         runRestore(archive, targetDirectory, config);
@@ -204,7 +204,7 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         return config;
     }
 
-    private ProgressPanel verifyRestore(File archive, File targetDirectory, BackupConfiguration config) {
+    private ProgressPanel verifyRestore(Path archive, Path targetDirectory, BackupConfiguration config) {
         ProgressPanel pPanel = (ProgressPanel) window.panel(config.getName()).requireVisible().component();
         assertThatPanelHasTitle(pPanel, config.getName());
         verify(jBackup, times(1)).restore(config, archive, targetDirectory, pPanel);
@@ -231,7 +231,7 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         }
     }
 
-    private void runRestore(final File archive, final File targetDirectory, final BackupConfiguration config) throws DuplicateTaskException {
+    private void runRestore(final Path archive, final Path targetDirectory, final BackupConfiguration config) throws DuplicateTaskException {
         try {
             GuiActionRunner.execute(new GuiQuery<Object>() {
                 protected Object executeInEDT() throws DuplicateTaskException {

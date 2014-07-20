@@ -20,9 +20,12 @@
  */
 package fr.duminy.jbackup.swing;
 
+import fr.duminy.components.swing.form.DefaultFormBuilder;
+import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.components.swing.list.DefaultMutableListModel;
 import fr.duminy.components.swing.listpanel.ListPanel;
 import fr.duminy.components.swing.listpanel.SimpleItemManager;
+import org.formbuilder.FormBuilder;
 import org.formbuilder.TypeMapper;
 import org.formbuilder.mapping.change.ChangeHandler;
 
@@ -58,7 +61,14 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<
         list.setName("sources");
         list.setCellRenderer(SourceRenderer.INSTANCE);
 
-        SimpleItemManager<Source> sourceProvider = new SimpleItemManager<>(Source.class, parent, "Sources", DIALOG);
+        DefaultFormBuilder sourceFormBuilder = new DefaultFormBuilder<Source>(Source.class) {
+            @Override
+            protected void configureBuilder(FormBuilder<Source> builder) {
+                super.configureBuilder(builder);
+                builder.useForProperty("sourceDirectory", StringPathTypeMapper.INSTANCE);
+            }
+        };
+        SimpleItemManager<Source> sourceProvider = new SimpleItemManager<>(Source.class, sourceFormBuilder, parent, "Sources", DIALOG);
         return new ListPanel<>(list, sourceProvider);
     }
 

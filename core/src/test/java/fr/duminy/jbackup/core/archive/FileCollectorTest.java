@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core.archive;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.assertj.core.api.Assertions;
@@ -31,6 +30,8 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,7 +48,7 @@ public class FileCollectorTest {
     private static final String FILE2 = "file2.txt";
     private static final String[] FILES = {"directory1/" + FILE1, "directory2/" + FILE2};
 
-    private File directory;
+    private Path directory;
     private File[] expectedFiles;
 
     @Rule
@@ -55,16 +56,16 @@ public class FileCollectorTest {
 
     @Before
     public void setUp() throws IOException {
-        directory = tempFolder.newFolder();
+        directory = tempFolder.newFolder().toPath();
 
         expectedFiles = new File[FILES.length];
         int i = 0;
         for (String file : FILES) {
-            File f = new File(directory, file);
-            FileUtils.forceMkdir(f.getParentFile());
-            FileUtils.write(f, "one line");
+            Path f = directory.resolve(file);
+            Files.createDirectories(f.getParent());
+            Files.write(f, "one line".getBytes());
 
-            expectedFiles[i++] = f;
+            expectedFiles[i++] = f.toFile();
         }
         Arrays.sort(expectedFiles, DEFAULT_COMPARATOR);
     }
