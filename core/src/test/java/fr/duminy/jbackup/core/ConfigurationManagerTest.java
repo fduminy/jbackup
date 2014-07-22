@@ -184,10 +184,31 @@ public class ConfigurationManagerTest {
         existsRW(configFileFor(expectedConfiguration));
     }
 
+    @Test
+    public void testSetBackupConfiguration() throws Exception {
+        BackupConfiguration oldConfig = createConfiguration("oldName");
+        BackupConfiguration newConfig = createConfiguration("newName");
+        manager.addBackupConfiguration(oldConfig);
+
+        manager.setBackupConfiguration(0, newConfig);
+
+        Collection<BackupConfiguration> configs = manager.getBackupConfigurations();
+        assertThat(configs).hasSize(1);
+        BackupConfiguration actualConfiguration = configs.iterator().next();
+        BackupConfigurationAssert.assertThat(actualConfiguration).isNotSameAs(oldConfig);
+        BackupConfigurationAssert.assertThat(actualConfiguration).isSameAs(newConfig);
+        existsRW(configFileFor(oldConfig), false);
+        existsRW(configFileFor(newConfig));
+    }
+
     private void existsRW(Path configFile) {
-        assertThat(Files.exists(configFile)).as("configFile exists").isTrue();
-        assertThat(Files.isReadable(configFile)).as("configFile is readable").isTrue();
-        assertThat(Files.isWritable(configFile)).as("configFile is writable").isTrue();
+        existsRW(configFile, true);
+    }
+
+    private void existsRW(Path configFile, boolean existsRW) {
+        assertThat(Files.exists(configFile)).as("configFile exists").isEqualTo(existsRW);
+        assertThat(Files.isReadable(configFile)).as("configFile is readable").isEqualTo(existsRW);
+        assertThat(Files.isWritable(configFile)).as("configFile is writable").isEqualTo(existsRW);
     }
 
     @Test(expected = DuplicateNameException.class)

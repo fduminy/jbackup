@@ -131,12 +131,23 @@ public class ConfigurationManager {
         saveBackupConfiguration(config);
     }
 
+    public BackupConfiguration setBackupConfiguration(int index, BackupConfiguration backupConfiguration) throws Exception {
+        final BackupConfiguration oldConfig = configurations.set(index, backupConfiguration);
+        deleteConfigFileFor(oldConfig);
+        saveBackupConfiguration(backupConfiguration);
+        return oldConfig;
+    }
+
     public void removeBackupConfiguration(BackupConfiguration config) throws IOException {
         int index = indexOf(config);
         if (index >= 0) {
             configurations.remove(index);
-            Files.delete(configFileFor(config));
+            deleteConfigFileFor(config);
         }
+    }
+
+    private void deleteConfigFileFor(BackupConfiguration config) throws IOException {
+        Files.delete(configFileFor(config));
     }
 
     Path configFileFor(BackupConfiguration config) {

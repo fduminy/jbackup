@@ -138,6 +138,25 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         assertFormValues(expectedConfigs);
     }
 
+    @Test
+    public void testUpdate() throws Exception {
+        BackupConfiguration oldConfig = init(1).get(0);
+
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.list().selectItem(0);
+        configurationList.updateButton().click();
+
+        JFormPaneFixture form = new JFormPaneFixture(robot(), BackupConfiguration.class);
+        String newConfigName = "New config name";
+        form.textBox("name").setText(newConfigName);
+        form.okButton().click();
+
+        assertThat(manager.getBackupConfigurations()).hasSize(1);
+        BackupConfiguration updatedConfig = manager.getBackupConfigurations().get(0);
+        assertThat(updatedConfig).isNotSameAs(oldConfig);
+        assertThat(manager.getBackupConfigurations().get(0).getName()).isEqualTo(newConfigName);
+    }
+
     @Theory
     public void testAdd_defaultValues(int nbConfigurations) throws Exception {
         traceParameters("nbConfigurations", nbConfigurations);

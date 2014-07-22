@@ -104,20 +104,26 @@ public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JL
         }
 
         @Override
-        public void add(int i, BackupConfiguration backupConfiguration) {
+        public void add(int index, BackupConfiguration backupConfiguration) {
             try {
                 manager.addBackupConfiguration(backupConfiguration);
-                i = getSize();
-                fireIntervalAdded(this, i, i);
+                index = getSize();
+                fireIntervalAdded(this, index, index);
             } catch (Exception e) {
                 LOG.error(e.getMessage(), e);
             }
         }
 
         @Override
-        public BackupConfiguration set(int i, BackupConfiguration item) {
-            return null; //TODO implement this
-            //return manager.getBackupConfigurations().set(i, item);
+        public BackupConfiguration set(int index, BackupConfiguration backupConfiguration) {
+            try {
+                BackupConfiguration oldConfig = manager.setBackupConfiguration(index, backupConfiguration);
+                fireContentsChanged(this, index, index);
+                return oldConfig;
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+                return null;
+            }
         }
 
         @Override
