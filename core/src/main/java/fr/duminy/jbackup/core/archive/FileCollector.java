@@ -20,50 +20,69 @@
  */
 package fr.duminy.jbackup.core.archive;
 
-import org.apache.commons.io.DirectoryWalker;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 
+import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 
 /**
  * Class collecting files in a directory. Files are filtered with a directory filter and a file filter.
  */
-public class FileCollector extends DirectoryWalker<File> {
+public class FileCollector {
     private static final Logger LOG = LoggerFactory.getLogger(FileCollector.class);
 
-    private long totalSize = 0L;
+    private final IOFileFilter directoryFilter;
+    private final IOFileFilter fileFilter;
 
     public FileCollector() {
-        super(trueFileFilter(), trueFileFilter(), -1);
+        this(trueFileFilter(), trueFileFilter());
     }
 
     public FileCollector(IOFileFilter directoryFilter, IOFileFilter fileFilter) {
-        super(directoryFilter, fileFilter, -1);
+        this.directoryFilter = (directoryFilter == null) ? trueFileFilter() : directoryFilter;
+        this.fileFilter = (fileFilter == null) ? trueFileFilter() : fileFilter;
     }
 
-    public long collect(Collection<File> results, Path startDirectory) throws IOException {
-        totalSize = 0L;
-        walk(startDirectory.toFile(), results); // use jdk FileWalker instead ?
-        return totalSize;
-    }
+    public long collect(final Collection<Path> results, Path startDirectory) throws IOException {
+        final long[] totalSize = {0L};
 
-    @Override
-    protected void handleFile(File file, int depth, Collection<File> results) throws IOException {
-        LOG.trace("handleFile {}", file.getAbsolutePath());
-        results.add(file);
-        totalSize += file.length();
-    }
+        SimpleFileVisitor<Path> visitor = new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                super.preVisitDirectory(dir, attrs);
+                if (directoryFilter.accept(dir.toFile())) {
+                    return CONTINUE;
+                } else {
+                    return SKIP_SUBTREE;
+                }
+            }
 
-    @Override
-    protected boolean handleIsCancelled(File file, int depth, Collection<File> results) throws IOException {
-        //TODO returns true and handle cancellation somewhere 
-        return super.handleIsCancelled(file, depth, results);
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                super.visitFile(file, attrs);
+
+                if (fileFilter.accept(file.toFile())) {
+                    LOG.trace("visitFile {}", file.toAbsolutePath());
+                    results.add(file);
+                    totalSize[0] += Files.size(file);
+                }
+
+                return CONTINUE;
+            }
+        };
+        Files.walkFileTree(startDirectory, visitor);
+
+        return totalSize[0];
     }
 }

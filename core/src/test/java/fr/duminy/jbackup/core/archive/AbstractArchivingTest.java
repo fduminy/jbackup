@@ -157,16 +157,17 @@ abstract public class AbstractArchivingTest {
         when(mockFactory.create(any(OutputStream.class))).thenReturn(mockOutput);
         when(mockFactory.getExtension()).thenReturn("mock");
 
-        Path[] files = new Path[entries.length - 1];
+        int nbEntries = entries.length - 1;
+        List<Path> files = new ArrayList<>(nbEntries);
         Path sourceDirectory = tempFolder.newFolder("sourceDirectory").toPath();
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
-        for (int i = 0; i < files.length; i++) {
+        for (int i = 0; i < nbEntries; i++) {
             EntryData e = entries[i];
             Path file = sourceDirectory.resolve(e.name);
-            files[i] = file;
             Files.write(file, StringUtils.repeat("A", (int) e.compressedSize).getBytes());
 
+            files.add(file);
             expectedTotalSize += Files.size(file);
             expectedNotifications.add(expectedTotalSize);
         }
@@ -244,7 +245,7 @@ abstract public class AbstractArchivingTest {
         }
     }
 
-    abstract protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, Path[] files, Path archive, ProgressListener listener, boolean errorIsExpected) throws Throwable;
+    abstract protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, Iterable<Path> files, Path archive, ProgressListener listener, boolean errorIsExpected) throws Throwable;
 
     private ArchiveInputStream.Entry[] nextMockEntries(EntryData[] entries) {
         ArchiveInputStream.Entry[] result = new ArchiveInputStream.Entry[entries.length - 1];

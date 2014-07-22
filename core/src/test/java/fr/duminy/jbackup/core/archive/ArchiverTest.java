@@ -38,7 +38,7 @@ public class ArchiverTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, Path[] files, Path archive, ProgressListener listener, boolean errorIsExpected) throws IOException {
+    protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, Iterable<Path> files, Path archive, ProgressListener listener, boolean errorIsExpected) throws IOException {
         Archiver archiver = new Archiver(mockFactory);
         if (listener == null) {
             archiver.compress(files, archive);

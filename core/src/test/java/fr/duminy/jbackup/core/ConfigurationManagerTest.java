@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.naming.InvalidNameException;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -74,7 +73,7 @@ public class ConfigurationManagerTest {
         return indent + "<source>\n" +
                 ((dirFilter == null) ? "" : indent + "    <dirFilter>" + dirFilter + "</dirFilter>\n") +
                 ((fileFilter == null) ? "" : indent + "    <fileFilter>" + fileFilter + "</fileFilter>\n") +
-                ((sourceDirectory == null) ? "" : indent + "    <sourceDirectory>" + toAbsolutePath(sourceDirectory) + "</sourceDirectory>\n") +
+                ((sourceDirectory == null) ? "" : indent + "    <sourceDirectory>" + Paths.get(sourceDirectory).toAbsolutePath() + "</sourceDirectory>\n") +
                 indent + "</source>\n";
     }
 
@@ -421,15 +420,11 @@ public class ConfigurationManagerTest {
         config.setArchiveFactory(ZIP_ARCHIVE_FACTORY);
         Path targetPath = (targetDirectory == null) ? Paths.get(TARGET_DIRECTORY) : targetDirectory.toAbsolutePath();
         config.setTargetDirectory(StringPathTypeMapper.toString(targetPath));
-        config.addSource(Paths.get(toAbsolutePath("aSource")), "aDirFilter", "aFileFilter");
-        config.addSource(Paths.get(toAbsolutePath("aSource2")));
-        config.addSource(Paths.get(toAbsolutePath("anotherSource")), "anotherDirFilter", "anotherFileFilter");
+        config.addSource(Paths.get("aSource").toAbsolutePath(), "aDirFilter", "aFileFilter");
+        config.addSource(Paths.get("aSource2").toAbsolutePath());
+        config.addSource(Paths.get("anotherSource").toAbsolutePath(), "anotherDirFilter", "anotherFileFilter");
 
         return config;
-    }
-
-    public static String toAbsolutePath(String file) {
-        return new File(file).getAbsolutePath();
     }
 
     private Path configFileFor(BackupConfiguration config) {

@@ -29,7 +29,6 @@ import org.apache.commons.io.filefilter.IOFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -134,7 +133,7 @@ public class JBackup {
 
             Path archive = target.resolve(archiveName);
 
-            Collection<File> files = new ArrayList<>(10000);
+            Collection<Path> files = new ArrayList<>(10000);
             long size = 0L;
             for (BackupConfiguration.Source filter : config.getSources()) {
                 IOFileFilter dirFilter = config.createIOFileFilter("_dir", filter.getDirFilter());
@@ -144,21 +143,8 @@ public class JBackup {
             }
             LOG.info("Backup '{}': {} files ({}) to compress", new Object[]{config.getName(), files.size(), FileUtils.byteCountToDisplaySize(size)});
 
-            Path[] paths = toPaths(files);
-
-            jbackup.createArchiver(factory).compress(paths, archive, listener);
+            jbackup.createArchiver(factory).compress(files, archive, listener);
         }
-    }
-
-    //TODO remove this conversion later
-    public static Path[] toPaths(Collection<File> files) {
-        Path[] paths = new Path[files.size()];
-        int i = 0;
-        for (File file : files) {
-            paths[i] = file.toPath();
-            i++;
-        }
-        return paths;
     }
 
     private static class RestoreTask extends Task {

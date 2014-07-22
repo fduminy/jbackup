@@ -29,7 +29,6 @@ import org.apache.commons.lang.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -71,10 +70,10 @@ public class Archiver {
         }
     }
 
-    private static Path[] toFiles(String[] files, int fromIndex) {
-        Path[] result = new Path[files.length - (fromIndex + 1)];
+    private static Iterable<Path> toFiles(String[] files, int fromIndex) {
+        List<Path> result = new ArrayList<>(files.length - (fromIndex + 1));
         for (int i = fromIndex; i < files.length; i++) {
-            result[i - fromIndex] = Paths.get(files[i]);
+            result.set(i - fromIndex, Paths.get(files[i]));
         }
         return result;
     }
@@ -83,12 +82,12 @@ public class Archiver {
         this.factory = factory;
     }
 
-    public void compress(Path[] files, Path archive) throws IOException {
+    public void compress(Iterable<Path> files, Path archive) throws IOException {
         compress(files, archive, null);
 
     }
 
-    public void compress(Path[] files, final Path archive, final ProgressListener listener) throws IOException {
+    public void compress(Iterable<Path> files, final Path archive, final ProgressListener listener) throws IOException {
         MutableLong totalSize = new MutableLong();
         files = filterFiles(files, totalSize);
         if (listener != null) {
@@ -185,19 +184,19 @@ public class Archiver {
         }
     }
 
-    private Path[] filterFiles(Path[] files, MutableLong totalSize) throws IOException {
+    private Iterable<Path> filterFiles(Iterable<Path> files, MutableLong totalSize) throws IOException {
         totalSize.setValue(0L);
 
         List<Path> onlyFiles = new ArrayList<>();
-        FileCollector collector = new FileCollector(); //TODO replace by jdk Files.walkFileTree(.....)
+        FileCollector collector = new FileCollector();
         for (Path file : files) {
             long size;
 
             if (Files.isDirectory(file)) {
-                List<File> collectedFiles = new ArrayList<>();
+                List<Path> collectedFiles = new ArrayList<>();
                 size = collector.collect(collectedFiles, file);
-                for (File collectedFile : collectedFiles) {
-                    onlyFiles.add(collectedFile.toPath());
+                for (Path collectedFile : collectedFiles) {
+                    onlyFiles.add(collectedFile);
                 }
             } else {
                 onlyFiles.add(file);
@@ -206,6 +205,6 @@ public class Archiver {
 
             totalSize.add(size);
         }
-        return onlyFiles.toArray(new Path[onlyFiles.size()]);
+        return onlyFiles;
     }
 }

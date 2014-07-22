@@ -61,14 +61,14 @@ public class JBackupTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, final Path[] expectedFiles, Path archive, ProgressListener listener, boolean errorIsExpected) throws Throwable {
+    protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, final Iterable<Path> expectedFiles, Path archive, ProgressListener listener, boolean errorIsExpected) throws Throwable {
         final MutableObject actualFilesWrapper = new MutableObject();
         JBackup jbackup = new JBackup() {
             @Override
             Archiver createArchiver(ArchiveFactory factory) {
                 return new Archiver(factory) {
                     @Override
-                    public void compress(Path[] actualFiles, Path archive, ProgressListener listener) throws IOException {
+                    public void compress(Iterable<Path> actualFiles, Path archive, ProgressListener listener) throws IOException {
                         actualFilesWrapper.setValue(actualFiles);
 
                         // now compress files in the order given by expectedFiles

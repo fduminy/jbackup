@@ -28,7 +28,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +36,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.apache.commons.io.comparator.DefaultFileComparator.DEFAULT_COMPARATOR;
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 
 /**
@@ -49,7 +47,7 @@ public class FileCollectorTest {
     private static final String[] FILES = {"directory1/" + FILE1, "directory2/" + FILE2};
 
     private Path directory;
-    private File[] expectedFiles;
+    private Path[] expectedFiles;
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
@@ -58,16 +56,16 @@ public class FileCollectorTest {
     public void setUp() throws IOException {
         directory = tempFolder.newFolder().toPath();
 
-        expectedFiles = new File[FILES.length];
+        expectedFiles = new Path[FILES.length];
         int i = 0;
         for (String file : FILES) {
             Path f = directory.resolve(file);
             Files.createDirectories(f.getParent());
             Files.write(f, "one line".getBytes());
 
-            expectedFiles[i++] = f.toFile();
+            expectedFiles[i++] = f;
         }
-        Arrays.sort(expectedFiles, DEFAULT_COMPARATOR);
+        Arrays.sort(expectedFiles);
     }
 
     @Test
@@ -77,27 +75,27 @@ public class FileCollectorTest {
 
     @Test
     public void testCollect_file1() throws Exception {
-        File[] files = {expectedFiles[0]};
+        Path[] files = {expectedFiles[0]};
         testCollect(files, trueFileFilter(), FileFilterUtils.nameFileFilter(FILE1));
     }
 
     @Test
     public void testCollect_file2() throws Exception {
-        File[] files = {expectedFiles[1]};
+        Path[] files = {expectedFiles[1]};
         testCollect(files, trueFileFilter(), FileFilterUtils.nameFileFilter(FILE2));
     }
 
-    private void testCollect(File[] expectedFiles, IOFileFilter directoryFilter, IOFileFilter fileFilter) throws Exception {
+    private void testCollect(Path[] expectedFiles, IOFileFilter directoryFilter, IOFileFilter fileFilter) throws Exception {
         FileCollector collector;
         if ((directoryFilter == null) && (fileFilter == null)) {
             collector = new FileCollector();
         } else {
             collector = new FileCollector(directoryFilter, fileFilter);
         }
-        List<File> files = new ArrayList<>();
+        List<Path> files = new ArrayList<>();
         collector.collect(files, directory);
 
-        Collections.sort(files, DEFAULT_COMPARATOR);
+        Collections.sort(files);
         Assertions.assertThat(files.toArray()).as("collected files").isEqualTo(expectedFiles);
     }
 }
