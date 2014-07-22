@@ -98,6 +98,7 @@ public class JBackup {
                         listener.taskStarted();
                         execute();
                     } catch (Throwable e) {
+                        LOG.error("Error in task " + Task.this.getClass().getSimpleName(), e);
                         error = e;
                         throw e;
                     }
