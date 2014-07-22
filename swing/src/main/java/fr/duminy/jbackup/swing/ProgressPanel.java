@@ -83,7 +83,11 @@ public class ProgressPanel extends JPanel implements ProgressListener {
         if (error == null) {
             progressBar.setString("Finished");
         } else {
-            progressBar.setString("Error : " + error.getMessage());
+            String errorMessage = error.getMessage();
+            if (errorMessage == null) {
+                errorMessage = error.getClass().getSimpleName();
+            }
+            progressBar.setString("Error : " + errorMessage);
         }
         finished = true;
     }

@@ -128,6 +128,11 @@ public class ProgressPanelTest extends AbstractSwingTest {
         testTaskFinished(new Exception("Something went wrong"));
     }
 
+    @Test
+    public void testTaskFinished_withErrorAndNullMessage() {
+        testTaskFinished(new Exception());
+    }
+
     private void testTaskFinished(final Throwable error) {
         GuiActionRunner.execute(new GuiQuery<Object>() {
             protected Object executeInEDT() {
@@ -151,6 +156,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
         assertThatPanelHasTitle(panel, TITLE);
 
         JProgressBarFixture f = window.progressBar("progress");
+        String expectedMessage;
         switch (taskState) {
             case NOT_STARTED:
                 f.requireIndeterminate().requireText("Not started");
@@ -174,7 +180,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
                     iMaxValue = maxValue.intValue();
                 }
 
-                String expectedMessage = format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(value),
+                expectedMessage = format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(value),
                         byteCountToDisplaySize(maxValue), MathUtils.percent(value, maxValue));
                 f.requireDeterminate().requireValue(iValue).requireText(expectedMessage);
                 assertThat(f.component().getMinimum()).isEqualTo(0);
@@ -186,7 +192,11 @@ public class ProgressPanelTest extends AbstractSwingTest {
                 if (error == null) {
                     f.requireDeterminate().requireText("Finished");
                 } else {
-                    f.requireDeterminate().requireText("Error : " + error.getMessage());
+                    expectedMessage = error.getMessage();
+                    if (expectedMessage == null) {
+                        expectedMessage = error.getClass().getSimpleName();
+                    }
+                    f.requireDeterminate().requireText("Error : " + expectedMessage);
                 }
                 assertThat(panel.isFinished()).as("isFinished").isTrue();
                 break;
