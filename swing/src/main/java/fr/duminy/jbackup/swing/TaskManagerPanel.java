@@ -63,6 +63,7 @@ public class TaskManagerPanel extends JPanel implements BackupConfigurationActio
             layout.setRows(layout.getRows() + 1);
         }
         add(pPanel);
+        revalidate();
 
         return pPanel;
     }
