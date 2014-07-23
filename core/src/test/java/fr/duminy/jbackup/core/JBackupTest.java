@@ -50,10 +50,8 @@ public class JBackupTest extends AbstractArchivingTest {
         Future<Object> future;
         if (listener == null) {
             future = jbackup.restore(config, archive, directory);
-            assertThat(future).isNotNull();
         } else {
             future = jbackup.restore(config, archive, directory, listener);
-            assertThat(future).isNotNull();
         }
 
         waitResult(future);
