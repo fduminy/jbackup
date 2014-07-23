@@ -115,12 +115,10 @@ public class JBackup {
 
     private static class BackupTask extends Task {
         private final BackupConfiguration config;
-        private final ProgressListener listener;
 
         private BackupTask(JBackup jbackup, BackupConfiguration config, ProgressListener listener) {
             super(jbackup, listener);
             this.config = config;
-            this.listener = listener;
         }
 
         @Override
@@ -152,14 +150,12 @@ public class JBackup {
         private final BackupConfiguration config;
         private final Path archive;
         private final Path targetDirectory;
-        private final ProgressListener listener;
 
         private RestoreTask(JBackup jbackup, BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
             super(jbackup, listener);
             this.config = config;
             this.archive = archive;
             this.targetDirectory = targetDirectory;
-            this.listener = listener;
         }
 
         @Override
