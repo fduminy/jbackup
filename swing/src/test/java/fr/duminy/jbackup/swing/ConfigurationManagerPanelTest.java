@@ -37,7 +37,6 @@ import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import org.fest.assertions.Assertions;
 import org.fest.swing.core.Robot;
 import org.fest.swing.edt.GuiActionRunner;
-import org.fest.swing.edt.GuiQuery;
 import org.fest.swing.edt.GuiTask;
 import org.fest.swing.fixture.JButtonFixture;
 import org.fest.swing.fixture.JComboBoxFixture;
@@ -286,10 +285,9 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         final JPathFixture pathFixture = fixture.path("targetDirectory");
         pathFixture.requireSelectedPath(null);
 
-        GuiActionRunner.execute(new GuiQuery<Object>() {
-            protected Object executeInEDT() {
+        GuiActionRunner.execute(new GuiTask() {
+            protected void executeInEDT() {
                 pathFixture.selectPath(expectedTargetDirectory);
-                return null;
             }
         });
 

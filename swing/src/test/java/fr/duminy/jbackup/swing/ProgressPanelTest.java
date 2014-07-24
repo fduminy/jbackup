@@ -23,7 +23,8 @@ package fr.duminy.jbackup.swing;
 import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
 import org.fest.swing.edt.GuiActionRunner;
-import org.fest.swing.edt.GuiQuery;
+import org.fest.swing.edt.GuiTask;
+import org.fest.swing.fixture.JPanelFixture;
 import org.fest.swing.fixture.JProgressBarFixture;
 import org.junit.Test;
 
@@ -63,10 +64,9 @@ public class ProgressPanelTest extends AbstractSwingTest {
 
     @Test
     public void testTaskStarted() {
-        GuiActionRunner.execute(new GuiQuery<Object>() {
-            protected Object executeInEDT() {
+        GuiActionRunner.execute(new GuiTask() {
+            protected void executeInEDT() {
                 panel.taskStarted();
-                return null;
             }
         });
 
@@ -84,11 +84,10 @@ public class ProgressPanelTest extends AbstractSwingTest {
     }
 
     private void testTotalSizeComputed(final long maxValue) throws Exception {
-        GuiActionRunner.execute(new GuiQuery<Object>() {
-            protected Object executeInEDT() {
+        GuiActionRunner.execute(new GuiTask() {
+            protected void executeInEDT() {
                 panel.taskStarted();
                 panel.totalSizeComputed(maxValue);
-                return null;
             }
         });
 
@@ -106,12 +105,11 @@ public class ProgressPanelTest extends AbstractSwingTest {
     }
 
     private void testProgress(final long value, final long maxValue) throws Exception {
-        GuiActionRunner.execute(new GuiQuery<Object>() {
-            protected Object executeInEDT() {
+        GuiActionRunner.execute(new GuiTask() {
+            protected void executeInEDT() {
                 panel.taskStarted();
                 panel.totalSizeComputed(maxValue);
                 panel.progress(value);
-                return null;
             }
         });
 
@@ -134,13 +132,12 @@ public class ProgressPanelTest extends AbstractSwingTest {
     }
 
     private void testTaskFinished(final Throwable error) {
-        GuiActionRunner.execute(new GuiQuery<Object>() {
-            protected Object executeInEDT() {
+        GuiActionRunner.execute(new GuiTask() {
+            protected void executeInEDT() {
                 panel.taskStarted();
                 panel.totalSizeComputed(10);
                 panel.progress(0);
                 panel.taskFinished(error);
-                return null;
             }
         });
 
@@ -155,16 +152,17 @@ public class ProgressPanelTest extends AbstractSwingTest {
         assertThat(panel.getBorder()).isExactlyInstanceOf(TitledBorder.class);
         assertThatPanelHasTitle(panel, TITLE);
 
-        JProgressBarFixture f = window.progressBar("progress");
+        JPanelFixture progressPanel = new JPanelFixture(robot(), panel);
+        JProgressBarFixture progressBar = progressPanel.progressBar();
         String expectedMessage;
         switch (taskState) {
             case NOT_STARTED:
-                f.requireIndeterminate().requireText("Not started");
+                progressBar.requireIndeterminate().requireText("Not started");
                 assertThat(panel.isFinished()).as("isFinished").isFalse();
                 break;
 
             case STARTED:
-                f.requireIndeterminate().requireText("Estimating total size");
+                progressBar.requireIndeterminate().requireText("Estimating total size");
                 assertThat(panel.isFinished()).as("isFinished").isFalse();
                 break;
 
@@ -182,21 +180,21 @@ public class ProgressPanelTest extends AbstractSwingTest {
 
                 expectedMessage = format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(value),
                         byteCountToDisplaySize(maxValue), MathUtils.percent(value, maxValue));
-                f.requireDeterminate().requireValue(iValue).requireText(expectedMessage);
-                assertThat(f.component().getMinimum()).isEqualTo(0);
-                assertThat(f.component().getMaximum()).isEqualTo(iMaxValue);
+                progressBar.requireDeterminate().requireValue(iValue).requireText(expectedMessage);
+                assertThat(progressBar.component().getMinimum()).isEqualTo(0);
+                assertThat(progressBar.component().getMaximum()).isEqualTo(iMaxValue);
                 assertThat(panel.isFinished()).as("isFinished").isFalse();
                 break;
 
             case FINISHED:
                 if (error == null) {
-                    f.requireDeterminate().requireText("Finished");
+                    progressBar.requireDeterminate().requireText("Finished");
                 } else {
                     expectedMessage = error.getMessage();
                     if (expectedMessage == null) {
                         expectedMessage = error.getClass().getSimpleName();
                     }
-                    f.requireDeterminate().requireText("Error : " + expectedMessage);
+                    progressBar.requireDeterminate().requireText("Error : " + expectedMessage);
                 }
                 assertThat(panel.isFinished()).as("isFinished").isTrue();
                 break;

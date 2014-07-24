@@ -25,7 +25,7 @@ import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.JBackup;
 import org.fest.swing.edt.GuiActionRunner;
-import org.fest.swing.edt.GuiQuery;
+import org.fest.swing.edt.GuiTask;
 import org.fest.swing.exception.UnexpectedException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -220,10 +220,9 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
 
     private void runBackup(final BackupConfiguration config) throws DuplicateTaskException {
         try {
-            GuiActionRunner.execute(new GuiQuery<Object>() {
-                protected Object executeInEDT() throws DuplicateTaskException {
+            GuiActionRunner.execute(new GuiTask() {
+                protected void executeInEDT() throws DuplicateTaskException {
                     panel.backup(config);
-                    return null;
                 }
             });
         } catch (UnexpectedException e) {
@@ -233,10 +232,9 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
 
     private void runRestore(final Path archive, final Path targetDirectory, final BackupConfiguration config) throws DuplicateTaskException {
         try {
-            GuiActionRunner.execute(new GuiQuery<Object>() {
-                protected Object executeInEDT() throws DuplicateTaskException {
+            GuiActionRunner.execute(new GuiTask() {
+                protected void executeInEDT() throws DuplicateTaskException {
                     panel.restore(config, archive, targetDirectory);
-                    return null;
                 }
             });
         } catch (UnexpectedException e) {
@@ -245,10 +243,9 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
     }
 
     private void notifyTaskFinished(final Exception error, final ProgressPanel pPanel) {
-        GuiActionRunner.execute(new GuiQuery<Object>() {
-            protected Object executeInEDT() throws DuplicateTaskException {
+        GuiActionRunner.execute(new GuiTask() {
+            protected void executeInEDT() throws DuplicateTaskException {
                 pPanel.taskFinished(error);
-                return null;
             }
         });
     }
