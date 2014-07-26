@@ -31,23 +31,15 @@ import java.nio.file.Paths;
 /**
  * The main class of the application.
  */
-public class Application extends JPanel {
+public class Application {
     public static void main(String[] args) throws Exception {
+        new Application();
+    }
+
+    Application() throws Exception {
         JFrame frame = new JFrame();
 
-        final Application[] application = new Application[1];
-        SwingUtilities.invokeAndWait(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    application[0] = new Application();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        frame.setContentPane(application[0]);
+        frame.setContentPane(createApplicationPanel());
         frame.pack();
         frame.validate();
 //        fr.duminy.components.swing.SwingUtilities.centerInScreen(frame); //TODO
@@ -56,22 +48,43 @@ public class Application extends JPanel {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
-    private final JBackup jBackup;
-    private final ConfigurationManager manager;
+    private ApplicationPanel createApplicationPanel() throws Exception {
+        final ApplicationPanel[] application = new ApplicationPanel[1];
+        if (SwingUtilities.isEventDispatchThread()) {
+            application[0] = new ApplicationPanel();
+        } else {
+            SwingUtilities.invokeAndWait(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        application[0] = new ApplicationPanel();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+        }
+        return application[0];
+    }
 
-    private final ConfigurationManagerPanel managerPanel;
-    private final TaskManagerPanel taskManagerPanel;
+    private static class ApplicationPanel extends JPanel {
+        private final JBackup jBackup;
+        private final ConfigurationManager manager;
 
-    public Application() throws Exception {
-        super(new BorderLayout());
+        private final ConfigurationManagerPanel managerPanel;
+        private final TaskManagerPanel taskManagerPanel;
 
-        jBackup = new JBackup();
-        manager = new ConfigurationManager(Paths.get(System.getProperty("user.home"), ".jbackup"));
+        public ApplicationPanel() throws Exception {
+            super(new BorderLayout());
 
-        taskManagerPanel = new TaskManagerPanel(jBackup);
-        add(taskManagerPanel, BorderLayout.SOUTH);
+            jBackup = new JBackup();
+            manager = new ConfigurationManager(Paths.get(System.getProperty("user.home"), ".jbackup"));
 
-        managerPanel = new ConfigurationManagerPanel(manager, taskManagerPanel, this, new ZipArchiveFactory());
-        add(managerPanel, BorderLayout.CENTER);
+            taskManagerPanel = new TaskManagerPanel(jBackup);
+            add(taskManagerPanel, BorderLayout.SOUTH);
+
+            managerPanel = new ConfigurationManagerPanel(manager, taskManagerPanel, this, new ZipArchiveFactory());
+            add(managerPanel, BorderLayout.CENTER);
+        }
     }
 }
