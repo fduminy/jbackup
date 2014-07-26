@@ -47,7 +47,7 @@ public class JBackupTest extends AbstractArchivingTest {
         config.setTargetDirectory(StringPathTypeMapper.toString(archive.getParent().toAbsolutePath()));
         config.setArchiveFactory(mockFactory);
 
-        Future<Object> future;
+        Future<Void> future;
         if (listener == null) {
             future = jbackup.restore(config, archive, directory);
         } else {
@@ -83,7 +83,7 @@ public class JBackupTest extends AbstractArchivingTest {
         config.addSource(Paths.get(StringPathTypeMapper.toString(sourceDirectory.toAbsolutePath())));
         config.setArchiveFactory(mockFactory);
 
-        Future<Object> future;
+        Future<Void> future;
         if (listener == null) {
             future = jbackup.backup(config);
         } else {
@@ -100,7 +100,7 @@ public class JBackupTest extends AbstractArchivingTest {
         jbackup.shutdown();
     }
 
-    protected void waitResult(Future<Object> future) throws Throwable {
+    protected void waitResult(Future<Void> future) throws Throwable {
         assertThat(future).isNotNull();
         try {
             future.get(); // block until finished and maybe throw an Exception if task has thrown one.

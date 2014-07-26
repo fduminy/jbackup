@@ -46,19 +46,19 @@ public class JBackup {
 
     private final ExecutorService executor = Executors.newFixedThreadPool(8);
 
-    public Future<Object> backup(BackupConfiguration config) {
+    public Future<Void> backup(BackupConfiguration config) {
         return backup(config, null);
     }
 
-    public Future<Object> backup(BackupConfiguration config, ProgressListener listener) {
+    public Future<Void> backup(BackupConfiguration config, ProgressListener listener) {
         return executor.submit(new BackupTask(this, config, listener));
     }
 
-    public Future<Object> restore(BackupConfiguration config, Path archive, Path directory) {
+    public Future<Void> restore(BackupConfiguration config, Path archive, Path directory) {
         return restore(config, archive, directory, null);
     }
 
-    public Future<Object> restore(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
+    public Future<Void> restore(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
         return executor.submit(new RestoreTask(this, config, archive, targetDirectory, listener));
     }
 
@@ -78,7 +78,7 @@ public class JBackup {
         return String.format("%1$s_%2$tY_%2$tm_%2$td_%2$tH_%2$tM_%2$tS.%3$s", configName, date, factory.getExtension());
     }
 
-    private static abstract class Task implements Callable<Object> {
+    private static abstract class Task implements Callable<Void> {
         protected final JBackup jbackup;
         protected final ProgressListener listener;
 
@@ -88,7 +88,7 @@ public class JBackup {
         }
 
         @Override
-        public final Object call() throws IOException {
+        public final Void call() throws IOException {
             if (listener == null) {
                 execute();
             } else {
