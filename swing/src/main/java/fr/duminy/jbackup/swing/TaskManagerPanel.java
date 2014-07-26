@@ -28,6 +28,7 @@ import java.awt.*;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 /**
  * This is the panel that show current tasks.
@@ -44,13 +45,17 @@ public class TaskManagerPanel extends JPanel implements BackupConfigurationActio
     @Override
     public void backup(BackupConfiguration config) throws DuplicateTaskException {
         checkNoTaskIsAlreadyRunningFor(config);
-        jBackup.backup(config, createProgressPanel(config));
+        final ProgressPanel progressPanel = createProgressPanel(config);
+        Future<Object> task = jBackup.backup(config, progressPanel);
+        progressPanel.setTask(task);
     }
 
     @Override
     public void restore(BackupConfiguration config, Path archive, Path targetDirectory) throws DuplicateTaskException {
         checkNoTaskIsAlreadyRunningFor(config);
-        jBackup.restore(config, archive, targetDirectory, createProgressPanel(config));
+        final ProgressPanel progressPanel = createProgressPanel(config);
+        Future<Object> task = jBackup.restore(config, archive, targetDirectory, progressPanel);
+        progressPanel.setTask(task);
     }
 
     private ProgressPanel createProgressPanel(BackupConfiguration config) {

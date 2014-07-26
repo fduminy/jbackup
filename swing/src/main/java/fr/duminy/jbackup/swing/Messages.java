@@ -39,4 +39,7 @@ public interface Messages {
 
     @Message(value = "Restore backup ''{0}''")
     String restoreDialogTitle(String configurationName);
+
+    @Message(value = "Cancel the task")
+    String cancelTaskTooltip();
 }

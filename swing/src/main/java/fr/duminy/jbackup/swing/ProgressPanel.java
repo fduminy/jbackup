@@ -20,10 +20,16 @@
  */
 package fr.duminy.jbackup.swing;
 
+import fr.duminy.components.swing.Bundle;
 import fr.duminy.jbackup.core.archive.ProgressListener;
+import org.fest.swing.edt.GuiActionRunner;
+import org.fest.swing.edt.GuiQuery;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.concurrent.Future;
 
 import static fr.duminy.jbackup.swing.MathUtils.toInteger;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
@@ -35,6 +41,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     private final JProgressBar progressBar = new JProgressBar();
     private long totalSize;
     private boolean finished = false;
+    private JButton cancelButton;
 
     public ProgressPanel(String title) {
         super(new BorderLayout());
@@ -44,6 +51,32 @@ public class ProgressPanel extends JPanel implements ProgressListener {
         progressBar.setStringPainted(true);
         progressBar.setString("Not started");
         add(progressBar, BorderLayout.CENTER);
+    }
+
+    public void setTask(final Future<?> task) {
+        if ((task != null) && (cancelButton == null)) {
+            GuiActionRunner.execute(new GuiQuery<Void>() {
+                @Override
+                protected Void executeInEDT() {
+                    ImageIcon icon = new ImageIcon(ProgressPanel.class.getResource("cancel.png"));
+                    cancelButton = new JButton(icon);
+                    cancelButton.setMargin(new Insets(0, 0, 0, 0));
+                    cancelButton.setToolTipText(Bundle.getBundle(Messages.class).cancelTaskTooltip());
+                    add(cancelButton, BorderLayout.EAST);
+                    cancelButton.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            if (task.cancel(false)) {
+                                final Container parent = getParent();
+                                parent.remove(ProgressPanel.this);
+                                parent.revalidate();
+                            }
+                        }
+                    });
+                    return null;
+                }
+            });
+        }
     }
 
     @Override
@@ -88,6 +121,9 @@ public class ProgressPanel extends JPanel implements ProgressListener {
                 errorMessage = error.getClass().getSimpleName();
             }
             progressBar.setString("Error : " + errorMessage);
+        }
+        if (cancelButton != null) {
+            remove(cancelButton);
         }
         finished = true;
     }
