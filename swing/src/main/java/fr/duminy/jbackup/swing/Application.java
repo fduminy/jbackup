@@ -36,13 +36,20 @@ public class Application {
         new Application();
     }
 
+    public static ImageIcon getBackupIcon() {
+        // TODO put in a cache and share it with the "backup" button
+        return new ImageIcon(Application.class.getResource("backup.png"));
+    }
+
     Application() throws Exception {
         JFrame frame = new JFrame();
 
+        frame.setName("jbackup");
         frame.setContentPane(createApplicationPanel());
         frame.pack();
         frame.validate();
 //        fr.duminy.components.swing.SwingUtilities.centerInScreen(frame); //TODO
+        frame.setIconImage(new ImageIcon(Application.class.getResource("backup.png")).getImage());
         frame.setVisible(true);
         frame.setTitle("JBackup"); //TODO add version from maven's pom.xml
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
