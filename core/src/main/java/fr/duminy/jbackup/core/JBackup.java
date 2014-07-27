@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.*;
 
 /**
@@ -74,6 +75,8 @@ public class JBackup {
     }
 
     private static String generateName(String configName, ArchiveFactory factory) {
+        Objects.requireNonNull(factory, "ArchiveFactory is null");
+
         Calendar date = Calendar.getInstance();
         return String.format("%1$s_%2$tY_%2$tm_%2$td_%2$tH_%2$tM_%2$tS.%3$s", configName, date, factory.getExtension());
     }

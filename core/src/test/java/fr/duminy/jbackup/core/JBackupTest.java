@@ -26,19 +26,36 @@ import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.Archiver;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import org.apache.commons.lang.mutable.MutableObject;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests for class {@link fr.duminy.jbackup.core.JBackup}.
  */
 public class JBackupTest extends AbstractArchivingTest {
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    @Test
+    public void test_NullArchiveFactory() throws Throwable {
+        thrown.expect(NullPointerException.class);
+        thrown.expectMessage("ArchiveFactory is null");
+        Path archive = tempFolder.newFolder().toPath().resolve("archiveFile");
+
+        compress(null, Paths.get(""), Collections.EMPTY_LIST, archive, mock(ProgressListener.class), false);
+    }
+
     @Override
     protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws Throwable {
         JBackup jbackup = new JBackup();
