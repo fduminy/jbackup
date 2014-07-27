@@ -113,6 +113,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
 
     @Override
     public void taskFinished(Throwable error) {
+        progressBar.setIndeterminate(false);
         if (error == null) {
             progressBar.setString("Finished");
         } else {

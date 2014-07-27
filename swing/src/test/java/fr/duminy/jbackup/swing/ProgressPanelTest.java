@@ -133,27 +133,34 @@ public class ProgressPanelTest extends AbstractSwingTest {
 
     @Test
     public void testTaskFinished_withoutError() {
-        testTaskFinished(null);
+        testTaskFinished(null, false);
     }
 
     @Test
-    public void testTaskFinished_withError() {
-        testTaskFinished(new Exception("Something went wrong"));
+    public void testTaskFinished_withError_afterTotalSizeComputed() {
+        testTaskFinished(new Exception("Something went wrong"), false);
+    }
+
+    @Test
+    public void testTaskFinished_withError_beforeTotalSizeComputed() {
+        testTaskFinished(new Exception("Something went wrong"), true);
     }
 
     @Test
     public void testTaskFinished_withErrorAndNullMessage() {
-        testTaskFinished(new Exception());
+        testTaskFinished(new Exception(), false);
     }
 
-    private void testTaskFinished(final Throwable error) {
-        TestableTask task = GuiActionRunner.execute(new GuiQuery<TestableTask>() {
+    private void testTaskFinished(final Throwable error, final boolean beforeTotalSizeComputed) {
+        final TestableTask task = GuiActionRunner.execute(new GuiQuery<TestableTask>() {
             protected TestableTask executeInEDT() {
                 final TestableTask task = new TestableTask();
                 panel.setTask(task);
                 panel.taskStarted();
-                panel.totalSizeComputed(10);
-                panel.progress(0);
+                if ((error == null) || ((error != null) && !beforeTotalSizeComputed)) {
+                    panel.totalSizeComputed(10);
+                    panel.progress(0);
+                }
                 panel.taskFinished(error);
                 if (error != null) {
                     task.setException(error);
