@@ -124,6 +124,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
         }
         if (cancelButton != null) {
             remove(cancelButton);
+            revalidate();
         }
         finished = true;
     }
