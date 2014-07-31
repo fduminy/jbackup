@@ -102,11 +102,12 @@
                 </includes>
             </resource>
             <resource>
-                <filtering>false</filtering>
+                <filtering>true</filtering>
                 <directory>${basedir}/src/main/resources</directory>
                 <targetPath>.</targetPath>
                 <includes>
                     <include>**/**.txt</include>
+                    <include>**/**.properties</include>
                     <include>**/**.png</include>
                 </includes>
             </resource>

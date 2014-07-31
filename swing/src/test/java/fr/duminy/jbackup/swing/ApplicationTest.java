@@ -50,10 +50,24 @@ public class ApplicationTest extends AbstractSwingTest {
     }
 
     @Test
+    public void testGetVersion() throws IOException {
+        final String actualVersion = Application.getVersion();
+        assertThat(actualVersion).as("version").isNotNull();
+        assertThat(actualVersion.trim()).as("version").isNotEmpty();
+    }
+
+    @Test
     public void testApplicationIcon() {
         startApplication();
 
         assertThatImageAreEquals("imageIcon", window.component().getIconImage(), Application.getBackupIcon());
+    }
+
+    @Test
+    public void testApplicationTitle() {
+        startApplication();
+
+        assertThat(window.component().getTitle()).as("application title").isEqualTo("JBackup " + Application.getVersion());
     }
 
     private void startApplication() {

@@ -23,17 +23,38 @@ package fr.duminy.jbackup.swing;
 import fr.duminy.jbackup.core.ConfigurationManager;
 import fr.duminy.jbackup.core.JBackup;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.Properties;
 
 /**
  * The main class of the application.
  */
 public class Application {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
+
     public static void main(String[] args) throws Exception {
         new Application();
+    }
+
+    static Properties getProperties() {
+        Properties p = new Properties();
+        try (InputStream propStream = Application.class.getResourceAsStream("jbackup.properties")) {
+            p.load(propStream);
+        } catch (IOException e) {
+            LOGGER.error("Can't get application properties", e);
+        }
+        return p;
+    }
+
+    static String getVersion() {
+        return getProperties().getProperty("application.version", "");
     }
 
     public static ImageIcon getBackupIcon() {
@@ -51,7 +72,9 @@ public class Application {
 //        fr.duminy.components.swing.SwingUtilities.centerInScreen(frame); //TODO
         frame.setIconImage(new ImageIcon(Application.class.getResource("backup.png")).getImage());
         frame.setVisible(true);
-        frame.setTitle("JBackup"); //TODO add version from maven's pom.xml
+        String title = "JBackup " + getVersion();
+        frame.setTitle(title);
+        frame.setSize(SwingUtilities.computeStringWidth(frame.getFontMetrics(frame.getFont()), title) + 200, frame.getHeight());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
