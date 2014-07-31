@@ -159,7 +159,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     @Theory
     public void testAdd_defaultValues(int nbConfigurations) throws Exception {
         traceParameters("nbConfigurations", nbConfigurations);
-                
+
         List<BackupConfiguration> expectedConfigs = init(nbConfigurations);
         BackupConfiguration config = new BackupConfiguration();
         config.setName(DEFAULT_CONFIG_NAME);
@@ -230,7 +230,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         robot().waitForIdle();
         configurationList.userButton(BACKUP_BUTTON_NAME).requireToolTip(Messages.BACKUP_MESSAGE).click();
         robot().waitForIdle();
-        
+
         ArgumentCaptor<BackupConfiguration> actualConfig = ArgumentCaptor.forClass(BackupConfiguration.class);
         verify(configActions, times(1)).backup(actualConfig.capture());
         verifyNoMoreInteractions(configActions);
@@ -352,7 +352,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
                     try {
                         final ConfigurationManagerPanel panel = new ConfigurationManagerPanel(mgr, configActions, (JComponent) getFrame().getContentPane(), ARCHIVE_FACTORIES);
                         panel.setName(CONFIG_MANAGER_PANEL_NAME);
-                        return panel;                        
+                        return panel;
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -416,9 +416,14 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
 
             sourceForm.okButton().click();
         }
+
+        final JPathFixture targetPath = configForm.path("targetDirectory");
+        targetPath.requireSelectionMode(JPath.SelectionMode.DIRECTORIES_ONLY);
+        targetPath.requireFileHidingEnabled(true);
+
         GuiActionRunner.execute(new GuiTask() {
             protected void executeInEDT() {
-                configForm.path("targetDirectory").selectPath(Paths.get(expectedConfig.getTargetDirectory()));
+                targetPath.selectPath(Paths.get(expectedConfig.getTargetDirectory()));
             }
         });
         configForm.comboBox("archiveFactory").selectItem("zip");

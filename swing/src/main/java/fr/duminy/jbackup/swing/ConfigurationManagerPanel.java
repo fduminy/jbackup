@@ -26,10 +26,13 @@ import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.components.swing.list.AbstractMutableListModel;
 import fr.duminy.components.swing.listpanel.ListPanel;
 import fr.duminy.components.swing.listpanel.SimpleItemManager;
+import fr.duminy.components.swing.path.JPath;
+import fr.duminy.components.swing.path.JPathBuilder;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.ConfigurationManager;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import org.apache.commons.beanutils.BeanComparator;
+import org.apache.commons.lang3.builder.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +46,8 @@ import static fr.duminy.components.swing.listpanel.SimpleItemManager.ContainerTy
  * Panel representing a {@link fr.duminy.jbackup.core.ConfigurationManager}.
  */
 public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JList<BackupConfiguration>> {
+    private static final Builder<JPath> DIRECTORIES_BUILDER = new JPathBuilder().select(JPath.SelectionMode.DIRECTORIES_ONLY);
+
     static final Comparator<BackupConfiguration> COMPARATOR = new BeanComparator("name");
     static final String BACKUP_BUTTON_NAME = "backupButton";
     static final String RESTORE_BUTTON_NAME = "restoreButton";
@@ -68,7 +73,7 @@ public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JL
                 super.configureBuilder(builder);
                 builder.useForProperty("sources", new SourceListTypeMapper(parent));
                 builder.useForProperty("archiveFactory", new ArchiveFactoryTypeMapper(factories));
-                builder.useForProperty("targetDirectory", StringPathTypeMapper.INSTANCE);
+                builder.useForProperty("targetDirectory", new StringPathTypeMapper(DIRECTORIES_BUILDER));
             }
         };
     }
