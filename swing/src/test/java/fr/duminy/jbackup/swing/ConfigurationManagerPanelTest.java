@@ -408,6 +408,8 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
             JFormPaneFixture sourceForm = new JFormPaneFixture(robot, BackupConfiguration.Source.class);
             final JPathFixture sourcePath = sourceForm.path();
             sourcePath.requireSelectionMode(JPath.SelectionMode.FILES_AND_DIRECTORIES);
+            sourcePath.requireFileHidingEnabled(false);
+
             GuiActionRunner.execute(new GuiTask() {
                 protected void executeInEDT() {
                     sourcePath.selectPath(Paths.get(source.getSourceDirectory()));

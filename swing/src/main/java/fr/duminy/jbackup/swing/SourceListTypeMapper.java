@@ -25,6 +25,9 @@ import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.components.swing.list.DefaultMutableListModel;
 import fr.duminy.components.swing.listpanel.ListPanel;
 import fr.duminy.components.swing.listpanel.SimpleItemManager;
+import fr.duminy.components.swing.path.JPath;
+import fr.duminy.components.swing.path.JPathBuilder;
+import org.apache.commons.lang3.builder.Builder;
 import org.formbuilder.FormBuilder;
 import org.formbuilder.TypeMapper;
 import org.formbuilder.mapping.change.ChangeHandler;
@@ -43,6 +46,7 @@ import static fr.duminy.jbackup.core.BackupConfiguration.Source;
  * TODO : create a generic version from this in swing-components and (try to) associate it to list (and other collections ?) properties by default.
  */
 public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<Source>>, Object> {
+    private static final Builder<JPath> SHOW_HIDDEN_FILES_BUILDER = new JPathBuilder().fileHidingEnabled(false);
     private final JComponent parent;
 
     public SourceListTypeMapper(JComponent parent) {
@@ -65,7 +69,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<
             @Override
             protected void configureBuilder(FormBuilder<Source> builder) {
                 super.configureBuilder(builder);
-                builder.useForProperty("sourceDirectory", StringPathTypeMapper.INSTANCE);
+                builder.useForProperty("sourceDirectory", new StringPathTypeMapper(SHOW_HIDDEN_FILES_BUILDER));
             }
         };
         SimpleItemManager<Source> sourceProvider = new SimpleItemManager<>(Source.class, sourceFormBuilder, parent, "Sources", DIALOG);
