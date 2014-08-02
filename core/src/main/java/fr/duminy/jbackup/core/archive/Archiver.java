@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -54,7 +55,9 @@ public class Archiver {
 
         switch (operation) {
             case "-c":
-                new Archiver(factory).compress(toFiles(args, 2), archive);
+                final ArchiveParameters archiveParameters = new ArchiveParameters(archive);
+                archiveParameters.setFiles(toFiles(args, 2));
+                new Archiver(factory).compress(archiveParameters);
                 break;
             case "-d":
                 Path directory = null;
@@ -70,7 +73,7 @@ public class Archiver {
         }
     }
 
-    private static Iterable<Path> toFiles(String[] files, int fromIndex) {
+    private static Collection<Path> toFiles(String[] files, int fromIndex) {
         List<Path> result = new ArrayList<>(files.length - (fromIndex + 1));
         for (int i = fromIndex; i < files.length; i++) {
             result.set(i - fromIndex, Paths.get(files[i]));
@@ -82,25 +85,25 @@ public class Archiver {
         this.factory = factory;
     }
 
-    public void compress(Iterable<Path> files, Path archive) throws IOException {
-        compress(files, archive, null);
-
+    public void compress(ArchiveParameters archiveParameters) throws IOException {
+        compress(archiveParameters, null);
     }
 
-    public void compress(Iterable<Path> files, final Path archive, final ProgressListener listener) throws IOException {
+    public void compress(ArchiveParameters archiveParameters, final ProgressListener listener) throws IOException {
         MutableLong totalSize = new MutableLong();
-        files = filterFiles(files, totalSize);
+        final Collection<Path> files = filterFiles(archiveParameters.getFiles(), totalSize);
+        archiveParameters.setFiles(files);
         if (listener != null) {
             listener.totalSizeComputed(totalSize.longValue());
         }
 
-        final String name = archive.toString();
-        OutputStream fos = Files.newOutputStream(archive);
+        final String name = archiveParameters.getArchive().toString();
+        OutputStream fos = Files.newOutputStream(archiveParameters.getArchive());
         final ArchiveOutputStream output = factory.create(fos);
         final MutableLong processedSize = new MutableLong();
         try {
-            LOG.info("Backup '{}': creating archive {}", name, archive);
-            for (final Path file : files) {
+            LOG.info("Backup '{}': creating archive {}", name, archiveParameters.getArchive());
+            for (final Path file : archiveParameters.getFiles()) {
                 if (!Files.isDirectory(file)) {
                     LOG.info("Backup '{}': compressing file {}", name, file.toAbsolutePath());
                     final InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file));
@@ -113,7 +116,7 @@ public class Archiver {
                     }
                 }
             }
-            LOG.info("Backup '{}': archive {} created ({})", new Object[]{name, archive, FileUtils.byteCountToDisplaySize(Files.size(archive))});
+            LOG.info("Backup '{}': archive {} created ({})", new Object[]{name, archiveParameters.getArchive(), FileUtils.byteCountToDisplaySize(Files.size(archiveParameters.getArchive()))});
         } finally {
             IOUtils.closeQuietly(output);
             IOUtils.closeQuietly(fos);
@@ -184,7 +187,7 @@ public class Archiver {
         }
     }
 
-    private Iterable<Path> filterFiles(Iterable<Path> files, MutableLong totalSize) throws IOException {
+    private Collection<Path> filterFiles(Collection<Path> files, MutableLong totalSize) throws IOException {
         totalSize.setValue(0L);
 
         List<Path> onlyFiles = new ArrayList<>();

@@ -20,10 +20,7 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.jbackup.core.archive.ArchiveFactory;
-import fr.duminy.jbackup.core.archive.Archiver;
-import fr.duminy.jbackup.core.archive.FileCollector;
-import fr.duminy.jbackup.core.archive.ProgressListener;
+import fr.duminy.jbackup.core.archive.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.slf4j.Logger;
@@ -145,7 +142,9 @@ public class JBackup {
             }
             LOG.info("Backup '{}': {} files ({}) to compress", new Object[]{config.getName(), files.size(), FileUtils.byteCountToDisplaySize(size)});
 
-            jbackup.createArchiver(factory).compress(files, archive, listener);
+            final ArchiveParameters archiveParameters = new ArchiveParameters(archive);
+            archiveParameters.setFiles(files);
+            jbackup.createArchiver(factory).compress(archiveParameters, listener);
         }
     }
 

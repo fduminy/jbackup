@@ -173,7 +173,9 @@ abstract public class AbstractArchivingTest {
             }
 
             // test compression
-            compress(mockFactory, sourceDirectory, files, createArchivePath(), listener, errorIsExpected);
+            final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath());
+            archiveParameters.setFiles(files);
+            compress(mockFactory, sourceDirectory, archiveParameters, listener, errorIsExpected);
 
             // assertions
             verify(mockFactory, times(1)).create(any(OutputStream.class));
@@ -253,7 +255,7 @@ abstract public class AbstractArchivingTest {
         }
     }
 
-    abstract protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, Iterable<Path> files, Path archive, ProgressListener listener, boolean errorIsExpected) throws Throwable;
+    abstract protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, ArchiveParameters archiveParameters, ProgressListener listener, boolean errorIsExpected) throws Throwable;
 
     private ArchiveInputStream.Entry[] nextMockEntries(EntryData[] entries) {
         ArchiveInputStream.Entry[] result = new ArchiveInputStream.Entry[entries.length - 1];

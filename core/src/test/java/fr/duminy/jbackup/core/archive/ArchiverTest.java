@@ -48,7 +48,9 @@ public class ArchiverTest extends AbstractArchivingTest {
             thrown.expect(IllegalArgumentException.class);
             thrown.expectMessage("The file '" + relativeFile.toString() + "' is relative.");
 
-            compress(mockFactory, createSourcePath(), Collections.singletonList(relativeFile), createArchivePath(), null, true);
+            final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath());
+            archiveParameters.setFiles(Collections.singletonList(relativeFile));
+            compress(mockFactory, createSourcePath(), archiveParameters, null, true);
         } finally {
             Files.delete(relativeFile);
         }
@@ -65,12 +67,12 @@ public class ArchiverTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, Iterable<Path> files, Path archive, ProgressListener listener, boolean errorIsExpected) throws IOException {
+    protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, ArchiveParameters archiveParameters, ProgressListener listener, boolean errorIsExpected) throws IOException {
         Archiver archiver = new Archiver(mockFactory);
         if (listener == null) {
-            archiver.compress(files, archive);
+            archiver.compress(archiveParameters);
         } else {
-            archiver.compress(files, archive, listener);
+            archiver.compress(archiveParameters, listener);
         }
     }
 }
