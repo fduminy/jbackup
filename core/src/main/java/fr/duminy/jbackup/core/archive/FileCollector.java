@@ -34,7 +34,6 @@ import java.util.Collection;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
-import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 
 /**
  * Class collecting files in a directory. Files are filtered with a directory filter and a file filter.
@@ -42,26 +41,14 @@ import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 public class FileCollector {
     private static final Logger LOG = LoggerFactory.getLogger(FileCollector.class);
 
-    private final IOFileFilter directoryFilter;
-    private final IOFileFilter fileFilter;
-
-    public FileCollector() {
-        this(trueFileFilter(), trueFileFilter());
-    }
-
-    public FileCollector(IOFileFilter directoryFilter, IOFileFilter fileFilter) {
-        this.directoryFilter = (directoryFilter == null) ? trueFileFilter() : directoryFilter;
-        this.fileFilter = (fileFilter == null) ? trueFileFilter() : fileFilter;
-    }
-
-    public long collect(final Collection<Path> results, Path startDirectory) throws IOException {
+    public long collect(final Collection<Path> results, Path startDirectory, final IOFileFilter directoryFilter, final IOFileFilter fileFilter) throws IOException {
         final long[] totalSize = {0L};
 
         SimpleFileVisitor<Path> visitor = new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 super.preVisitDirectory(dir, attrs);
-                if (directoryFilter.accept(dir.toFile())) {
+                if ((directoryFilter == null) || directoryFilter.accept(dir.toFile())) {
                     return CONTINUE;
                 } else {
                     return SKIP_SUBTREE;
@@ -72,7 +59,7 @@ public class FileCollector {
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 super.visitFile(file, attrs);
 
-                if (fileFilter.accept(file.toFile())) {
+                if ((fileFilter == null) || fileFilter.accept(file.toFile())) {
                     LOG.trace("visitFile {}", file.toAbsolutePath());
                     results.add(file);
                     totalSize[0] += Files.size(file);

@@ -86,14 +86,8 @@ public class FileCollectorTest {
     }
 
     private void testCollect(Path[] expectedFiles, IOFileFilter directoryFilter, IOFileFilter fileFilter) throws Exception {
-        FileCollector collector;
-        if ((directoryFilter == null) && (fileFilter == null)) {
-            collector = new FileCollector();
-        } else {
-            collector = new FileCollector(directoryFilter, fileFilter);
-        }
         List<Path> files = new ArrayList<>();
-        collector.collect(files, directory);
+        new FileCollector().collect(files, directory, directoryFilter, fileFilter);
 
         Collections.sort(files);
         Assertions.assertThat(files.toArray()).as("collected files").isEqualTo(expectedFiles);

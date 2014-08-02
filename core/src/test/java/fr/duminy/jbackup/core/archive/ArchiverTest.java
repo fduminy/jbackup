@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Test for the class {@link Archiver}.
@@ -49,8 +50,8 @@ public class ArchiverTest extends AbstractArchivingTest {
             thrown.expectMessage("The file '" + relativeFile.toString() + "' is relative.");
 
             final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath());
-            archiveParameters.setFiles(Collections.singletonList(relativeFile));
-            compress(mockFactory, createSourcePath(), archiveParameters, null, true);
+            archiveParameters.addSource(relativeFile);
+            compress(mockFactory, archiveParameters, Collections.<Path>emptyList(), null, true);
         } finally {
             Files.delete(relativeFile);
         }
@@ -67,7 +68,7 @@ public class ArchiverTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, ArchiveParameters archiveParameters, ProgressListener listener, boolean errorIsExpected) throws IOException {
+    protected void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, List<Path> expectedFiles, ProgressListener listener, boolean errorIsExpected) throws IOException {
         Archiver archiver = new Archiver(mockFactory);
         if (listener == null) {
             archiver.compress(archiveParameters);

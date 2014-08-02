@@ -20,8 +20,10 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.jbackup.core.archive.*;
-import org.apache.commons.io.FileUtils;
+import fr.duminy.jbackup.core.archive.ArchiveFactory;
+import fr.duminy.jbackup.core.archive.ArchiveParameters;
+import fr.duminy.jbackup.core.archive.Archiver;
+import fr.duminy.jbackup.core.archive.ProgressListener;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,9 +32,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.*;
 
@@ -132,18 +132,14 @@ public class JBackup {
 
             Path archive = target.resolve(archiveName);
 
-            Collection<Path> files = new ArrayList<>(10000);
-            long size = 0L;
+            final ArchiveParameters archiveParameters = new ArchiveParameters(archive);
             for (BackupConfiguration.Source filter : config.getSources()) {
                 IOFileFilter dirFilter = config.createIOFileFilter("_dir", filter.getDirFilter());
                 IOFileFilter fileFilter = config.createIOFileFilter("_file", filter.getFileFilter());
-                FileCollector walker = new FileCollector(dirFilter, fileFilter);
-                size += walker.collect(files, Paths.get(filter.getSourceDirectory()));
+                Path source = Paths.get(filter.getSourceDirectory());
+                archiveParameters.addSource(source, dirFilter, fileFilter);
             }
-            LOG.info("Backup '{}': {} files ({}) to compress", new Object[]{config.getName(), files.size(), FileUtils.byteCountToDisplaySize(size)});
 
-            final ArchiveParameters archiveParameters = new ArchiveParameters(archive);
-            archiveParameters.setFiles(files);
             jbackup.createArchiver(factory).compress(archiveParameters, listener);
         }
     }

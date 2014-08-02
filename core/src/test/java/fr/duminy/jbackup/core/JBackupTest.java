@@ -30,7 +30,9 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -51,8 +53,7 @@ public class JBackupTest extends AbstractArchivingTest {
         Path archive = tempFolder.newFolder().toPath().resolve("archiveFile");
 
         final ArchiveParameters archiveParameters = new ArchiveParameters(archive);
-        archiveParameters.setFiles(Collections.EMPTY_LIST);
-        compress(null, Paths.get(""), archiveParameters, mock(ProgressListener.class), false);
+        compress(null, archiveParameters, Collections.<Path>emptyList(), mock(ProgressListener.class), false);
     }
 
     @Override
@@ -75,19 +76,19 @@ public class JBackupTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, Path sourceDirectory, ArchiveParameters archiveParameters, ProgressListener listener, boolean errorIsExpected) throws Throwable {
+    protected void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, List<Path> expectedFiles, ProgressListener listener, boolean errorIsExpected) throws Throwable {
         final MutableObject actualFilesWrapper = new MutableObject();
         JBackup jbackup = new JBackup() {
             @Override
             Archiver createArchiver(ArchiveFactory factory) {
                 return new Archiver(factory) {
                     @Override
-                    public void compress(ArchiveParameters archiveParameters, ProgressListener listener) throws IOException {
-                        actualFilesWrapper.setValue(archiveParameters.getFiles());
+                    protected void compress(ArchiveParameters archiveParameters, ProgressListener listener, Collection<Path> files) throws IOException {
+                        actualFilesWrapper.setValue(files);
 
                         // now compress files in the order given by expectedFiles
                         // (otherwise the test will fail on some platforms)
-                        super.compress(archiveParameters, listener);
+                        super.compress(archiveParameters, listener, files);
                     }
                 };
             }
@@ -96,7 +97,9 @@ public class JBackupTest extends AbstractArchivingTest {
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testCompress");
         config.setTargetDirectory(StringPathTypeMapper.toString(archiveParameters.getArchive().getParent().toAbsolutePath()));
-        config.addSource(Paths.get(StringPathTypeMapper.toString(sourceDirectory.toAbsolutePath())));
+        for (ArchiveParameters.Source source : archiveParameters.getSources()) {
+            config.addSource(Paths.get(StringPathTypeMapper.toString(source.getSource().toAbsolutePath())));
+        }
         config.setArchiveFactory(mockFactory);
 
         Future<Void> future;
@@ -110,7 +113,7 @@ public class JBackupTest extends AbstractArchivingTest {
 
         // ensure that actual files are as expected
         if (!errorIsExpected) {
-            assertThat(actualFilesWrapper.getValue()).isEqualTo(archiveParameters.getFiles());
+            assertThat(actualFilesWrapper.getValue()).isEqualTo(expectedFiles);
         }
 
         jbackup.shutdown();

@@ -20,27 +20,59 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import org.apache.commons.io.filefilter.IOFileFilter;
+
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+
+import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 
 public class ArchiveParameters {
-    private Collection<Path> files = Collections.emptyList();
+    private final Collection<Source> sources = new ArrayList<>();
     private final Path archive;
 
     public ArchiveParameters(Path archive) {
         this.archive = archive;
     }
 
-    public Collection<Path> getFiles() {
-        return files;
+    public Collection<Source> getSources() {
+        return sources;
     }
 
     public Path getArchive() {
         return archive;
     }
 
-    public void setFiles(Collection<Path> files) {
-        this.files = files;
+    public void addSource(Path source, IOFileFilter dirFilter, IOFileFilter fileFilter) {
+        sources.add(new Source(source, dirFilter, fileFilter));
+    }
+
+    public void addSource(Path source) {
+        addSource(source, null, null);
+    }
+
+    public static final class Source {
+        private final Path source;
+        private final IOFileFilter dirFilter;
+        private final IOFileFilter fileFilter;
+
+        private Source(Path source, IOFileFilter dirFilter, IOFileFilter fileFilter) {
+            this.source = source;
+            this.dirFilter = (dirFilter == null) ? trueFileFilter() : dirFilter;
+            this.fileFilter = (fileFilter == null) ? trueFileFilter() : fileFilter;
+        }
+
+        public Path getSource() {
+            return source;
+        }
+
+        public IOFileFilter getDirFilter() {
+            return dirFilter;
+        }
+
+        public IOFileFilter getFileFilter() {
+            return fileFilter;
+        }
     }
 }
