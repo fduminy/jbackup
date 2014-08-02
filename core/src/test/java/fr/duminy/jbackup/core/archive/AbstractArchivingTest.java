@@ -36,10 +36,7 @@ import org.mockito.InOrder;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -101,7 +98,7 @@ abstract public class AbstractArchivingTest {
         ArchiveFactory mockFactory = mock(ArchiveFactory.class);
         when(mockFactory.create(any(InputStream.class))).thenReturn(mockInput);
 
-        Path archive = tempFolder.newFile("archive.mock").toPath();
+        Path archive = createArchivePath();
         Path directory = tempFolder.newFolder("targetDir").toPath();
         Files.write(archive, StringUtils.repeat("A", (int) expectedTotalSize).getBytes());
 
@@ -140,8 +137,6 @@ abstract public class AbstractArchivingTest {
         boolean errorIsExpected = ErrorType.ERROR == errorType;
         Assume.assumeTrue(!errorIsExpected || testJBackup);
 
-        Path archive = tempFolder.newFile("archive.mock").toPath();
-
         // preparation of archiver & mocks
         ArchiveOutputStream mockOutput = mock(ArchiveOutputStream.class);
         doAnswer(new Answer() {
@@ -153,13 +148,11 @@ abstract public class AbstractArchivingTest {
             }
         }).when(mockOutput).addEntry(any(String.class), any(InputStream.class));
 
-        ArchiveFactory mockFactory = mock(ArchiveFactory.class);
-        when(mockFactory.create(any(OutputStream.class))).thenReturn(mockOutput);
-        when(mockFactory.getExtension()).thenReturn("mock");
+        ArchiveFactory mockFactory = createMockArchiveFactory(mockOutput);
 
         int nbEntries = entries.length - 1;
         List<Path> files = new ArrayList<>(nbEntries);
-        Path sourceDirectory = tempFolder.newFolder("sourceDirectory").toPath();
+        Path sourceDirectory = createSourcePath();
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
         for (int i = 0; i < nbEntries; i++) {
@@ -180,7 +173,7 @@ abstract public class AbstractArchivingTest {
             }
 
             // test compression
-            compress(mockFactory, sourceDirectory, files, archive, listener, errorIsExpected);
+            compress(mockFactory, sourceDirectory, files, createArchivePath(), listener, errorIsExpected);
 
             // assertions
             verify(mockFactory, times(1)).create(any(OutputStream.class));
@@ -203,6 +196,21 @@ abstract public class AbstractArchivingTest {
         }
 
         assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorIsExpected);
+    }
+
+    Path createArchivePath() throws IOException {
+        return tempFolder.newFile("archive.mock").toPath();
+    }
+
+    Path createSourcePath() {
+        return tempFolder.newFolder("sourceDirectory").toPath().toAbsolutePath();
+    }
+
+    ArchiveFactory createMockArchiveFactory(ArchiveOutputStream mockOutput) throws IOException {
+        ArchiveFactory mockFactory = mock(ArchiveFactory.class);
+        when(mockFactory.create(any(OutputStream.class))).thenReturn(mockOutput);
+        when(mockFactory.getExtension()).thenReturn("mock");
+        return mockFactory;
     }
 
     private void checkErrorIsExpected(boolean error, Throwable t) throws Throwable {

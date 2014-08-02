@@ -190,6 +190,10 @@ public class Archiver {
         List<Path> onlyFiles = new ArrayList<>();
         FileCollector collector = new FileCollector();
         for (Path file : files) {
+            if (!file.isAbsolute()) {
+                throw new IllegalArgumentException("The file '" + file.toString() + "' is relative.");
+            }
+
             long size;
 
             if (Files.isDirectory(file)) {

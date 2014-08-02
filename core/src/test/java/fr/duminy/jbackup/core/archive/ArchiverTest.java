@@ -20,13 +20,40 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
+
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
 
 /**
  * Test for the class {@link Archiver}.
  */
 public class ArchiverTest extends AbstractArchivingTest {
+    @Rule
+    public final ExpectedException thrown = ExpectedException.none();
+
+    @Test
+    public void testCompress_relativeFilesMustThrowAnException() throws Throwable {
+        ArchiveFactory mockFactory = createMockArchiveFactory(Mockito.mock(ArchiveOutputStream.class));
+        Path relativeFile = Paths.get("testCompressRelativeFile.tmp");
+        Files.write(relativeFile, "A".getBytes());
+
+        try {
+            thrown.expect(IllegalArgumentException.class);
+            thrown.expectMessage("The file '" + relativeFile.toString() + "' is relative.");
+
+            compress(mockFactory, createSourcePath(), Collections.singletonList(relativeFile), createArchivePath(), null, true);
+        } finally {
+            Files.delete(relativeFile);
+        }
+    }
+
     @Override
     protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws IOException {
         Archiver archiver = new Archiver(mockFactory);
