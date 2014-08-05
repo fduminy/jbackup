@@ -22,6 +22,8 @@ package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.JBackupTest;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
 import org.junit.Rule;
@@ -41,9 +43,11 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -59,11 +63,24 @@ abstract public class AbstractArchivingTest {
     public static final ErrorType[] ERROR_TYPES = ErrorType.values();
 
     @DataPoint
-    public static final Entries NO_ENTRY = new Entries();
+    public static final Data SRC_FILE_WITHOUT_FILTER = withoutFilter().andSourceFile("file1").acceptAll();
     @DataPoint
-    public static final Entries ONE_ENTRY = new Entries().file("entry1", 1L);
+    public static final Data SRC_FILE_WITH_DIR_FILTER = withDirFilter("dir123").andSourceFile("file1").acceptAll();
     @DataPoint
-    public static final Entries TWO_ENTRIES = new Entries().file("entry1", 3L).file("entry2", 5L);
+    public static final Data SRC_FILE_WITH_DIR_FILTER2 = withDirFilter("${parentDir}").andSourceFile("file1").acceptAll();
+    @DataPoint
+    public static final Data SRC_FILE_WITH_FILE_FILTER = withDirFilter("file1").andSourceFile("file1").acceptAll();
+    @DataPoint
+    public static final Data SRC_FILE_WITH_FILE_FILTER2 = withFileFilter("file2").andSourceFile("file1").acceptAll();
+
+    @DataPoint
+    public static final Data SRC_DIR_WITHOUT_FILTER_AND_FILES = withoutFilter().andSourceDir("dir1").acceptAll();
+    @DataPoint
+    public static final Data SRC_DIR_WITHOUT_FILTER = withoutFilter().andSourceDir("dir1").accept("dir2/file2", "dir3/file3");
+    @DataPoint
+    public static final Data SRC_DIR_WITH_DIR_FILTER = withDirFilter("dir2").andSourceDir("dir1").accept("dir2/file2").butReject("dir3/file3");
+    @DataPoint
+    public static final Data SRC_DIR_WITH_FILE_FILTER = withFileFilter("file2").andSourceDir("dir1").accept("dir2/file2").butReject("dir3/file3");
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
@@ -77,11 +94,12 @@ abstract public class AbstractArchivingTest {
     }
 
     @Theory
-    public void testDecompress(Entries entries, boolean useListener, ErrorType errorType) throws Throwable {
+    public void testDecompress(Data data, boolean useListener, ErrorType errorType) throws Throwable {
         boolean errorIsExpected = ErrorType.ERROR == errorType;
         Assume.assumeTrue(!errorIsExpected || testJBackup);
 
         // preparation of archiver & mocks
+        Entries entries = data.entries();
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
         for (Entry e : entries) {
@@ -134,12 +152,13 @@ abstract public class AbstractArchivingTest {
     abstract protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws Throwable;
 
     @Theory
-    public void testCompress(Entries entries, boolean useListener, ErrorType errorType) throws Throwable {
+    public void testCompress(Data data, boolean useListener, ErrorType errorType) throws Throwable {
         boolean errorIsExpected = ErrorType.ERROR == errorType;
         Assume.assumeTrue(!errorIsExpected || testJBackup);
 
         // preparation of archiver & mocks
         ArchiveOutputStream mockOutput = mock(ArchiveOutputStream.class);
+        ArgumentCaptor<String> pathArgument = ArgumentCaptor.forClass(String.class);
         doAnswer(new Answer() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
@@ -147,34 +166,22 @@ abstract public class AbstractArchivingTest {
                 IOUtils.copy(input, new ByteArrayOutputStream());
                 return null;
             }
-        }).when(mockOutput).addEntry(any(String.class), any(InputStream.class));
+        }).when(mockOutput).addEntry(pathArgument.capture(), any(InputStream.class));
 
         ArchiveFactory mockFactory = createMockArchiveFactory(mockOutput);
-
-        List<Path> files = new ArrayList<>();
-        Path sourceDirectory = createSourcePath();
-        List<Long> expectedNotifications = new ArrayList<>();
-        long expectedTotalSize = 0L;
-        for (Entry entry : entries) {
-            Path file = sourceDirectory.resolve(entry.name);
-            Files.write(file, StringUtils.repeat("A", (int) entry.compressedSize).getBytes());
-
-            files.add(file);
-            expectedTotalSize += Files.size(file);
-            expectedNotifications.add(expectedTotalSize);
-        }
-
+        Path baseDirectory = createBaseDirectory();
         ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
+
+        final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath());
+        List<Path> expectedFiles = data.createFiles(baseDirectory, archiveParameters);
 
         try {
             if (errorIsExpected) {
-                sourceDirectory.toFile().setReadable(false);
+                setReadable(expectedFiles, false);
             }
 
             // test compression
-            final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath());
-            archiveParameters.addSource(sourceDirectory);
-            compress(mockFactory, archiveParameters, files, listener, errorIsExpected);
+            compress(mockFactory, archiveParameters, expectedFiles, listener, errorIsExpected);
 
             // assertions
             verify(mockFactory, times(1)).create(any(OutputStream.class));
@@ -184,7 +191,7 @@ abstract public class AbstractArchivingTest {
             verifyNoMoreInteractions(mockFactory);
 
             if (!errorIsExpected) {
-                for (Path file : files) {
+                for (Path file : expectedFiles) {
                     verify(mockOutput, times(1)).addEntry(eq(file.toFile().getAbsolutePath()), any(InputStream.class));
                 }
             }
@@ -193,18 +200,18 @@ abstract public class AbstractArchivingTest {
         } catch (Throwable t) {
             checkErrorIsExpected(errorIsExpected, t);
         } finally {
-            sourceDirectory.toFile().setReadable(true);
+            setReadable(expectedFiles, true);
         }
 
-        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorIsExpected);
+        assertThatNotificationsAreValid(listener, baseDirectory, pathArgument.getAllValues(), errorIsExpected);
     }
 
     Path createArchivePath() throws IOException {
         return tempFolder.newFile("archive.mock").toPath();
     }
 
-    Path createSourcePath() {
-        return tempFolder.newFolder("sourceDirectory").toPath().toAbsolutePath();
+    Path createBaseDirectory() {
+        return tempFolder.newFolder("baseDirectory").toPath().toAbsolutePath();
     }
 
     ArchiveFactory createMockArchiveFactory(ArchiveOutputStream mockOutput) throws IOException {
@@ -214,13 +221,29 @@ abstract public class AbstractArchivingTest {
         return mockFactory;
     }
 
+    private void setReadable(List<Path> files, boolean readable) {
+        for (Path file : files) {
+            file.toFile().setReadable(readable);
+        }
+    }
     private void checkErrorIsExpected(boolean error, Throwable t) throws Throwable {
         if (!error || !t.getClass().equals(ERROR_CLASS)) {
             throw t;
         }
     }
 
-    private void assertThatNotificationsAreValid(ProgressListener listener, List<Long> expectedNotifications, long expectedTotalSize, boolean errorIsExpected) {
+    private void assertThatNotificationsAreValid(ProgressListener listener, Path sourceDirectory, List<String> actualEntries, boolean errorIsExpected) throws IOException {
+        List<Long> expectedNotifications = new ArrayList<>();
+        long expectedTotalSize = 0L;
+        for (String actualEntry : actualEntries) {
+            Path path = sourceDirectory.resolve(actualEntry);
+            expectedTotalSize += Files.size(path);
+            expectedNotifications.add(expectedTotalSize);
+        }
+        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorIsExpected);
+    }
+
+    private void assertThatNotificationsAreValid(ProgressListener listener, List<Long> expectedNotifications, long expectedTotalSize, boolean errorIsExpected) throws IOException {
         if (listener != null) {
             InOrder inOrder = inOrder(listener);
 
@@ -236,11 +259,9 @@ abstract public class AbstractArchivingTest {
                 inOrder.verify(listener, times(1)).totalSizeComputed(expectedTotalSize);
 
                 // 3 - progress
-                if (!expectedNotifications.isEmpty()) {
-                    ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
-                    inOrder.verify(listener, times(expectedNotifications.size())).progress(argument.capture());
-                    assertThat(argument.getAllValues()).as("progress notifications").isEqualTo(expectedNotifications);
-                }
+                ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+                inOrder.verify(listener, times(expectedNotifications.size())).progress(argument.capture());
+                assertThat(argument.getAllValues()).as("progress notifications").isEqualTo(expectedNotifications);
             }
 
             // 4 - taskFinished
@@ -256,6 +277,170 @@ abstract public class AbstractArchivingTest {
 
     abstract protected void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, List<Path> expectedFiles, ProgressListener listener, boolean errorIsExpected) throws Throwable;
 
+
+    private static class Filter {
+        private final String dirFilter;
+        private final String fileFilter;
+
+        private Filter(String dirFilter, String fileFilter) {
+            this.dirFilter = dirFilter;
+            this.fileFilter = fileFilter;
+        }
+
+        public SourceFile andSourceFile(String file) {
+            return new SourceFile(this, file);
+        }
+
+        public SourceDir andSourceDir(String dir) {
+            return new SourceDir(this, dir);
+        }
+    }
+
+    private static Filter withoutFilter() {
+        return new Filter(null, null);
+    }
+
+    private static Filter withDirFilter(String dirFilter) {
+        return new Filter(dirFilter, null);
+    }
+
+    private static Filter withFileFilter(String fileFilter) {
+        return new Filter(null, fileFilter);
+    }
+
+    private static abstract class Source {
+        private final Filter filter;
+
+        private Source(Filter filter) {
+            this.filter = filter;
+        }
+
+        public Data acceptAll() {
+            return new Data(this);
+        }
+
+        public Data accept(String... acceptedFiles) {
+            return new Data(this, acceptedFiles);
+        }
+
+        abstract public Path create(Path baseDirectory) throws IOException;
+    }
+
+    private static class SourceFile extends Source {
+        private final String file;
+
+        private SourceFile(Filter filter, String file) {
+            super(filter);
+            this.file = file;
+        }
+
+        public Path create(Path baseDirectory) throws IOException {
+            final Path file = baseDirectory.resolve(this.file);
+            Data.createFile(file, 123L);
+            return file;
+        }
+    }
+
+    private static class SourceDir extends Source {
+        private final String dir;
+
+        private SourceDir(Filter filter, String dir) {
+            super(filter);
+            this.dir = dir;
+        }
+
+        public Path create(Path baseDirectory) throws IOException {
+            final Path dir = baseDirectory.resolve(this.dir);
+            Files.createDirectories(dir);
+            return dir;
+        }
+    }
+
+    private static class Data {
+        private final Source source;
+        private final String[] acceptedFiles;
+        private String[] rejectedFiles = new String[0];
+
+        public Data(Source source, String... acceptedFiles) {
+            this.source = source;
+            this.acceptedFiles = acceptedFiles;
+        }
+
+        public Data butReject(String... rejectedFiles) {
+            this.rejectedFiles = rejectedFiles;
+            return this;
+        }
+
+        public Entries entries() {
+            Entries entries = new Entries();
+            for (String entry : acceptedFiles) {
+                entries.file(entry);
+            }
+            return entries;
+        }
+
+        public Entries rejectedEntries() {
+            Entries entries = new Entries();
+            for (String entry : rejectedFiles) {
+                entries.file(entry);
+            }
+            return entries;
+        }
+
+        private static Path createFile(Path sourceDirectory, Entry entry) throws IOException {
+            Path file = sourceDirectory.resolve(entry.name);
+            createFile(file, entry.compressedSize);
+            return file;
+        }
+
+        private static Path createFile(Path file, long size) throws IOException {
+            Files.createDirectories(file.getParent());
+            Files.write(file, StringUtils.repeat("A", (int) size).getBytes());
+            return file;
+        }
+
+        public List<Path> createFiles(Path baseDirectory, ArchiveParameters archiveParameters) throws IOException {
+            Path source = this.source.create(baseDirectory);
+
+            Filter filter = this.source.filter;
+            IOFileFilter dirFilter = (filter.dirFilter == null) ? trueFileFilter() : new CustomNameFileFilter(filter.dirFilter);
+            IOFileFilter fileFilter = (filter.fileFilter == null) ? trueFileFilter() : new CustomNameFileFilter(filter.fileFilter);
+            archiveParameters.addSource(source, dirFilter, fileFilter);
+
+            final List<Path> acceptedFiles;
+            if (Files.isDirectory(source)) {
+                acceptedFiles = new ArrayList<>();
+                for (Entry entry : entries()) {
+                    acceptedFiles.add(createFile(source, entry));
+                }
+                for (Entry entry : rejectedEntries()) {
+                    createFile(source, entry);
+                }
+            } else {
+                acceptedFiles = Collections.singletonList(source);
+            }
+
+            return acceptedFiles;
+        }
+    }
+
+    private static final class CustomNameFileFilter extends NameFileFilter {
+        private final String name;
+
+        public CustomNameFileFilter(String name) {
+            super(name);
+            this.name = name;
+        }
+    }
+
+    protected static final String getName(IOFileFilter filter) {
+        if (filter instanceof CustomNameFileFilter) {
+            return ((CustomNameFileFilter) filter).name;
+        } else {
+            return null;
+        }
+    }
+
     private static class Entry {
         private final String name;
         private final long compressedSize;
@@ -267,10 +452,11 @@ abstract public class AbstractArchivingTest {
     }
 
     private static class Entries implements Iterable<Entry> {
+        private long compressedSize = 1;
         private final List<Entry> entries = new ArrayList<>();
 
-        public Entries file(String file, long compressedSize) {
-            entries.add(new Entry(file, compressedSize));
+        public Entries file(String file) {
+            entries.add(new Entry(file, compressedSize++));
             return this;
         }
 

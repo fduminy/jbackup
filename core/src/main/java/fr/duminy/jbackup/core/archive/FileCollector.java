@@ -41,14 +41,14 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 public class FileCollector {
     private static final Logger LOG = LoggerFactory.getLogger(FileCollector.class);
 
-    public long collect(final Collection<Path> results, Path startDirectory, final IOFileFilter directoryFilter, final IOFileFilter fileFilter) throws IOException {
+    public long collect(final Collection<Path> results, final Path startDirectory, final IOFileFilter directoryFilter, final IOFileFilter fileFilter) throws IOException {
         final long[] totalSize = {0L};
 
         SimpleFileVisitor<Path> visitor = new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 super.preVisitDirectory(dir, attrs);
-                if ((directoryFilter == null) || directoryFilter.accept(dir.toFile())) {
+                if ((directoryFilter == null) || startDirectory.equals(dir) || directoryFilter.accept(dir.toFile())) {
                     return CONTINUE;
                 } else {
                     return SKIP_SUBTREE;

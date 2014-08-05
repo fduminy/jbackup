@@ -173,7 +173,9 @@ public class Archiver {
             while (entry != null) {
                 InputStream entryStream = createCountingInputStream(listener, processedSize, entry.getInput());
                 try {
-                    Files.copy(entryStream, directory.resolve(entry.getName()));
+                    Path file = directory.resolve(entry.getName());
+                    Files.createDirectories(file.getParent());
+                    Files.copy(entryStream, file);
                 } finally {
                     entry.close();
                 }

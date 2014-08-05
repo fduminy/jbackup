@@ -22,6 +22,7 @@ package fr.duminy.jbackup.core;
 
 import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.*;
+import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.lang.mutable.MutableObject;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,6 +31,7 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -98,7 +100,9 @@ public class JBackupTest extends AbstractArchivingTest {
         config.setName("testCompress");
         config.setTargetDirectory(StringPathTypeMapper.toString(archiveParameters.getArchive().getParent().toAbsolutePath()));
         for (ArchiveParameters.Source source : archiveParameters.getSources()) {
-            config.addSource(Paths.get(StringPathTypeMapper.toString(source.getSource().toAbsolutePath())));
+            String dirFilter = toJexlExpression(source.getDirFilter());
+            String fileFilter = toJexlExpression(source.getFileFilter());
+            config.addSource(Paths.get(StringPathTypeMapper.toString(source.getSource().toAbsolutePath())), dirFilter, fileFilter);
         }
         config.setArchiveFactory(mockFactory);
 
@@ -113,10 +117,19 @@ public class JBackupTest extends AbstractArchivingTest {
 
         // ensure that actual files are as expected
         if (!errorIsExpected) {
-            assertThat(actualFilesWrapper.getValue()).isEqualTo(expectedFiles);
+            List<Path> actualFiles = new ArrayList<>((List<Path>) actualFilesWrapper.getValue());
+            expectedFiles = new ArrayList<>(expectedFiles);
+            Collections.sort(actualFiles);
+            Collections.sort(expectedFiles);
+            assertThat(actualFiles).isEqualTo(expectedFiles);
         }
 
         jbackup.shutdown();
+    }
+
+    private String toJexlExpression(IOFileFilter filter) {
+        String fileName = getName(filter);
+        return (fileName == null) ? null : "file.name=='" + fileName + "'";
     }
 
     protected void waitResult(Future<Void> future) throws Throwable {
