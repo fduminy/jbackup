@@ -43,7 +43,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -63,24 +63,37 @@ abstract public class AbstractArchivingTest {
     public static final ErrorType[] ERROR_TYPES = ErrorType.values();
 
     @DataPoint
-    public static final Data SRC_FILE_WITHOUT_FILTER = withoutFilter().andSourceFile("file1").acceptAll();
+    public static final Data SRC_FILE_WITHOUT_FILTER = group(withoutFilter().andSourceFile("file1").acceptAll());
     @DataPoint
-    public static final Data SRC_FILE_WITH_DIR_FILTER = withDirFilter("dir123").andSourceFile("file1").acceptAll();
+    public static final Data SRC_FILE_WITH_DIR_FILTER = group(withDirFilter("dir123").andSourceFile("file1").acceptAll());
     @DataPoint
-    public static final Data SRC_FILE_WITH_DIR_FILTER2 = withDirFilter("${parentDir}").andSourceFile("file1").acceptAll();
+    public static final Data SRC_FILE_WITH_DIR_FILTER2 = group(withDirFilter("${parentDir}").andSourceFile("file1").acceptAll());
     @DataPoint
-    public static final Data SRC_FILE_WITH_FILE_FILTER = withDirFilter("file1").andSourceFile("file1").acceptAll();
+    public static final Data SRC_FILE_WITH_FILE_FILTER = group(withDirFilter("file1").andSourceFile("file1").acceptAll());
     @DataPoint
-    public static final Data SRC_FILE_WITH_FILE_FILTER2 = withFileFilter("file2").andSourceFile("file1").acceptAll();
+    public static final Data SRC_FILE_WITH_FILE_FILTER2 = group(withFileFilter("file2").andSourceFile("file1").acceptAll());
 
     @DataPoint
-    public static final Data SRC_DIR_WITHOUT_FILTER_AND_FILES = withoutFilter().andSourceDir("dir1").acceptAll();
+    public static final Data SRC_DIR_WITHOUT_FILTER_AND_FILES = group(withoutFilter().andSourceDir("dir1").acceptAll());
     @DataPoint
-    public static final Data SRC_DIR_WITHOUT_FILTER = withoutFilter().andSourceDir("dir1").accept("dir2/file2", "dir3/file3");
+    public static final Data SRC_DIR_WITHOUT_FILTER = group(withoutFilter().andSourceDir("dir1").accept("dir2/file2", "dir3/file3"));
     @DataPoint
-    public static final Data SRC_DIR_WITH_DIR_FILTER = withDirFilter("dir2").andSourceDir("dir1").accept("dir2/file2").butReject("dir3/file3");
+    public static final Data SRC_DIR_WITH_DIR_FILTER = group(withDirFilter("dir2").andSourceDir("dir1").accept("dir2/file2").butReject("dir3/file3"));
     @DataPoint
-    public static final Data SRC_DIR_WITH_FILE_FILTER = withFileFilter("file2").andSourceDir("dir1").accept("dir2/file2").butReject("dir3/file3");
+    public static final Data SRC_DIR_WITH_FILE_FILTER = group(withFileFilter("file2").andSourceDir("dir1").accept("dir2/file2").butReject("dir3/file3"));
+
+    @DataPoint
+    public static final Data SRC_FILE_AND_SRC_DIR = group(
+            withFileFilter("file3").andSourceFile("file1").acceptAll(),
+            withDirFilter("dir2").andSourceDir("dir1").accept("dir2/file2").butReject("dir3/file3"));
+    @DataPoint
+    public static final Data TWO_SRC_FILES = group(
+            withFileFilter("file3").andSourceFile("file4").acceptAll(),
+            withFileFilter("file4").andSourceFile("file3").acceptAll());
+    @DataPoint
+    public static final Data TWO_SRC_DIRS = group(
+            withDirFilter("dir5").andSourceDir("dir1").accept("dir5/file5").butReject("dir6/file6"),
+            withDirFilter("dir6").andSourceDir("dir1").accept("dir6/file6").butReject("dir5/file5"));
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
@@ -96,10 +109,10 @@ abstract public class AbstractArchivingTest {
     @Theory
     public void testDecompress(Data data, boolean useListener, ErrorType errorType) throws Throwable {
         boolean errorIsExpected = ErrorType.ERROR == errorType;
-        Assume.assumeTrue(!errorIsExpected || testJBackup);
+        Assume.assumeTrue((!errorIsExpected || testJBackup) && (data.dataSources.size() == 1));
 
         // preparation of archiver & mocks
-        Entries entries = data.entries();
+        Entries entries = data.dataSources.get(0).entries();
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
         for (Entry e : entries) {
@@ -315,12 +328,12 @@ abstract public class AbstractArchivingTest {
             this.filter = filter;
         }
 
-        public Data acceptAll() {
-            return new Data(this);
+        public DataSource acceptAll() {
+            return new DataSource(this);
         }
 
-        public Data accept(String... acceptedFiles) {
-            return new Data(this, acceptedFiles);
+        public DataSource accept(String... acceptedFiles) {
+            return new DataSource(this, acceptedFiles);
         }
 
         abstract public Path create(Path baseDirectory) throws IOException;
@@ -336,7 +349,7 @@ abstract public class AbstractArchivingTest {
 
         public Path create(Path baseDirectory) throws IOException {
             final Path file = baseDirectory.resolve(this.file);
-            Data.createFile(file, 123L);
+            DataSource.createFile(file, 123L);
             return file;
         }
     }
@@ -356,24 +369,44 @@ abstract public class AbstractArchivingTest {
         }
     }
 
+    public static Data group(DataSource... dataSources) {
+        return new Data(dataSources);
+    }
+    
     private static class Data {
-        private final Source source;
-        private final String[] acceptedFiles;
-        private String[] rejectedFiles = new String[0];
+        private final List<DataSource> dataSources;
 
-        public Data(Source source, String... acceptedFiles) {
-            this.source = source;
-            this.acceptedFiles = acceptedFiles;
+        private Data(DataSource[] dataSources) {
+            this.dataSources = Arrays.asList(dataSources);
         }
 
-        public Data butReject(String... rejectedFiles) {
-            this.rejectedFiles = rejectedFiles;
+        public List<Path> createFiles(Path baseDirectory, ArchiveParameters archiveParameters) throws IOException {
+            List<Path> acceptedFiles = new ArrayList<>();
+            for (DataSource dataSource : dataSources) {
+                dataSource.createFiles(baseDirectory, archiveParameters, acceptedFiles);
+            }
+            return acceptedFiles;
+        }
+    }
+
+    private static class DataSource {
+        private final Source _source;
+        private final String[] _acceptedFiles;
+        private String[] _rejectedFiles = new String[0];
+
+        public DataSource(Source source, String... acceptedFiles) {
+            this._source = source;
+            this._acceptedFiles = acceptedFiles;
+        }
+
+        public DataSource butReject(String... rejectedFiles) {
+            this._rejectedFiles = rejectedFiles;
             return this;
         }
 
         public Entries entries() {
             Entries entries = new Entries();
-            for (String entry : acceptedFiles) {
+            for (String entry : _acceptedFiles) {
                 entries.file(entry);
             }
             return entries;
@@ -381,7 +414,7 @@ abstract public class AbstractArchivingTest {
 
         public Entries rejectedEntries() {
             Entries entries = new Entries();
-            for (String entry : rejectedFiles) {
+            for (String entry : _rejectedFiles) {
                 entries.file(entry);
             }
             return entries;
@@ -399,17 +432,15 @@ abstract public class AbstractArchivingTest {
             return file;
         }
 
-        public List<Path> createFiles(Path baseDirectory, ArchiveParameters archiveParameters) throws IOException {
-            Path source = this.source.create(baseDirectory);
+        public void createFiles(Path baseDirectory, ArchiveParameters archiveParameters, final List<Path> acceptedFiles) throws IOException {
+            Path source = this._source.create(baseDirectory);
 
-            Filter filter = this.source.filter;
+            Filter filter = this._source.filter;
             IOFileFilter dirFilter = (filter.dirFilter == null) ? trueFileFilter() : new CustomNameFileFilter(filter.dirFilter);
             IOFileFilter fileFilter = (filter.fileFilter == null) ? trueFileFilter() : new CustomNameFileFilter(filter.fileFilter);
             archiveParameters.addSource(source, dirFilter, fileFilter);
 
-            final List<Path> acceptedFiles;
             if (Files.isDirectory(source)) {
-                acceptedFiles = new ArrayList<>();
                 for (Entry entry : entries()) {
                     acceptedFiles.add(createFile(source, entry));
                 }
@@ -417,10 +448,8 @@ abstract public class AbstractArchivingTest {
                     createFile(source, entry);
                 }
             } else {
-                acceptedFiles = Collections.singletonList(source);
+                acceptedFiles.add(source);
             }
-
-            return acceptedFiles;
         }
     }
 
