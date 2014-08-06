@@ -25,6 +25,7 @@ import fr.duminy.jbackup.core.archive.ArchiveParameters;
 import fr.duminy.jbackup.core.archive.Archiver;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +43,8 @@ import java.util.concurrent.*;
 public class JBackup {
     private static final Logger LOG = LoggerFactory.getLogger(JBackup.class);
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(8);
+    private final ExecutorService executor = Executors.newFixedThreadPool(8,
+            new BasicThreadFactory.Builder().namingPattern("jbackup-thread-%d").daemon(false).priority(Thread.MAX_PRIORITY).build());
 
     public Future<Void> backup(BackupConfiguration config) {
         return backup(config, null);
