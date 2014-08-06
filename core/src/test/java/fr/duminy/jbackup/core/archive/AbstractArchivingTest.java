@@ -42,18 +42,21 @@ import java.io.*;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 @RunWith(Theories.class)
 abstract public class AbstractArchivingTest {
+    @DataPoint
+    public static final EntryType RELATIVE = EntryType.RELATIVE;
+    @DataPoint
+    public static final EntryType ABSOLUTE = EntryType.ABSOLUTE;
+
     @DataPoint
     public static final boolean NO_LISTENER = false;
     @DataPoint
@@ -93,7 +96,7 @@ abstract public class AbstractArchivingTest {
     @DataPoint
     public static final Data TWO_SRC_DIRS = group(
             withDirFilter("dir5").andSourceDir("dir1").accept("dir5/file5").butReject("dir6/file6"),
-            withDirFilter("dir6").andSourceDir("dir1").accept("dir6/file6").butReject("dir5/file5"));
+            withDirFilter("dir6").andSourceDir("dir2").accept("dir6/file6").butReject("dir5/file5"));
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
@@ -165,7 +168,8 @@ abstract public class AbstractArchivingTest {
     abstract protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws Throwable;
 
     @Theory
-    public void testCompress(Data data, boolean useListener, ErrorType errorType) throws Throwable {
+    public void testCompress(Data data, boolean useListener, ErrorType errorType, EntryType entryType) throws Throwable {
+        boolean relativeEntries = EntryType.RELATIVE.equals(entryType);
         boolean errorIsExpected = ErrorType.ERROR == errorType;
         Assume.assumeTrue(!errorIsExpected || testJBackup);
 
@@ -185,8 +189,10 @@ abstract public class AbstractArchivingTest {
         Path baseDirectory = createBaseDirectory();
         ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
 
-        final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath());
-        List<Path> expectedFiles = data.createFiles(baseDirectory, archiveParameters);
+        final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath(), relativeEntries);
+        Map<Path, List<Path>> expectedFilesBySource = data.createFiles(baseDirectory, archiveParameters);
+        List<Path> expectedFiles = mergeFiles(expectedFilesBySource);
+        Map<String, Path> expectedEntryToFile = new HashMap<>();
 
         try {
             if (errorIsExpected) {
@@ -204,8 +210,23 @@ abstract public class AbstractArchivingTest {
             verifyNoMoreInteractions(mockFactory);
 
             if (!errorIsExpected) {
-                for (Path file : expectedFiles) {
-                    verify(mockOutput, times(1)).addEntry(eq(file.toFile().getAbsolutePath()), any(InputStream.class));
+                for (Map.Entry<Path, List<Path>> sourceEntry : expectedFilesBySource.entrySet()) {
+                    for (Path file : sourceEntry.getValue()) {
+                        assertTrue("test self-check:  files must be absolute", file.isAbsolute());
+                        final String expectedEntry;
+                        if (relativeEntries) {
+                            Path source = sourceEntry.getKey();
+                            if (Files.isDirectory(source)) {
+                                expectedEntry = source.relativize(file).toString();
+                            } else {
+                                expectedEntry = file.getFileName().toString();
+                            }
+                        } else {
+                            expectedEntry = file.toString();
+                        }
+                        expectedEntryToFile.put(expectedEntry, file);
+                        verify(mockOutput, times(1)).addEntry(eq(expectedEntry), any(InputStream.class));
+                    }
                 }
             }
             verify(mockOutput, times(1)).close();
@@ -216,7 +237,15 @@ abstract public class AbstractArchivingTest {
             setReadable(expectedFiles, true);
         }
 
-        assertThatNotificationsAreValid(listener, baseDirectory, pathArgument.getAllValues(), errorIsExpected);
+        assertThatNotificationsAreValid(listener, pathArgument.getAllValues(), expectedEntryToFile, errorIsExpected);
+    }
+
+    private List<Path> mergeFiles(Map<Path, List<Path>> filesBySource) {
+        List<Path> files = new ArrayList<>();
+        for (List<Path> filesForSource : filesBySource.values()) {
+            files.addAll(filesForSource);
+        }
+        return files;
     }
 
     Path createArchivePath() throws IOException {
@@ -245,11 +274,11 @@ abstract public class AbstractArchivingTest {
         }
     }
 
-    private void assertThatNotificationsAreValid(ProgressListener listener, Path sourceDirectory, List<String> actualEntries, boolean errorIsExpected) throws IOException {
+    private void assertThatNotificationsAreValid(ProgressListener listener, List<String> actualEntries, Map<String, Path> expectedEntryToFile, boolean errorIsExpected) throws IOException {
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
         for (String actualEntry : actualEntries) {
-            Path path = sourceDirectory.resolve(actualEntry);
+            Path path = expectedEntryToFile.get(actualEntry);
             expectedTotalSize += Files.size(path);
             expectedNotifications.add(expectedTotalSize);
         }
@@ -336,6 +365,7 @@ abstract public class AbstractArchivingTest {
             return new DataSource(this, acceptedFiles);
         }
 
+        abstract public Path getPath(Path baseDirectory);
         abstract public Path create(Path baseDirectory) throws IOException;
     }
 
@@ -347,8 +377,14 @@ abstract public class AbstractArchivingTest {
             this.file = file;
         }
 
+        @Override
+        public Path getPath(Path baseDirectory) {
+            return baseDirectory.resolve(this.file);
+        }
+
+        @Override
         public Path create(Path baseDirectory) throws IOException {
-            final Path file = baseDirectory.resolve(this.file);
+            final Path file = getPath(baseDirectory);
             DataSource.createFile(file, 123L);
             return file;
         }
@@ -362,8 +398,14 @@ abstract public class AbstractArchivingTest {
             this.dir = dir;
         }
 
+        @Override
+        public Path getPath(Path baseDirectory) {
+            return baseDirectory.resolve(this.dir);
+        }
+
+        @Override
         public Path create(Path baseDirectory) throws IOException {
-            final Path dir = baseDirectory.resolve(this.dir);
+            final Path dir = getPath(baseDirectory);
             Files.createDirectories(dir);
             return dir;
         }
@@ -380,33 +422,34 @@ abstract public class AbstractArchivingTest {
             this.dataSources = Arrays.asList(dataSources);
         }
 
-        public List<Path> createFiles(Path baseDirectory, ArchiveParameters archiveParameters) throws IOException {
-            List<Path> acceptedFiles = new ArrayList<>();
+        public Map<Path, List<Path>> createFiles(Path baseDirectory, ArchiveParameters archiveParameters) throws IOException {
+            Map<Path, List<Path>> acceptedFilesBySource = new HashMap<>();
             for (DataSource dataSource : dataSources) {
-                dataSource.createFiles(baseDirectory, archiveParameters, acceptedFiles);
+                List<Path> acceptedFiles = dataSource.createFiles(baseDirectory, archiveParameters);
+                acceptedFilesBySource.put(dataSource.source.getPath(baseDirectory), acceptedFiles);
             }
-            return acceptedFiles;
+            return acceptedFilesBySource;
         }
     }
 
     private static class DataSource {
-        private final Source _source;
-        private final String[] _acceptedFiles;
-        private String[] _rejectedFiles = new String[0];
+        private final Source source;
+        private final String[] acceptedFiles;
+        private String[] rejectedFiles = new String[0];
 
         public DataSource(Source source, String... acceptedFiles) {
-            this._source = source;
-            this._acceptedFiles = acceptedFiles;
+            this.source = source;
+            this.acceptedFiles = acceptedFiles;
         }
 
         public DataSource butReject(String... rejectedFiles) {
-            this._rejectedFiles = rejectedFiles;
+            this.rejectedFiles = rejectedFiles;
             return this;
         }
 
         public Entries entries() {
             Entries entries = new Entries();
-            for (String entry : _acceptedFiles) {
+            for (String entry : acceptedFiles) {
                 entries.file(entry);
             }
             return entries;
@@ -414,7 +457,7 @@ abstract public class AbstractArchivingTest {
 
         public Entries rejectedEntries() {
             Entries entries = new Entries();
-            for (String entry : _rejectedFiles) {
+            for (String entry : rejectedFiles) {
                 entries.file(entry);
             }
             return entries;
@@ -432,15 +475,17 @@ abstract public class AbstractArchivingTest {
             return file;
         }
 
-        public void createFiles(Path baseDirectory, ArchiveParameters archiveParameters, final List<Path> acceptedFiles) throws IOException {
-            Path source = this._source.create(baseDirectory);
+        public List<Path> createFiles(Path baseDirectory, ArchiveParameters archiveParameters) throws IOException {
+            Path source = this.source.create(baseDirectory);
 
-            Filter filter = this._source.filter;
+            Filter filter = this.source.filter;
             IOFileFilter dirFilter = (filter.dirFilter == null) ? trueFileFilter() : new CustomNameFileFilter(filter.dirFilter);
             IOFileFilter fileFilter = (filter.fileFilter == null) ? trueFileFilter() : new CustomNameFileFilter(filter.fileFilter);
             archiveParameters.addSource(source, dirFilter, fileFilter);
 
+            List<Path> acceptedFiles;
             if (Files.isDirectory(source)) {
+                acceptedFiles = new ArrayList<>();
                 for (Entry entry : entries()) {
                     acceptedFiles.add(createFile(source, entry));
                 }
@@ -448,8 +493,10 @@ abstract public class AbstractArchivingTest {
                     createFile(source, entry);
                 }
             } else {
-                acceptedFiles.add(source);
+                acceptedFiles = Collections.singletonList(source);
             }
+
+            return acceptedFiles;
         }
     }
 
@@ -529,5 +576,10 @@ abstract public class AbstractArchivingTest {
     private static enum ErrorType {
         NO_ERROR,
         ERROR;
+    }
+
+    private static enum EntryType {
+        RELATIVE,
+        ABSOLUTE;
     }
 }

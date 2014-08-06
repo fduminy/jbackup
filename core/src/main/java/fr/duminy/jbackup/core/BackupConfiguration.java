@@ -49,6 +49,8 @@ public class BackupConfiguration {
 
     private ArchiveFactory archiveFactory;
 
+    private boolean relativeEntries = true;
+
     public void addSource(Path sourceDirectory) {
         addSource(sourceDirectory, null, null);
     }
@@ -63,6 +65,14 @@ public class BackupConfiguration {
 
     public IOFileFilter createIOFileFilter(String nameSuffix, String filter) {
         return StringUtils.isBlank(filter) ? trueFileFilter() : new JexlFileFilter(name + nameSuffix, filter);
+    }
+
+    public boolean isRelativeEntries() {
+        return relativeEntries;
+    }
+
+    public void setRelativeEntries(boolean relativeEntries) {
+        this.relativeEntries = relativeEntries;
     }
 
     public void setName(String name) {

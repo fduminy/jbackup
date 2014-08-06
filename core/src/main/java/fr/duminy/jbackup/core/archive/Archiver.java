@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core.archive;
 
-import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -35,9 +34,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * A high level class that can (de)compress files in a format managed by the provided {@link ArchiveFactory}.
@@ -55,7 +52,7 @@ public class Archiver {
 
         switch (operation) {
             case "-c":
-                final ArchiveParameters archiveParameters = new ArchiveParameters(archive);
+                final ArchiveParameters archiveParameters = new ArchiveParameters(archive, true);
                 for (int i = 2; i < args.length; i++) {
                     archiveParameters.addSource(Paths.get(args[i]));
                 }
@@ -85,30 +82,42 @@ public class Archiver {
 
     public final void compress(ArchiveParameters archiveParameters, final ProgressListener listener) throws IOException {
         MutableLong totalSize = new MutableLong();
-        final Collection<Path> files = collectFiles(archiveParameters.getSources(), totalSize);
+        final Map<Path, List<Path>> filesBySource = collectFiles(archiveParameters.getSources(), totalSize);
         if (listener != null) {
             listener.totalSizeComputed(totalSize.longValue());
         }
 
-        compress(archiveParameters, listener, files);
+        compress(archiveParameters, listener, filesBySource);
     }
 
-    protected void compress(ArchiveParameters archiveParameters, final ProgressListener listener, Collection<Path> files) throws IOException {
+    protected void compress(ArchiveParameters archiveParameters, final ProgressListener listener, Map<Path, List<Path>> filesBySource) throws IOException {
         final String name = archiveParameters.getArchive().toString();
         OutputStream fos = Files.newOutputStream(archiveParameters.getArchive());
         final ArchiveOutputStream output = factory.create(fos);
         final MutableLong processedSize = new MutableLong();
         try {
             LOG.info("Backup '{}': creating archive {}", name, archiveParameters.getArchive());
-            for (final Path file : files) {
-                LOG.info("Backup '{}': compressing file {}", name, file.toAbsolutePath());
-                final InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file));
-                try {
-                    String path = StringPathTypeMapper.toString(file);
-                    LOG.info("Backup '{}': adding entry {}", new Object[]{name, path});
-                    output.addEntry(path, input);
-                } finally {
-                    IOUtils.closeQuietly(input);
+            for (Map.Entry<Path, List<Path>> sourceEntry : filesBySource.entrySet()) {
+                for (final Path file : sourceEntry.getValue()) {
+                    LOG.info("Backup '{}': compressing file {}", name, file.toAbsolutePath());
+                    final InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file));
+                    try {
+                        final String path;
+                        if (archiveParameters.isRelativeEntries()) {
+                            Path source = sourceEntry.getKey();
+                            if (Files.isDirectory(source)) {
+                                path = source.relativize(file).toString();
+                            } else {
+                                path = file.getFileName().toString();
+                            }
+                        } else {
+                            path = file.toString();
+                        }
+                        LOG.info("Backup '{}': adding entry {}", new Object[]{name, path});
+                        output.addEntry(path, input);
+                    } finally {
+                        IOUtils.closeQuietly(input);
+                    }
                 }
             }
             LOG.info("Backup '{}': archive {} created ({})", new Object[]{name, archiveParameters.getArchive(), FileUtils.byteCountToDisplaySize(Files.size(archiveParameters.getArchive()))});
@@ -184,10 +193,10 @@ public class Archiver {
         }
     }
 
-    private Collection<Path> collectFiles(Collection<ArchiveParameters.Source> sources, MutableLong totalSize) throws IOException {
+    private Map<Path, List<Path>> collectFiles(Collection<ArchiveParameters.Source> sources, MutableLong totalSize) throws IOException {
         totalSize.setValue(0L);
 
-        List<Path> onlyFiles = new ArrayList<>();
+        Map<Path, List<Path>> onlyFiles = new HashMap<>();
         FileCollector collector = new FileCollector();
         for (ArchiveParameters.Source source : sources) {
             Path sourcePath = source.getSource();
@@ -200,11 +209,9 @@ public class Archiver {
             if (Files.isDirectory(sourcePath)) {
                 List<Path> collectedFiles = new ArrayList<>();
                 size = collector.collect(collectedFiles, sourcePath, source.getDirFilter(), source.getFileFilter());
-                for (Path collectedFile : collectedFiles) {
-                    onlyFiles.add(collectedFile);
-                }
+                onlyFiles.put(sourcePath, collectedFiles);
             } else {
-                onlyFiles.add(sourcePath);
+                onlyFiles.put(sourcePath, Collections.singletonList(sourcePath));
                 size = Files.size(sourcePath);
             }
 

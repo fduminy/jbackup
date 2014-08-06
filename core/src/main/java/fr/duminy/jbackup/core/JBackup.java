@@ -132,7 +132,7 @@ public class JBackup {
 
             Path archive = target.resolve(archiveName);
 
-            final ArchiveParameters archiveParameters = new ArchiveParameters(archive);
+            final ArchiveParameters archiveParameters = new ArchiveParameters(archive, config.isRelativeEntries());
             for (BackupConfiguration.Source filter : config.getSources()) {
                 IOFileFilter dirFilter = config.createIOFileFilter("_dir", filter.getDirFilter());
                 IOFileFilter fileFilter = config.createIOFileFilter("_file", filter.getFileFilter());

@@ -23,7 +23,6 @@ package fr.duminy.jbackup.core;
 import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.*;
 import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.lang.mutable.MutableObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -32,9 +31,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -54,7 +53,7 @@ public class JBackupTest extends AbstractArchivingTest {
         thrown.expectMessage("ArchiveFactory is null");
         Path archive = tempFolder.newFolder().toPath().resolve("archiveFile");
 
-        final ArchiveParameters archiveParameters = new ArchiveParameters(archive);
+        final ArchiveParameters archiveParameters = new ArchiveParameters(archive, true);
         compress(null, archiveParameters, Collections.<Path>emptyList(), mock(ProgressListener.class), false);
     }
 
@@ -79,18 +78,20 @@ public class JBackupTest extends AbstractArchivingTest {
 
     @Override
     protected void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, List<Path> expectedFiles, ProgressListener listener, boolean errorIsExpected) throws Throwable {
-        final MutableObject actualFilesWrapper = new MutableObject();
+        final List<Path> actualFiles = new ArrayList<>();
         JBackup jbackup = new JBackup() {
             @Override
             Archiver createArchiver(ArchiveFactory factory) {
                 return new Archiver(factory) {
                     @Override
-                    protected void compress(ArchiveParameters archiveParameters, ProgressListener listener, Collection<Path> files) throws IOException {
-                        actualFilesWrapper.setValue(files);
+                    protected void compress(ArchiveParameters archiveParameters, ProgressListener listener, Map<Path, List<Path>> filesBySources) throws IOException {
+                        for (List<Path> files : filesBySources.values()) {
+                            actualFiles.addAll(files);
+                        }
 
                         // now compress files in the order given by expectedFiles
                         // (otherwise the test will fail on some platforms)
-                        super.compress(archiveParameters, listener, files);
+                        super.compress(archiveParameters, listener, filesBySources);
                     }
                 };
             }
@@ -98,6 +99,7 @@ public class JBackupTest extends AbstractArchivingTest {
 
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testCompress");
+        config.setRelativeEntries(archiveParameters.isRelativeEntries());
         config.setTargetDirectory(StringPathTypeMapper.toString(archiveParameters.getArchive().getParent().toAbsolutePath()));
         for (ArchiveParameters.Source source : archiveParameters.getSources()) {
             String dirFilter = toJexlExpression(source.getDirFilter());
@@ -117,7 +119,6 @@ public class JBackupTest extends AbstractArchivingTest {
 
         // ensure that actual files are as expected
         if (!errorIsExpected) {
-            List<Path> actualFiles = new ArrayList<>((List<Path>) actualFilesWrapper.getValue());
             expectedFiles = new ArrayList<>(expectedFiles);
             Collections.sort(actualFiles);
             Collections.sort(expectedFiles);

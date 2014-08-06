@@ -60,6 +60,7 @@ public class ConfigurationManagerTest {
             "<backupConfiguration>\n" +
             "    <archiveFactory>" + ZipArchiveFactory.class.getName() + "</archiveFactory>\n" +
             "    <name>" + CONFIG1 + "</name>\n" +
+            "    <relativeEntries>true</relativeEntries>\n" +
             "    <sources>\n" +
             generateSourceXml("        ", "aDirFilter", "aFileFilter", "aSource") +
             generateSourceXml("        ", null, null, "aSource2") +

@@ -31,9 +31,11 @@ import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 public class ArchiveParameters {
     private final Collection<Source> sources = new ArrayList<>();
     private final Path archive;
+    private boolean relativeEntries;
 
-    public ArchiveParameters(Path archive) {
+    public ArchiveParameters(Path archive, boolean relativeEntries) {
         this.archive = archive;
+        this.relativeEntries = relativeEntries;
     }
 
     public Collection<Source> getSources() {
@@ -50,6 +52,10 @@ public class ArchiveParameters {
 
     public void addSource(Path source) {
         addSource(source, null, null);
+    }
+
+    public boolean isRelativeEntries() {
+        return relativeEntries;
     }
 
     public static final class Source {

@@ -49,7 +49,7 @@ public class ArchiverTest extends AbstractArchivingTest {
             thrown.expect(IllegalArgumentException.class);
             thrown.expectMessage("The file '" + relativeFile.toString() + "' is relative.");
 
-            final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath());
+            final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath(), false);
             archiveParameters.addSource(relativeFile);
             compress(mockFactory, archiveParameters, Collections.<Path>emptyList(), null, true);
         } finally {
