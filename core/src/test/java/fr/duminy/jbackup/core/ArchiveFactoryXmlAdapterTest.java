@@ -18,33 +18,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
-package fr.duminy.jbackup.core.archive.zip;
+package fr.duminy.jbackup.core;
 
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
-import fr.duminy.jbackup.core.archive.ArchiveInputStream;
-import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
+import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
+import org.junit.Test;
 
-import java.io.InputStream;
-import java.io.OutputStream;
+import static org.fest.assertions.Assertions.assertThat;
 
-public class ZipArchiveFactory implements ArchiveFactory {
-    public static final ZipArchiveFactory INSTANCE = new ZipArchiveFactory();
+public class ArchiveFactoryXmlAdapterTest {
 
-    private ZipArchiveFactory() {
-    }
+    @Test
+    public void testUnmarshal() throws Exception {
+        ArchiveFactory actualFactory = new BackupConfiguration.ArchiveFactoryXmlAdapter().unmarshal(ZipArchiveFactory.class);
 
-    @Override
-    public ArchiveInputStream create(InputStream input) {
-        return new ZipArchiveInputStream(input);
-    }
-
-    @Override
-    public ArchiveOutputStream create(OutputStream output) {
-        return new ZipArchiveOutputStream(output);
-    }
-
-    @Override
-    public String getExtension() {
-        return "zip";
+        assertThat(actualFactory).isSameAs(ZipArchiveFactory.INSTANCE);
     }
 }

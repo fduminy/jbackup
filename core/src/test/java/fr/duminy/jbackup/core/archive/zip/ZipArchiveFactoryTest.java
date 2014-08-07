@@ -28,7 +28,7 @@ public class ZipArchiveFactoryTest extends ArchiveFactoryTest<ZipArchiveFactory>
     private static final String ARCHIVE_RESOURCE = "archive.zip";
 
     public ZipArchiveFactoryTest() {
-        super(ARCHIVE_RESOURCE, new ZipArchiveFactory());
+        super(ARCHIVE_RESOURCE, ZipArchiveFactory.INSTANCE);
     }
 
     public static InputStream getArchive() {

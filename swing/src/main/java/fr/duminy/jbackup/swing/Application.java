@@ -113,7 +113,7 @@ public class Application {
             taskManagerPanel = new TaskManagerPanel(jBackup);
             add(taskManagerPanel, BorderLayout.SOUTH);
 
-            managerPanel = new ConfigurationManagerPanel(manager, taskManagerPanel, this, new ZipArchiveFactory());
+            managerPanel = new ConfigurationManagerPanel(manager, taskManagerPanel, this, ZipArchiveFactory.INSTANCE);
             add(managerPanel, BorderLayout.CENTER);
         }
     }

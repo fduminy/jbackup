@@ -22,6 +22,7 @@ package fr.duminy.jbackup.core;
 
 import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
+import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.filter.JexlFileFilter;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.lang.StringUtils;
@@ -109,7 +110,7 @@ public class BackupConfiguration {
     public static class ArchiveFactoryXmlAdapter extends XmlAdapter<Class<? extends ArchiveFactory>, ArchiveFactory> {
         @Override
         public ArchiveFactory unmarshal(Class<? extends ArchiveFactory> v) throws Exception {
-            return v.newInstance();
+            return ZipArchiveFactory.class.equals(v) ? ZipArchiveFactory.INSTANCE : v.newInstance();
         }
 
         @Override

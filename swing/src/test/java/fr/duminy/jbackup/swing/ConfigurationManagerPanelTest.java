@@ -33,6 +33,7 @@ import fr.duminy.jbackup.core.ConfigurationManagerTest;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ArchiveInputStream;
 import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
+import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import org.fest.assertions.Assertions;
 import org.fest.swing.core.Robot;
@@ -65,7 +66,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static fr.duminy.jbackup.core.ConfigurationManagerTest.ZIP_ARCHIVE_FACTORY;
 import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -110,7 +110,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     /**
      * This array must not be sorted in ascending order on the extension property
      */
-    private static final ArchiveFactory[] ARCHIVE_FACTORIES = {ZIP_ARCHIVE_FACTORY, FAKE_ARCHIVE_FACTORY};
+    private static final ArchiveFactory[] ARCHIVE_FACTORIES = {ZipArchiveFactory.INSTANCE, FAKE_ARCHIVE_FACTORY};
     private static final String CONFIG_MANAGER_PANEL_NAME = "configurations";
 
     private ConfigurationManagerPanel panel;
@@ -428,7 +428,11 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
                 targetPath.selectPath(Paths.get(expectedConfig.getTargetDirectory()));
             }
         });
-        configForm.comboBox("archiveFactory").selectItem("zip");
+
+        JComboBoxFixture combo = configForm.comboBox("archiveFactory");
+        combo.selectItem("zip");
+        assertThat(combo.component().getSelectedItem()).isSameAs(ZipArchiveFactory.INSTANCE);
+
         return expectedConfig;
     }
 

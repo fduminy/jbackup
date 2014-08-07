@@ -48,7 +48,7 @@ public class Archiver {
     public static void main(String[] args) throws IOException {
         final String operation = args[0];
         final Path archive = Paths.get(args[1]);
-        final ZipArchiveFactory factory = new ZipArchiveFactory();
+        final ZipArchiveFactory factory = ZipArchiveFactory.INSTANCE;
 
         switch (operation) {
             case "-c":
