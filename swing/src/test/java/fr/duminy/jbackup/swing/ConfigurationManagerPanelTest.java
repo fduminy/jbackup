@@ -66,6 +66,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static fr.duminy.components.swing.listpanel.StandardListPanelFeature.EDITING;
 import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -135,6 +136,8 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     public void testInit(int nbConfigurations) {
         List<BackupConfiguration> expectedConfigs = init(nbConfigurations);
         assertFormValues(expectedConfigs);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        configurationList.requireOnlyFeatures(EDITING);
     }
 
     @Test
@@ -400,7 +403,9 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         }
 
         configForm.textBox("name").deleteText().enterText(expectedConfig.getName());
-        JButtonFixture addSource = configForm.listPanel().addButton();
+        final ListPanelFixture<Object, JComponent> sourceList = configForm.listPanel();
+        sourceList.requireOnlyFeatures(EDITING);
+        JButtonFixture addSource = sourceList.addButton();
         for (final BackupConfiguration.Source source : expectedConfig.getSources()) {
             addSource.click();
             robot.waitForIdle();
@@ -458,13 +463,13 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         JFormPaneFixture formPane = new JFormPaneFixture(robot(), BackupConfiguration.class);
         formPane.textBox("name").requireVisible().requireEnabled().requireEditable().requireText(name);
 
-        ListPanelFixture<BackupConfiguration.Source, JList<BackupConfiguration.Source>> listPanel = formPane.listPanel();
-        listPanel.requireVisible()/*.requireEnabled()*/;
+        ListPanelFixture<BackupConfiguration.Source, JList<BackupConfiguration.Source>> sourceList = formPane.listPanel();
+        sourceList.requireOnlyFeatures(EDITING).requireVisible()/*.requireEnabled()*/;
         String[] renderedSources = new String[sources.size()];
         for (int i = 0; i < renderedSources.length; i++) {
             renderedSources[i] = sources.get(i).getSourceDirectory();
         }
-        Assertions.assertThat(listPanel.list().contents()).as("sources").isEqualTo(renderedSources);
+        Assertions.assertThat(sourceList.list().contents()).as("sources").isEqualTo(renderedSources);
 
         //TODO later : swap the following lines
         //formPane.path("targetDirectory").requireVisible().requireEnabled().requireEditable().requireSelectedPath(targetDirectory);

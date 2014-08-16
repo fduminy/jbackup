@@ -23,6 +23,7 @@ package fr.duminy.jbackup.swing;
 import fr.duminy.components.swing.form.DefaultFormBuilder;
 import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.components.swing.list.DefaultMutableListModel;
+import fr.duminy.components.swing.listpanel.ItemManager;
 import fr.duminy.components.swing.listpanel.ListPanel;
 import fr.duminy.components.swing.listpanel.SimpleItemManager;
 import fr.duminy.components.swing.path.JPath;
@@ -39,13 +40,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static fr.duminy.components.swing.listpanel.SimpleItemManager.ContainerType.DIALOG;
+import static fr.duminy.components.swing.listpanel.StandardListPanelFeature.EDITING;
 import static fr.duminy.jbackup.core.BackupConfiguration.Source;
 
 /**
  * A {@link org.formbuilder.TypeMapper} for {@link fr.duminy.jbackup.core.archive.ArchiveFactory}.
  * TODO : create a generic version from this in swing-components and (try to) associate it to list (and other collections ?) properties by default.
  */
-public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<Source>>, Object> {
+public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<Source>>, List> {
     private static final Builder<JPath> SHOW_HIDDEN_FILES_BUILDER = new JPathBuilder().fileHidingEnabled(false);
     private final JComponent parent;
 
@@ -73,12 +75,12 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<
             }
         };
         SimpleItemManager<Source> sourceProvider = new SimpleItemManager<>(Source.class, sourceFormBuilder, parent, "Sources", DIALOG);
-        return new ListPanel<>(list, sourceProvider);
+        return new SourceListPanel(list, sourceProvider);
     }
 
     @Nullable
     @Override
-    public Object getValue(@Nonnull ListPanel<Source, JList<Source>> listPanel) {
+    public List<Source> getValue(@Nonnull ListPanel<Source, JList<Source>> listPanel) {
         List<Source> result = new ArrayList<>();
 
         DefaultListModel<Source> model = getModel(listPanel);
@@ -91,12 +93,12 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<
 
     @Nonnull
     @Override
-    public Class getValueClass() {
+    public Class<List> getValueClass() {
         return List.class;
     }
 
     @Override
-    public void setValue(@Nonnull ListPanel<Source, JList<Source>> listPanel, @Nullable Object o) {
+    public void setValue(@Nonnull ListPanel<Source, JList<Source>> listPanel, @Nullable List o) {
         DefaultListModel<Source> model = getModel(listPanel);
         model.clear();
         if (o != null) {
@@ -106,8 +108,18 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<
         }
     }
 
+    private static class SourceListPanel extends ListPanel<Source, JList<Source>> {
+        private final JList<Source> list;
+
+        private SourceListPanel(JList<Source> list, ItemManager<Source> itemManager) {
+            super(list, itemManager);
+            addFeature(EDITING);
+            this.list = list;
+        }
+    }
+
     private DefaultListModel<Source> getModel(ListPanel<Source, JList<Source>> listPanel) {
-        JList<Source> list = listPanel.getListComponent();
+        JList<Source> list = ((SourceListPanel) listPanel).list;
         return (DefaultListModel<Source>) list.getModel();
     }
 }

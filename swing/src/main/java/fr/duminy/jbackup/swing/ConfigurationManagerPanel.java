@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.util.Comparator;
 
 import static fr.duminy.components.swing.listpanel.SimpleItemManager.ContainerType.DIALOG;
+import static fr.duminy.components.swing.listpanel.StandardListPanelFeature.EDITING;
 
 /**
  * Panel representing a {@link fr.duminy.jbackup.core.ConfigurationManager}.
@@ -62,6 +63,7 @@ public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JL
             }
         });
 
+        addFeature(EDITING);
         addUserButton(BACKUP_BUTTON_NAME, new BackupAction(configActions));
         addUserButton(RESTORE_BUTTON_NAME, new RestoreAction(this, configActions));
     }
