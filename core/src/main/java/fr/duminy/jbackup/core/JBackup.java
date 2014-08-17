@@ -83,28 +83,28 @@ public class JBackup {
     private static abstract class Task implements Callable<Void> {
         protected final JBackup jbackup;
         protected final ProgressListener listener;
+        protected final BackupConfiguration config;
 
-        protected Task(JBackup jbackup, ProgressListener listener) {
+        protected Task(JBackup jbackup, ProgressListener listener, BackupConfiguration config) {
             this.jbackup = jbackup;
             this.listener = listener;
+            this.config = config;
         }
 
         @Override
         public final Void call() throws IOException {
-            if (listener == null) {
+            Throwable error = null;
+            try {
+                if (listener != null) {
+                    listener.taskStarted();
+                }
                 execute();
-            } else {
-                Throwable error = null;
-                try {
-                    try {
-                        listener.taskStarted();
-                        execute();
-                    } catch (Throwable e) {
-                        LOG.error("Error in task " + Task.this.getClass().getSimpleName(), e);
-                        error = e;
-                        throw e;
-                    }
-                } finally {
+            } catch (Exception e) {
+                LOG.error("Error in " + Task.this.getClass().getSimpleName() + " for configuration '" + config.getName() + "'", e);
+                error = e;
+                throw e;
+            } finally {
+                if (listener != null) {
                     listener.taskFinished(error);
                 }
             }
@@ -116,11 +116,8 @@ public class JBackup {
     }
 
     private static class BackupTask extends Task {
-        private final BackupConfiguration config;
-
         private BackupTask(JBackup jbackup, BackupConfiguration config, ProgressListener listener) {
-            super(jbackup, listener);
-            this.config = config;
+            super(jbackup, listener, config);
         }
 
         @Override
@@ -147,13 +144,11 @@ public class JBackup {
     }
 
     private static class RestoreTask extends Task {
-        private final BackupConfiguration config;
         private final Path archive;
         private final Path targetDirectory;
 
         private RestoreTask(JBackup jbackup, BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
-            super(jbackup, listener);
-            this.config = config;
+            super(jbackup, listener, config);
             this.archive = archive;
             this.targetDirectory = targetDirectory;
         }
