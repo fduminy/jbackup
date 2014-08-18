@@ -59,10 +59,12 @@ public class FileCollector {
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 super.visitFile(file, attrs);
 
-                if ((fileFilter == null) || fileFilter.accept(file.toFile())) {
-                    LOG.trace("visitFile {}", file.toAbsolutePath());
-                    results.add(file);
-                    totalSize[0] += Files.size(file);
+                if (!Files.isSymbolicLink(file)) {
+                    if ((fileFilter == null) || fileFilter.accept(file.toFile())) {
+                        LOG.trace("visitFile {}", file.toAbsolutePath());
+                        results.add(file);
+                        totalSize[0] += Files.size(file);
+                    }
                 }
 
                 return CONTINUE;

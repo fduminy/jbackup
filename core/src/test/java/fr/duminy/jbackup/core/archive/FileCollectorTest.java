@@ -42,9 +42,11 @@ import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
  * Tests for {@link FileCollector}.
  */
 public class FileCollectorTest {
-    private static final String FILE1 = "file1.txt";
-    private static final String FILE2 = "file2.txt";
-    private static final String[] FILES = {"directory1/" + FILE1, "directory2/" + FILE2};
+    private static final String FILE1 = "File1.txt";
+    private static final String FILE1_DIR = "Directory1/";
+    private static final String FILE2 = "File2.txt";
+    private static final String FILE2_DIR = "Directory2/";
+    private static final String[] FILES = {FILE1_DIR + FILE1, FILE2_DIR + FILE2};
 
     private Path directory;
     private Path[] expectedFiles;
@@ -59,13 +61,21 @@ public class FileCollectorTest {
         expectedFiles = new Path[FILES.length];
         int i = 0;
         for (String file : FILES) {
-            Path f = directory.resolve(file);
-            Files.createDirectories(f.getParent());
-            Files.write(f, "one line".getBytes());
-
-            expectedFiles[i++] = f;
+            expectedFiles[i++] = createFile(file);
         }
         Arrays.sort(expectedFiles);
+    }
+
+    @Test
+    public void testCollect_all_withSymbolicLinkToFile() throws Exception {
+        addSymbolicLink(FILE2_DIR, FILE2);
+        testCollect(expectedFiles, null, null);
+    }
+
+    @Test
+    public void testCollect_all_withSymbolicLinkToDir() throws Exception {
+        addSymbolicLink(null, FILE1_DIR);
+        testCollect(expectedFiles, null, null);
     }
 
     @Test
@@ -91,5 +101,22 @@ public class FileCollectorTest {
 
         Collections.sort(files);
         Assertions.assertThat(files.toArray()).as("collected files").isEqualTo(expectedFiles);
+    }
+
+    private Path createFile(String file) throws IOException {
+        Path f = directory.resolve(file);
+        Files.createDirectories(f.getParent());
+        Files.write(f, "one line".getBytes());
+        return f;
+    }
+
+    private void addSymbolicLink(String parentDirName, String targetName) throws IOException {
+        Path parentDir = (parentDirName == null) ? directory : directory.resolve(parentDirName);
+        Path targetPath = parentDir.resolve(targetName);
+        Path linkPath = parentDir.resolve("LinkTo" + targetName);
+
+        /*expectedFiles = Arrays.copyOf(expectedFiles, expectedFiles.length + 1);
+        expectedFiles[expectedFiles.length - 1] = */
+        Files.createSymbolicLink(linkPath, targetPath);
     }
 }
