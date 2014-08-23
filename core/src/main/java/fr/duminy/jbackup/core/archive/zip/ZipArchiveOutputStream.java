@@ -21,26 +21,28 @@
 package fr.duminy.jbackup.core.archive.zip;
 
 import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 class ZipArchiveOutputStream implements ArchiveOutputStream {
-    final private ZipOutputStream output;
+    final private org.apache.commons.compress.archivers.ArchiveOutputStream output;
 
-    ZipArchiveOutputStream(OutputStream output) {
-        this.output = new ZipOutputStream(output);
+    ZipArchiveOutputStream(OutputStream output) throws ArchiveException {
+        this.output = new ArchiveStreamFactory().createArchiveOutputStream(ArchiveStreamFactory.ZIP, output);
+
     }
 
     @Override
     public void addEntry(String name, InputStream input) throws IOException {
-        ZipEntry entry = new ZipEntry(name);
-        output.putNextEntry(entry);
+        output.putArchiveEntry(new ZipArchiveEntry(name));
         IOUtils.copy(input, output);
+        output.closeArchiveEntry();
     }
 
     @Override

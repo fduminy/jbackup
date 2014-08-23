@@ -256,7 +256,7 @@ abstract public class AbstractArchivingTest {
         return tempFolder.newFolder("baseDirectory").toPath().toAbsolutePath();
     }
 
-    ArchiveFactory createMockArchiveFactory(ArchiveOutputStream mockOutput) throws IOException {
+    ArchiveFactory createMockArchiveFactory(ArchiveOutputStream mockOutput) throws Exception {
         ArchiveFactory mockFactory = mock(ArchiveFactory.class);
         when(mockFactory.create(any(OutputStream.class))).thenReturn(mockOutput);
         when(mockFactory.getExtension()).thenReturn("mock");
@@ -269,6 +269,9 @@ abstract public class AbstractArchivingTest {
         }
     }
     private void checkErrorIsExpected(boolean error, Throwable t) throws Throwable {
+        if (t instanceof Archiver.ArchiverException) {
+            t = t.getCause();
+        }
         if (!error || !t.getClass().equals(ERROR_CLASS)) {
             throw t;
         }

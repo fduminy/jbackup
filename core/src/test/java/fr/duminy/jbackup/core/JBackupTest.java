@@ -27,7 +27,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -84,7 +83,7 @@ public class JBackupTest extends AbstractArchivingTest {
             Archiver createArchiver(ArchiveFactory factory) {
                 return new Archiver(factory) {
                     @Override
-                    protected void compress(ArchiveParameters archiveParameters, ProgressListener listener, Map<Path, List<Path>> filesBySources) throws IOException {
+                    protected void compress(ArchiveParameters archiveParameters, ProgressListener listener, Map<Path, List<Path>> filesBySources) throws ArchiverException {
                         for (List<Path> files : filesBySources.values()) {
                             actualFiles.addAll(files);
                         }

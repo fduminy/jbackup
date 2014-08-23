@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core.archive;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -28,7 +27,7 @@ import java.io.OutputStream;
 public interface ArchiveFactory {
     String getExtension();
 
-    ArchiveInputStream create(InputStream input) throws IOException;
+    ArchiveInputStream create(InputStream input) throws Exception;
 
-    ArchiveOutputStream create(OutputStream output) throws IOException;
+    ArchiveOutputStream create(OutputStream output) throws Exception;
 }

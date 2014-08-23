@@ -29,7 +29,6 @@ import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -92,7 +91,7 @@ public class JBackup {
         }
 
         @Override
-        public final Void call() throws IOException {
+        public final Void call() throws Exception {
             Throwable error = null;
             try {
                 if (listener != null) {
@@ -112,7 +111,7 @@ public class JBackup {
             return null;
         }
 
-        abstract protected void execute() throws IOException;
+        abstract protected void execute() throws Exception;
     }
 
     private static class BackupTask extends Task {
@@ -121,7 +120,7 @@ public class JBackup {
         }
 
         @Override
-        protected void execute() throws IOException {
+        protected void execute() throws Exception {
             ArchiveFactory factory = config.getArchiveFactory();
 
             Path target = Paths.get(config.getTargetDirectory());
@@ -154,7 +153,7 @@ public class JBackup {
         }
 
         @Override
-        protected void execute() throws IOException {
+        protected void execute() throws Exception {
             ArchiveFactory factory = config.getArchiveFactory();
             jbackup.createArchiver(factory).decompress(archive, targetDirectory, listener);
         }

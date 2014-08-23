@@ -22,7 +22,6 @@ package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.slf4j.Logger;
@@ -45,7 +44,7 @@ public class Archiver {
 
     private final ArchiveFactory factory;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ArchiverException {
         final String operation = args[0];
         final Path archive = Paths.get(args[1]);
         final ZipArchiveFactory factory = ZipArchiveFactory.INSTANCE;
@@ -72,17 +71,28 @@ public class Archiver {
         }
     }
 
+    public static final class ArchiverException extends Exception {
+        public ArchiverException(Throwable cause) {
+            super(cause);
+        }
+    }
+
     public Archiver(ArchiveFactory factory) {
         this.factory = factory;
     }
 
-    public final void compress(ArchiveParameters archiveParameters) throws IOException {
+    public final void compress(ArchiveParameters archiveParameters) throws ArchiverException {
         compress(archiveParameters, null);
     }
 
-    public final void compress(ArchiveParameters archiveParameters, final ProgressListener listener) throws IOException {
+    public final void compress(ArchiveParameters archiveParameters, final ProgressListener listener) throws ArchiverException {
         MutableLong totalSize = new MutableLong();
-        final Map<Path, List<Path>> filesBySource = collectFiles(archiveParameters.getSources(), totalSize);
+        final Map<Path, List<Path>> filesBySource;
+        try {
+            filesBySource = collectFiles(archiveParameters.getSources(), totalSize);
+        } catch (IOException ioe) {
+            throw new ArchiverException(ioe);
+        }
         if (listener != null) {
             listener.totalSizeComputed(totalSize.longValue());
         }
@@ -90,18 +100,17 @@ public class Archiver {
         compress(archiveParameters, listener, filesBySource);
     }
 
-    protected void compress(ArchiveParameters archiveParameters, final ProgressListener listener, Map<Path, List<Path>> filesBySource) throws IOException {
+    protected void compress(ArchiveParameters archiveParameters, final ProgressListener listener, Map<Path, List<Path>> filesBySource) throws ArchiverException {
         final String name = archiveParameters.getArchive().toString();
-        OutputStream fos = Files.newOutputStream(archiveParameters.getArchive());
-        final ArchiveOutputStream output = factory.create(fos);
         final MutableLong processedSize = new MutableLong();
-        try {
+
+        try (OutputStream fos = Files.newOutputStream(archiveParameters.getArchive());
+             ArchiveOutputStream output = factory.create(fos);) {
             LOG.info("Backup '{}': creating archive {}", name, archiveParameters.getArchive());
             for (Map.Entry<Path, List<Path>> sourceEntry : filesBySource.entrySet()) {
                 for (final Path file : sourceEntry.getValue()) {
                     LOG.info("Backup '{}': compressing file {}", name, file.toAbsolutePath());
-                    final InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file));
-                    try {
+                    try (InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file));) {
                         final String path;
                         if (archiveParameters.isRelativeEntries()) {
                             Path source = sourceEntry.getKey();
@@ -115,15 +124,14 @@ public class Archiver {
                         }
                         LOG.info("Backup '{}': adding entry {}", new Object[]{name, path});
                         output.addEntry(path, input);
-                    } finally {
-                        IOUtils.closeQuietly(input);
                     }
                 }
             }
             LOG.info("Backup '{}': archive {} created ({})", new Object[]{name, archiveParameters.getArchive(), FileUtils.byteCountToDisplaySize(Files.size(archiveParameters.getArchive()))});
-        } finally {
-            IOUtils.closeQuietly(output);
-            IOUtils.closeQuietly(fos);
+        } catch (IOException e) {
+            throw new ArchiverException(e);
+        } catch (Exception e) {
+            throw new ArchiverException(e);
         }
     }
 
@@ -163,13 +171,17 @@ public class Archiver {
         }
     }
 
-    public void decompress(Path archive, Path directory) throws IOException {
+    public void decompress(Path archive, Path directory) throws ArchiverException {
         decompress(archive, directory, null);
     }
 
-    public void decompress(Path archive, Path directory, ProgressListener listener) throws IOException {
+    public void decompress(Path archive, Path directory, ProgressListener listener) throws ArchiverException {
         if (listener != null) {
-            listener.totalSizeComputed(Files.size(archive));
+            try {
+                listener.totalSizeComputed(Files.size(archive));
+            } catch (IOException ioe) {
+                throw new ArchiverException(ioe);
+            }
         }
 
         directory = (directory == null) ? Paths.get(".") : directory;
@@ -190,6 +202,10 @@ public class Archiver {
                 }
                 entry = input.getNextEntry();
             }
+        } catch (IOException e) {
+            throw new ArchiverException(e);
+        } catch (Exception e) {
+            throw new ArchiverException(e);
         }
     }
 

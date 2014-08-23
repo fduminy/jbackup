@@ -34,12 +34,12 @@ public class ZipArchiveFactory implements ArchiveFactory {
     }
 
     @Override
-    public ArchiveInputStream create(InputStream input) {
+    public ArchiveInputStream create(InputStream input) throws Exception {
         return new ZipArchiveInputStream(input);
     }
 
     @Override
-    public ArchiveOutputStream create(OutputStream output) {
+    public ArchiveOutputStream create(OutputStream output) throws Exception {
         return new ZipArchiveOutputStream(output);
     }
 

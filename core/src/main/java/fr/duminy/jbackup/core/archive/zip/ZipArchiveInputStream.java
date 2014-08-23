@@ -20,31 +20,31 @@
  */
 package fr.duminy.jbackup.core.archive.zip;
 
-import fr.duminy.jbackup.core.archive.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
-class ZipArchiveInputStream implements ArchiveInputStream {
-    final private ZipInputStream input;
+class ZipArchiveInputStream implements fr.duminy.jbackup.core.archive.ArchiveInputStream {
+    final private ArchiveInputStream input;
 
-    ZipArchiveInputStream(InputStream input) {
-        this.input = new ZipInputStream(input);
+    ZipArchiveInputStream(InputStream input) throws Exception {
+        this.input = new ArchiveStreamFactory().createArchiveInputStream(ArchiveStreamFactory.ZIP, input);
     }
 
     private static class ZipBackupEntry extends Entry {
-        private final ZipInputStream zipInput;
+        private final ArchiveInputStream zipInput;
 
-        private ZipBackupEntry(ZipInputStream zipInput, String name, long compressedSize) {
-            super(name, compressedSize);
+        private ZipBackupEntry(ArchiveInputStream zipInput, ZipEntry entry) {
+            super(entry.getName(), entry.getCompressedSize());
             this.zipInput = zipInput;
         }
 
         @Override
         public void close() throws IOException {
-            zipInput.closeEntry();
+            zipInput.close();
         }
 
         @Override
@@ -55,10 +55,10 @@ class ZipArchiveInputStream implements ArchiveInputStream {
 
     @Override
     public Entry getNextEntry() throws IOException {
-        final ZipEntry entry = input.getNextEntry();
+        ZipEntry entry = (ZipEntry) input.getNextEntry();
         ZipBackupEntry zipEntry = null;
         if (entry != null) {
-            zipEntry = new ZipBackupEntry(input, entry.getName(), entry.getCompressedSize());
+            zipEntry = new ZipBackupEntry(input, entry);
         }
         return zipEntry;
     }

@@ -25,12 +25,13 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+
+import static fr.duminy.jbackup.core.archive.Archiver.ArchiverException;
 
 /**
  * Test for the class {@link Archiver}.
@@ -58,7 +59,7 @@ public class ArchiverTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws IOException {
+    protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws ArchiverException {
         Archiver archiver = new Archiver(mockFactory);
         if (listener == null) {
             archiver.decompress(archive, directory);
@@ -68,7 +69,7 @@ public class ArchiverTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, List<Path> expectedFiles, ProgressListener listener, boolean errorIsExpected) throws IOException {
+    protected void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, List<Path> expectedFiles, ProgressListener listener, boolean errorIsExpected) throws ArchiverException {
         Archiver archiver = new Archiver(mockFactory);
         if (listener == null) {
             archiver.compress(archiveParameters);
