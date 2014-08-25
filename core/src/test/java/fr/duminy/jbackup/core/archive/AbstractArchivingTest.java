@@ -217,7 +217,7 @@ abstract public class AbstractArchivingTest {
                         if (relativeEntries) {
                             Path source = sourceEntry.getKey();
                             if (Files.isDirectory(source)) {
-                                expectedEntry = source.relativize(file).toString();
+                                expectedEntry = source.getParent().relativize(file).toString();
                             } else {
                                 expectedEntry = file.getFileName().toString();
                             }

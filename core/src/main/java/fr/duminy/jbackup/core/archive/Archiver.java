@@ -115,7 +115,11 @@ public class Archiver {
                         if (archiveParameters.isRelativeEntries()) {
                             Path source = sourceEntry.getKey();
                             if (Files.isDirectory(source)) {
-                                path = source.relativize(file).toString();
+                                if (source.getParent() == null) {
+                                    path = source.relativize(file).toString();
+                                } else {
+                                    path = source.getParent().relativize(file).toString();
+                                }
                             } else {
                                 path = file.getFileName().toString();
                             }
