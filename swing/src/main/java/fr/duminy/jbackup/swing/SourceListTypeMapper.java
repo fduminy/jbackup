@@ -74,7 +74,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<
                 builder.useForProperty("sourceDirectory", new StringPathTypeMapper(SHOW_HIDDEN_FILES_BUILDER));
             }
         };
-        SimpleItemManager<Source> sourceProvider = new SimpleItemManager<>(Source.class, sourceFormBuilder, parent, "Sources", DIALOG);
+        SimpleItemManager<Source> sourceProvider = new SimpleItemManager<>(Source.class, sourceFormBuilder, parent, "Source", DIALOG);
         return new SourceListPanel(list, sourceProvider);
     }
 

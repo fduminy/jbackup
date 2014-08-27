@@ -411,6 +411,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
             robot.waitForIdle();
 
             JFormPaneFixture sourceForm = new JFormPaneFixture(robot, BackupConfiguration.Source.class);
+            sourceForm.requireTitle("Source");
             final JPathFixture sourcePath = sourceForm.path();
             sourcePath.requireSelectionMode(JPath.SelectionMode.FILES_AND_DIRECTORIES);
             sourcePath.requireFileHidingEnabled(false);
