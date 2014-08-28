@@ -53,8 +53,8 @@ public class JBackup {
         return executor.submit(new BackupTask(this, config, listener));
     }
 
-    public Future<Void> restore(BackupConfiguration config, Path archive, Path directory) {
-        return restore(config, archive, directory, null);
+    public Future<Void> restore(BackupConfiguration config, Path archive, Path targetDirectory) {
+        return restore(config, archive, targetDirectory, null);
     }
 
     public Future<Void> restore(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {

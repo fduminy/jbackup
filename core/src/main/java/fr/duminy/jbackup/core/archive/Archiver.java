@@ -175,11 +175,11 @@ public class Archiver {
         }
     }
 
-    public void decompress(Path archive, Path directory) throws ArchiverException {
-        decompress(archive, directory, null);
+    public void decompress(Path archive, Path targetDirectory) throws ArchiverException {
+        decompress(archive, targetDirectory, null);
     }
 
-    public void decompress(Path archive, Path directory, ProgressListener listener) throws ArchiverException {
+    public void decompress(Path archive, Path targetDirectory, ProgressListener listener) throws ArchiverException {
         if (listener != null) {
             try {
                 listener.totalSizeComputed(Files.size(archive));
@@ -188,7 +188,7 @@ public class Archiver {
             }
         }
 
-        directory = (directory == null) ? Paths.get(".") : directory;
+        targetDirectory = (targetDirectory == null) ? Paths.get(".") : targetDirectory;
 
         MutableLong processedSize = new MutableLong();
 
@@ -198,7 +198,7 @@ public class Archiver {
             while (entry != null) {
                 InputStream entryStream = createCountingInputStream(listener, processedSize, entry.getInput());
                 try {
-                    Path file = directory.resolve(entry.getName());
+                    Path file = targetDirectory.resolve(entry.getName());
                     Files.createDirectories(file.getParent());
                     Files.copy(entryStream, file);
                 } finally {

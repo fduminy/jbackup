@@ -134,7 +134,7 @@ abstract public class AbstractArchivingTest {
         when(mockFactory.create(any(InputStream.class))).thenReturn(mockInput);
 
         Path archive = createArchivePath();
-        Path directory = tempFolder.newFolder("targetDir").toPath();
+        Path targetDirectory = tempFolder.newFolder("targetDir").toPath();
         Files.write(archive, StringUtils.repeat("A", (int) expectedTotalSize).getBytes());
 
         ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
@@ -146,7 +146,7 @@ abstract public class AbstractArchivingTest {
                 assertThat(Files.isReadable(archive)).isFalse();
             }
 
-            decompress(mockFactory, archive, directory, listener, errorIsExpected);
+            decompress(mockFactory, archive, targetDirectory, listener, errorIsExpected);
 
             // assertions
             verify(mockFactory, times(1)).create(any(InputStream.class));

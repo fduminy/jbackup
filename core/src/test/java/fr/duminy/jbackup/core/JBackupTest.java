@@ -57,18 +57,18 @@ public class JBackupTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws Throwable {
+    protected void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener, boolean errorIsExpected) throws Throwable {
         JBackup jbackup = new JBackup();
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testDecompress");
-        config.setTargetDirectory(StringPathTypeMapper.toString(archive.getParent().toAbsolutePath()));
+        config.setTargetDirectory(null); // unused
         config.setArchiveFactory(mockFactory);
 
         Future<Void> future;
         if (listener == null) {
-            future = jbackup.restore(config, archive, directory);
+            future = jbackup.restore(config, archive, targetDirectory);
         } else {
-            future = jbackup.restore(config, archive, directory, listener);
+            future = jbackup.restore(config, archive, targetDirectory, listener);
         }
 
         waitResult(future);
