@@ -101,8 +101,6 @@ abstract public class AbstractArchivingTest {
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final Class<AccessDeniedException> ERROR_CLASS = AccessDeniedException.class;
-
     private final boolean testJBackup;
 
     protected AbstractArchivingTest() {
@@ -111,8 +109,7 @@ abstract public class AbstractArchivingTest {
 
     @Theory
     public void testDecompress(Data data, boolean useListener, ErrorType errorType) throws Throwable {
-        boolean errorIsExpected = ErrorType.ERROR == errorType;
-        Assume.assumeTrue((!errorIsExpected || testJBackup) && (data.dataSources.size() == 1));
+        Assume.assumeTrue((!errorType.isError() || testJBackup) && (data.dataSources.size() == 1));
 
         // preparation of archiver & mocks
         Entries entries = data.dataSources.get(0).entries();
@@ -141,12 +138,9 @@ abstract public class AbstractArchivingTest {
 
         // test decompression
         try {
-            if (errorIsExpected) {
-                archive.toFile().setReadable(false);
-                assertThat(Files.isReadable(archive)).isFalse();
-            }
+            errorType.setUp(archive);
 
-            decompress(mockFactory, archive, targetDirectory, listener, errorIsExpected);
+            decompress(mockFactory, archive, targetDirectory, listener);
 
             // assertions
             verify(mockFactory, times(1)).create(any(InputStream.class));
@@ -156,22 +150,20 @@ abstract public class AbstractArchivingTest {
             verify(mockInput, times(1)).close();
             verifyNoMoreInteractions(mockInput);
         } catch (Throwable t) {
-            checkErrorIsExpected(errorIsExpected, t);
+            errorType.verifyExpected(t);
         } finally {
-            archive.toFile().setReadable(true);
-            assertThat(Files.isReadable(archive)).isTrue();
+            errorType.tearDown(archive);
         }
 
-        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorIsExpected);
+        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorType);
     }
 
-    abstract protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener, boolean errorIsExpected) throws Throwable;
+    abstract protected void decompress(ArchiveFactory mockFactory, Path archive, Path directory, ProgressListener listener) throws Throwable;
 
     @Theory
     public void testCompress(Data data, boolean useListener, ErrorType errorType, EntryType entryType) throws Throwable {
         boolean relativeEntries = EntryType.RELATIVE.equals(entryType);
-        boolean errorIsExpected = ErrorType.ERROR == errorType;
-        Assume.assumeTrue(!errorIsExpected || testJBackup);
+        Assume.assumeTrue(!errorType.isError() || testJBackup);
 
         // preparation of archiver & mocks
         ArchiveOutputStream mockOutput = mock(ArchiveOutputStream.class);
@@ -195,12 +187,10 @@ abstract public class AbstractArchivingTest {
         Map<String, Path> expectedEntryToFile = new HashMap<>();
 
         try {
-            if (errorIsExpected) {
-                setReadable(expectedFiles, false);
-            }
+            errorType.setUp(expectedFiles);
 
             // test compression
-            compress(mockFactory, archiveParameters, expectedFiles, listener, errorIsExpected);
+            compress(mockFactory, archiveParameters, expectedFiles, listener, errorType.isError());
 
             // assertions
             verify(mockFactory, times(1)).create(any(OutputStream.class));
@@ -209,7 +199,7 @@ abstract public class AbstractArchivingTest {
             }
             verifyNoMoreInteractions(mockFactory);
 
-            if (!errorIsExpected) {
+            if (!errorType.isError()) {
                 for (Map.Entry<Path, List<Path>> sourceEntry : expectedFilesBySource.entrySet()) {
                     for (Path file : sourceEntry.getValue()) {
                         assertTrue("test self-check:  files must be absolute", file.isAbsolute());
@@ -232,12 +222,12 @@ abstract public class AbstractArchivingTest {
             verify(mockOutput, times(1)).close();
             verifyNoMoreInteractions(mockOutput);
         } catch (Throwable t) {
-            checkErrorIsExpected(errorIsExpected, t);
+            errorType.verifyExpected(t);
         } finally {
-            setReadable(expectedFiles, true);
+            errorType.tearDown(expectedFiles);
         }
 
-        assertThatNotificationsAreValid(listener, pathArgument.getAllValues(), expectedEntryToFile, errorIsExpected);
+        assertThatNotificationsAreValid(listener, pathArgument.getAllValues(), expectedEntryToFile, errorType);
     }
 
     private List<Path> mergeFiles(Map<Path, List<Path>> filesBySource) {
@@ -263,21 +253,7 @@ abstract public class AbstractArchivingTest {
         return mockFactory;
     }
 
-    private void setReadable(List<Path> files, boolean readable) {
-        for (Path file : files) {
-            file.toFile().setReadable(readable);
-        }
-    }
-    private void checkErrorIsExpected(boolean error, Throwable t) throws Throwable {
-        if (t instanceof Archiver.ArchiverException) {
-            t = t.getCause();
-        }
-        if (!error || !t.getClass().equals(ERROR_CLASS)) {
-            throw t;
-        }
-    }
-
-    private void assertThatNotificationsAreValid(ProgressListener listener, List<String> actualEntries, Map<String, Path> expectedEntryToFile, boolean errorIsExpected) throws IOException {
+    private void assertThatNotificationsAreValid(ProgressListener listener, List<String> actualEntries, Map<String, Path> expectedEntryToFile, ErrorType errorType) throws IOException {
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
         for (String actualEntry : actualEntries) {
@@ -285,10 +261,10 @@ abstract public class AbstractArchivingTest {
             expectedTotalSize += Files.size(path);
             expectedNotifications.add(expectedTotalSize);
         }
-        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorIsExpected);
+        assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorType);
     }
 
-    private void assertThatNotificationsAreValid(ProgressListener listener, List<Long> expectedNotifications, long expectedTotalSize, boolean errorIsExpected) throws IOException {
+    private void assertThatNotificationsAreValid(ProgressListener listener, List<Long> expectedNotifications, long expectedTotalSize, ErrorType errorType) throws IOException {
         if (listener != null) {
             InOrder inOrder = inOrder(listener);
 
@@ -299,7 +275,7 @@ abstract public class AbstractArchivingTest {
                 inOrder.verify(listener, never()).taskStarted();
             }
 
-            if (!errorIsExpected) {
+            if (!errorType.isError()) {
                 // 2 - totalSizeComputed
                 inOrder.verify(listener, times(1)).totalSizeComputed(expectedTotalSize);
 
@@ -311,7 +287,8 @@ abstract public class AbstractArchivingTest {
 
             // 4 - taskFinished
             if (testJBackup) {
-                inOrder.verify(listener, times(1)).taskFinished(errorIsExpected ? any(ERROR_CLASS) : null);
+                final Class<? extends Throwable> expectedError = errorType.getExpectedErrorClass();
+                inOrder.verify(listener, times(1)).taskFinished((expectedError == null) ? null : any(expectedError));
             } else {
                 inOrder.verify(listener, never()).taskFinished(any(Throwable.class));
             }
@@ -369,6 +346,7 @@ abstract public class AbstractArchivingTest {
         }
 
         abstract public Path getPath(Path baseDirectory);
+
         abstract public Path create(Path baseDirectory) throws IOException;
     }
 
@@ -417,7 +395,7 @@ abstract public class AbstractArchivingTest {
     public static Data group(DataSource... dataSources) {
         return new Data(dataSources);
     }
-    
+
     private static class Data {
         private final List<DataSource> dataSources;
 
@@ -577,8 +555,64 @@ abstract public class AbstractArchivingTest {
     }
 
     private static enum ErrorType {
-        NO_ERROR,
-        ERROR;
+        NO_ERROR {
+            @Override
+            public Class<? extends Throwable> getExpectedErrorClass() {
+                return null;
+            }
+        },
+        ACCESS_DENIED {
+            @Override
+            public Class<? extends Throwable> getExpectedErrorClass() {
+                return AccessDeniedException.class;
+            }
+
+            @Override
+            public void setUp(List<Path> protectedFiles) {
+                setReadable(protectedFiles, false);
+            }
+
+            @Override
+            public void tearDown(List<Path> protectedFiles) {
+                setReadable(protectedFiles, true);
+            }
+
+            private void setReadable(List<Path> protectedFiles, boolean readable) {
+                for (Path file : protectedFiles) {
+                    file.toFile().setReadable(readable);
+                    assertThat(Files.isReadable(file)).isEqualTo(readable);
+                }
+            }
+        };
+
+        public void verifyExpected(Throwable t) throws Throwable {
+            if (t instanceof Archiver.ArchiverException) {
+                t = t.getCause();
+            }
+            if (!isError() || !t.getClass().equals(getExpectedErrorClass())) {
+                throw t;
+            }
+        }
+
+        abstract public Class<? extends Throwable> getExpectedErrorClass();
+
+        public final boolean isError() {
+            return getExpectedErrorClass() != null;
+        }
+
+        public void setUp(List<Path> protectedFiles) {
+        }
+
+        public final void setUp(Path protectedFile) {
+            setUp(Collections.singletonList(protectedFile));
+        }
+
+        public void tearDown(List<Path> protectedFiles) {
+        }
+
+        public final void tearDown(Path protectedFile) {
+            tearDown(Collections.singletonList(protectedFile));
+        }
     }
 
     private static enum EntryType {

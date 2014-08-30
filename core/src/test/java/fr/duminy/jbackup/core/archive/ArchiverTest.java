@@ -59,7 +59,7 @@ public class ArchiverTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener, boolean errorIsExpected) throws ArchiverException {
+    protected void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener) throws ArchiverException {
         Archiver archiver = new Archiver(mockFactory);
         if (listener == null) {
             archiver.decompress(archive, targetDirectory);

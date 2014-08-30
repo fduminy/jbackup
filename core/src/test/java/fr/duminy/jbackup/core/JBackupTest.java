@@ -57,7 +57,7 @@ public class JBackupTest extends AbstractArchivingTest {
     }
 
     @Override
-    protected void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener, boolean errorIsExpected) throws Throwable {
+    protected void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener) throws Throwable {
         JBackup jbackup = new JBackup();
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testDecompress");
