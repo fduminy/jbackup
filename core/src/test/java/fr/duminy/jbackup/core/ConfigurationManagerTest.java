@@ -42,6 +42,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
 
+import static fr.duminy.jbackup.core.TestUtils.createFile;
 import static java.lang.Thread.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -256,7 +257,7 @@ public class ConfigurationManagerTest {
     public void testLoadAllConfigurations_nonXmlFile() throws Exception {
         // prepare mock
         Path notAnXmlFile = configDir.resolve("notAnXmlFile");
-        Files.write(notAnXmlFile, new byte[0]);
+        createFile(notAnXmlFile, "");
 
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
@@ -275,7 +276,7 @@ public class ConfigurationManagerTest {
     public void testLoadAllConfigurations_wrongXmlConfigFile() throws Exception {
         // prepare mock
         final Path wrongXmlConfigFile = configDir.resolve("wrongXmlConfigFile.xml");
-        Files.write(wrongXmlConfigFile, "<root></root>".getBytes());
+        createFile(wrongXmlConfigFile, "<root></root>");
 
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
@@ -320,7 +321,7 @@ public class ConfigurationManagerTest {
         // prepare mock
         final Path wrongConfigName = configDir.resolve("config4.xml");
         String otherTargetDirectory = TARGET_DIRECTORY + '2';
-        Files.write(wrongConfigName, CONFIG_XML2.replace(TARGET_DIRECTORY, otherTargetDirectory).getBytes());
+        createFile(wrongConfigName, CONFIG_XML2.replace(TARGET_DIRECTORY, otherTargetDirectory));
 
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
@@ -340,7 +341,7 @@ public class ConfigurationManagerTest {
         BackupConfiguration expectedConfiguration = createConfiguration();
 
         Path input = tempFolder.newFile().toPath();
-        Files.write(input, CONFIG_XML.getBytes());
+        createFile(input, CONFIG_XML);
         BackupConfiguration actualConfiguration = manager.loadBackupConfiguration(input);
 
         assertAreEquals(expectedConfiguration, actualConfiguration);
@@ -452,10 +453,9 @@ public class ConfigurationManagerTest {
 
     private Path writeConfigFile(boolean config1) throws IOException {
         Path configFile = configDir.resolve((config1 ? CONFIG1 : CONFIG2) + ".xml");
-        Files.createDirectories(configFile.getParent());
-        byte[] data = (config1 ? CONFIG_XML : CONFIG_XML2).getBytes();
-        Files.write(configFile, data);
-        assertThat(Files.size(configFile)).as("config file size").isEqualTo(data.length);
+        String configXML = config1 ? CONFIG_XML : CONFIG_XML2;
+        createFile(configFile, configXML);
+        assertThat(Files.size(configFile)).as("config file size").isEqualTo(configXML.getBytes().length);
         return configFile;
     }
 

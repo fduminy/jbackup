@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.TestUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.assertj.core.api.Assertions;
@@ -105,9 +106,7 @@ public class FileCollectorTest {
 
     private Path createFile(String file) throws IOException {
         Path f = directory.resolve(file);
-        Files.createDirectories(f.getParent());
-        Files.write(f, "one line".getBytes());
-        return f;
+        return TestUtils.createFile(f, "one line");
     }
 
     private void addSymbolicLink(String parentDirName, String targetName) throws IOException {

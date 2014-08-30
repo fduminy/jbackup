@@ -21,10 +21,10 @@
 package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.JBackupTest;
+import fr.duminy.jbackup.core.TestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
-import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
@@ -44,6 +44,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import static fr.duminy.jbackup.core.TestUtils.createFile;
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -413,12 +414,6 @@ abstract public class AbstractArchivingTest {
         }
     }
 
-    private static Path createFile(Path file, long size) throws IOException {
-        Files.createDirectories(file.getParent());
-        Files.write(file, StringUtils.repeat("A", (int) size).getBytes());
-        return file;
-    }
-
     private static class DataSource {
         private final Source source;
         private final String[] acceptedFiles;
@@ -452,7 +447,7 @@ abstract public class AbstractArchivingTest {
 
         private static Path createFile(Path sourceDirectory, Entry entry) throws IOException {
             Path file = sourceDirectory.resolve(entry.name);
-            AbstractArchivingTest.createFile(file, entry.compressedSize);
+            TestUtils.createFile(file, entry.compressedSize);
             return file;
         }
 

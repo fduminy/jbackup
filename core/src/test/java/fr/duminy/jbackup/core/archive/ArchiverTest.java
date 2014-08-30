@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
+import static fr.duminy.jbackup.core.TestUtils.createFile;
 import static fr.duminy.jbackup.core.archive.Archiver.ArchiverException;
 
 /**
@@ -44,9 +45,10 @@ public class ArchiverTest extends AbstractArchivingTest {
     public void testCompress_relativeFilesMustThrowAnException() throws Throwable {
         ArchiveFactory mockFactory = createMockArchiveFactory(Mockito.mock(ArchiveOutputStream.class));
         Path relativeFile = Paths.get("testCompressRelativeFile.tmp");
-        Files.write(relativeFile, "A".getBytes());
 
         try {
+            createFile(relativeFile, 1);
+
             thrown.expect(IllegalArgumentException.class);
             thrown.expectMessage("The file '" + relativeFile.toString() + "' is relative.");
 
