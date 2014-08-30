@@ -135,7 +135,7 @@ abstract public class AbstractArchivingTest {
 
         Path archive = createArchivePath();
         Path targetDirectory = tempFolder.newFolder("targetDir").toPath();
-        Files.write(archive, StringUtils.repeat("A", (int) expectedTotalSize).getBytes());
+        createFile(archive, expectedTotalSize);
 
         ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
 
@@ -388,7 +388,7 @@ abstract public class AbstractArchivingTest {
         @Override
         public Path create(Path baseDirectory) throws IOException {
             final Path file = getPath(baseDirectory);
-            DataSource.createFile(file, 123L);
+            createFile(file, 123L);
             return file;
         }
     }
@@ -435,6 +435,12 @@ abstract public class AbstractArchivingTest {
         }
     }
 
+    private static Path createFile(Path file, long size) throws IOException {
+        Files.createDirectories(file.getParent());
+        Files.write(file, StringUtils.repeat("A", (int) size).getBytes());
+        return file;
+    }
+
     private static class DataSource {
         private final Source source;
         private final String[] acceptedFiles;
@@ -468,13 +474,7 @@ abstract public class AbstractArchivingTest {
 
         private static Path createFile(Path sourceDirectory, Entry entry) throws IOException {
             Path file = sourceDirectory.resolve(entry.name);
-            createFile(file, entry.compressedSize);
-            return file;
-        }
-
-        private static Path createFile(Path file, long size) throws IOException {
-            Files.createDirectories(file.getParent());
-            Files.write(file, StringUtils.repeat("A", (int) size).getBytes());
+            AbstractArchivingTest.createFile(file, entry.compressedSize);
             return file;
         }
 
