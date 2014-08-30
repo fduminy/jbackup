@@ -20,11 +20,9 @@
  */
 package fr.duminy.jbackup.core.archive;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,24 +31,22 @@ import java.util.List;
 
 import static fr.duminy.jbackup.core.TestUtils.createFile;
 import static fr.duminy.jbackup.core.archive.Archiver.ArchiverException;
+import static org.mockito.Mockito.mock;
 
 /**
  * Test for the class {@link Archiver}.
  */
 public class ArchiverTest extends AbstractArchivingTest {
-    @Rule
-    public final ExpectedException thrown = ExpectedException.none();
-
     @Test
     public void testCompress_relativeFilesMustThrowAnException() throws Throwable {
-        ArchiveFactory mockFactory = createMockArchiveFactory(Mockito.mock(ArchiveOutputStream.class));
+        ArchiveFactory mockFactory = createMockArchiveFactory(mock(ArchiveOutputStream.class));
         Path relativeFile = Paths.get("testCompressRelativeFile.tmp");
 
         try {
             createFile(relativeFile, 1);
 
             thrown.expect(IllegalArgumentException.class);
-            thrown.expectMessage("The file '" + relativeFile.toString() + "' is relative.");
+            thrown.expectMessage(String.format("The file '%s' is relative.", relativeFile));
 
             final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath(), false);
             archiveParameters.addSource(relativeFile);
@@ -62,6 +58,14 @@ public class ArchiverTest extends AbstractArchivingTest {
 
     @Override
     protected void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener) throws ArchiverException {
+        if (createDirectory) {
+            try {
+                Files.createDirectories(targetDirectory);
+            } catch (IOException e) {
+                throw new ArchiverException(e);
+            }
+        }
+
         Archiver archiver = new Archiver(mockFactory);
         if (listener == null) {
             archiver.decompress(archive, targetDirectory);

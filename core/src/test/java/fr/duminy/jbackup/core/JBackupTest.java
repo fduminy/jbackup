@@ -23,9 +23,7 @@ package fr.duminy.jbackup.core;
 import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.*;
 import org.apache.commons.io.filefilter.IOFileFilter;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,9 +41,6 @@ import static org.mockito.Mockito.mock;
  * Tests for class {@link fr.duminy.jbackup.core.JBackup}.
  */
 public class JBackupTest extends AbstractArchivingTest {
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
     @Test
     public void test_NullArchiveFactory() throws Throwable {
         thrown.expect(NullPointerException.class);

@@ -27,10 +27,12 @@ import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.junit.Assume;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -102,10 +104,37 @@ abstract public class AbstractArchivingTest {
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
+    @Rule
+    public final ExpectedException thrown = ExpectedException.none();
+
+    protected boolean createDirectory = true;
+
     private final boolean testJBackup;
 
     protected AbstractArchivingTest() {
         this.testJBackup = (this instanceof JBackupTest);
+    }
+
+    @Test
+    public void testDecompress_missingTargetDirectoryMustThrowAnException() throws Throwable {
+        ArchiveFactory mockFactory = createMockArchiveFactory(mock(ArchiveOutputStream.class));
+        ArchiveInputStream.Entry mockEntry = mock(ArchiveInputStream.Entry.class);
+        when(mockEntry.getName()).thenReturn("mockEntry");
+        when(mockEntry.getCompressedSize()).thenReturn(1L);
+        when(mockEntry.getInput()).thenReturn(new ByteArrayInputStream(new byte[1]));
+        ArchiveInputStream mockInput = mock(ArchiveInputStream.class);
+        when(mockInput.getNextEntry()).thenReturn(mockEntry, null);
+        when(mockFactory.create(any(InputStream.class))).thenReturn(mockInput);
+
+        Path archive = createArchivePath();
+        final Path baseDirectory = createBaseDirectory();
+        Path targetDirectory = baseDirectory.resolve("targetDirectory");
+
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage(String.format("The target directory '%s' doesn't exist.", targetDirectory));
+
+        createDirectory = false;
+        decompress(mockFactory, archive, targetDirectory, null);
     }
 
     @Theory

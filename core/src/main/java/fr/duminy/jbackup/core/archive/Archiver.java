@@ -189,6 +189,9 @@ public class Archiver {
         }
 
         targetDirectory = (targetDirectory == null) ? Paths.get(".") : targetDirectory;
+        if (!Files.exists(targetDirectory)) {
+            throw new IllegalArgumentException(String.format("The target directory '%s' doesn't exist.", targetDirectory));
+        }
 
         MutableLong processedSize = new MutableLong();
 
@@ -221,7 +224,7 @@ public class Archiver {
         for (ArchiveParameters.Source source : sources) {
             Path sourcePath = source.getSource();
             if (!sourcePath.isAbsolute()) {
-                throw new IllegalArgumentException("The file '" + sourcePath.toString() + "' is relative.");
+                throw new IllegalArgumentException(String.format("The file '%s' is relative.", sourcePath));
             }
 
             long size;
