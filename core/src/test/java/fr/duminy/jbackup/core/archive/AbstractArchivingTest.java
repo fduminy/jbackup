@@ -593,19 +593,12 @@ abstract public class AbstractArchivingTest {
 
             @Override
             public void setUp(List<Path> protectedFiles) {
-                setReadable(protectedFiles, false);
+                TestUtils.setReadable(protectedFiles, false);
             }
 
             @Override
             public void tearDown(List<Path> protectedFiles) {
-                setReadable(protectedFiles, true);
-            }
-
-            private void setReadable(List<Path> protectedFiles, boolean readable) {
-                for (Path file : protectedFiles) {
-                    file.toFile().setReadable(readable);
-                    assertThat(Files.isReadable(file)).isEqualTo(readable);
-                }
+                TestUtils.setReadable(protectedFiles, true);
             }
         };
 

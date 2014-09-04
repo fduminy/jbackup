@@ -58,7 +58,6 @@ import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -329,9 +328,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     }
 
     private Path createArchive(BackupConfiguration config) throws IOException {
-        Path result = Paths.get(config.getTargetDirectory()).resolve("archive.zip");
-        Files.copy(ZipArchiveFactoryTest.getArchive(), result);
-        return result;
+        return ZipArchiveFactoryTest.createArchive(Paths.get(config.getTargetDirectory()));
     }
 
     private List<BackupConfiguration> init(int nbConfigurations) {

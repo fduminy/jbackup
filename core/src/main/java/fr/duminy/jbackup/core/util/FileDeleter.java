@@ -18,29 +18,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
-package fr.duminy.jbackup.core.archive.zip;
+package fr.duminy.jbackup.core.util;
 
-import fr.duminy.jbackup.core.archive.ArchiveFactoryTest;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class ZipArchiveFactoryTest extends ArchiveFactoryTest<ZipArchiveFactory> {
-    private static final String ARCHIVE_RESOURCE = "archive.zip";
+/**
+ * Interface representing a file cleaner that delete registered files.
+ */
+public interface FileDeleter {
+    /**
+     * Registers a file to be deleted.
+     *
+     * @param file
+     */
+    void registerFile(Path file);
 
-    public ZipArchiveFactoryTest() {
-        super(ARCHIVE_RESOURCE, ZipArchiveFactory.INSTANCE);
-    }
+    /**
+     * Registers a directory to be deleted.
+     *
+     * @param directory
+     */
+    void registerDirectory(Path directory);
 
-    public static InputStream getArchive() {
-        return getArchiveResource(ZipArchiveFactoryTest.class, ARCHIVE_RESOURCE);
-    }
-
-    public static Path createArchive(Path targetDirectory) throws IOException {
-        Path result = targetDirectory.resolve("archive.zip");
-        Files.copy(getArchive(), result);
-        return result;
-    }
+    /**
+     * Deletes all registered files and directories.
+     */
+    void deleteAll();
 }

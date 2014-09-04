@@ -24,6 +24,8 @@ import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ArchiveParameters;
 import fr.duminy.jbackup.core.archive.Archiver;
 import fr.duminy.jbackup.core.archive.ProgressListener;
+import fr.duminy.jbackup.core.util.DefaultFileDeleter;
+import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
@@ -68,11 +70,15 @@ public class JBackup {
         }
     }
 
+    FileDeleter createFileDeleter() {
+        return new DefaultFileDeleter();
+    }
+
     Archiver createArchiver(ArchiveFactory factory) {
         return new Archiver(factory);
     }
 
-    private static String generateName(String configName, ArchiveFactory factory) {
+    String generateName(String configName, ArchiveFactory factory) {
         Objects.requireNonNull(factory, "ArchiveFactory is null");
 
         Calendar date = Calendar.getInstance();
@@ -114,7 +120,7 @@ public class JBackup {
         abstract protected void execute() throws Exception;
     }
 
-    private static class BackupTask extends Task {
+    private class BackupTask extends Task {
         private BackupTask(JBackup jbackup, BackupConfiguration config, ProgressListener listener) {
             super(jbackup, listener, config);
         }
@@ -138,11 +144,19 @@ public class JBackup {
                 archiveParameters.addSource(source, dirFilter, fileFilter);
             }
 
-            jbackup.createArchiver(factory).compress(archiveParameters, listener);
+            FileDeleter deleter = createFileDeleter();
+            try {
+                deleter.registerFile(archiveParameters.getArchive());
+
+                jbackup.createArchiver(factory).compress(archiveParameters, listener);
+            } catch (Exception e) {
+                deleter.deleteAll();
+                throw e;
+            }
         }
     }
 
-    private static class RestoreTask extends Task {
+    private class RestoreTask extends Task {
         private final Path archive;
         private final Path targetDirectory;
 
@@ -154,8 +168,16 @@ public class JBackup {
 
         @Override
         protected void execute() throws Exception {
-            ArchiveFactory factory = config.getArchiveFactory();
-            jbackup.createArchiver(factory).decompress(archive, targetDirectory, listener);
+            FileDeleter deleter = createFileDeleter();
+            try {
+                deleter.registerDirectory(targetDirectory);
+
+                ArchiveFactory factory = config.getArchiveFactory();
+                jbackup.createArchiver(factory).decompress(archive, targetDirectory, listener);
+            } catch (Exception e) {
+                deleter.deleteAll();
+                throw e;
+            }
         }
     }
 }

@@ -20,11 +20,13 @@
  */
 package fr.duminy.jbackup.core;
 
+import fr.duminy.jbackup.core.util.PathUtils;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public class TestUtils {
     public static Path createFile(Path file, long size) throws IOException {
@@ -38,5 +40,15 @@ public class TestUtils {
 
         Files.write(file, content.getBytes());
         return file;
+    }
+
+    public static void setReadable(List<Path> protectedFiles, final boolean readable) {
+        for (Path file : protectedFiles) {
+            try {
+                PathUtils.setReadable(file, readable);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }
