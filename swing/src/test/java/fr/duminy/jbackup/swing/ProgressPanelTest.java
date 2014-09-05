@@ -78,6 +78,24 @@ public class ProgressPanelTest extends AbstractSwingTest {
     }
 
     @Test
+    public void testCancel() throws Exception {
+        final TestableTask task = new TestableTask();
+        panel.setTask(task);
+
+        final long actualValue = 1;
+        final long maxValue = 10L;
+        GuiActionRunner.execute(new GuiTask() {
+            protected void executeInEDT() {
+                panel.taskStarted();
+                panel.totalSizeComputed(maxValue);
+                panel.progress(actualValue);
+            }
+        });
+
+        checkState(TaskState.PROGRESS, actualValue, maxValue, null, task);
+    }
+
+    @Test
     public void testTaskStarted() {
         GuiActionRunner.execute(new GuiTask() {
             protected void executeInEDT() {
@@ -258,6 +276,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
             assertThat(panel.getParent()).isNull();
             assertThat(parent.getComponents()).doesNotContain(panel);
             assertThat(task.isCancelled()).as("task cancelled").isTrue();
+            assertThat(((TestableTask) task).getMayInterruptIfRunning()).as("MayInterruptIfRunning").isFalse();
         } else {
             // check no cancel button is visible if the task has been defined
             requireCancelButton(progressPanel, taskState == TaskState.TASK_DEFINED);
@@ -288,6 +307,8 @@ public class ProgressPanelTest extends AbstractSwingTest {
 
     private static class TestableTask implements Future<Object> {
         private TaskState state = TaskState.NOT_STARTED;
+        private boolean cancelled = false;
+        private Boolean mayInterruptIfRunning;
 
         public void setException(Throwable error) {
 //            completeExceptionally(error);
@@ -295,12 +316,18 @@ public class ProgressPanelTest extends AbstractSwingTest {
 
         @Override
         public boolean cancel(boolean mayInterruptIfRunning) {
-            return false;
+            cancelled = true;
+            this.mayInterruptIfRunning = mayInterruptIfRunning;
+            return true;
         }
 
         @Override
         public boolean isCancelled() {
-            return false;
+            return cancelled;
+        }
+
+        public Boolean getMayInterruptIfRunning() {
+            return mayInterruptIfRunning;
         }
 
         @Override

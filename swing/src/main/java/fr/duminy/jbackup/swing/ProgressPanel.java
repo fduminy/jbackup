@@ -42,6 +42,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     private long totalSize;
     private boolean finished = false;
     private JButton cancelButton;
+    private Future<?> task;
 
     public ProgressPanel(String title) {
         super(new BorderLayout());
@@ -54,6 +55,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     }
 
     public void setTask(final Future<?> task) {
+        this.task = task;
         if ((task != null) && (cancelButton == null)) {
             GuiActionRunner.execute(new GuiQuery<Void>() {
                 @Override
@@ -63,6 +65,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
                     cancelButton.setMargin(new Insets(0, 0, 0, 0));
                     cancelButton.setToolTipText(Bundle.getBundle(Messages.class).cancelTaskTooltip());
                     add(cancelButton, BorderLayout.EAST);
+                    revalidate();
                     cancelButton.addActionListener(new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
@@ -137,6 +140,6 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     }
 
     public boolean isFinished() {
-        return finished;
+        return finished || ((task != null) && (task.isCancelled() || task.isDone()));
     }
 }
