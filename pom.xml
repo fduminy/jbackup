@@ -149,6 +149,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <excludeFilterFile>findbugs-exclude.xml</excludeFilterFile>
                     <findbugsXmlOutputDirectory>
                         ${findbugs.dir}
                     </findbugsXmlOutputDirectory>
@@ -329,6 +330,12 @@
                 <groupId>org.ez18n</groupId>
                 <artifactId>ez18n-base</artifactId>
                 <version>0.1-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.stefanbirkner</groupId>
+                <artifactId>system-rules</artifactId>
+                <version>1.6.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

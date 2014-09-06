@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
@@ -63,10 +65,12 @@ public class Application {
     }
 
     Application() throws Exception {
+        LOGGER.info("*** Application startup ***");
         JFrame frame = new JFrame();
 
         frame.setName("jbackup");
-        frame.setContentPane(createApplicationPanel());
+        final JBackup jBackup = createJBackup();
+        frame.setContentPane(createApplicationPanel(jBackup));
         frame.pack();
         frame.validate();
 //        fr.duminy.components.swing.SwingUtilities.centerInScreen(frame); //TODO
@@ -75,19 +79,45 @@ public class Application {
         String title = "JBackup " + getVersion();
         frame.setTitle(title);
         frame.setSize(SwingUtilities.computeStringWidth(frame.getFontMetrics(frame.getFont()), title) + 200, frame.getHeight());
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.addWindowListener(new WindowAdapter() {
+            private boolean alreadyCalled = false;
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (!alreadyCalled) {
+                    alreadyCalled = true;
+                    LOGGER.info("The user has requested a shutdown. Waiting end of tasks ...");
+                    try {
+                        jBackup.shutdown(new JBackup.TerminationListener() {
+                            @Override
+                            public void terminated() {
+                                LOGGER.info("*** Application shutdown ***");
+                                System.exit(0);
+                            }
+                        });
+                    } catch (InterruptedException e1) {
+                        throw new RuntimeException(e1);
+                    }
+                }
+            }
+        });
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     }
 
-    private ApplicationPanel createApplicationPanel() throws Exception {
+    JBackup createJBackup() {
+        return new JBackup();
+    }
+
+    private ApplicationPanel createApplicationPanel(final JBackup jBackup) throws Exception {
         final ApplicationPanel[] application = new ApplicationPanel[1];
         if (SwingUtilities.isEventDispatchThread()) {
-            application[0] = new ApplicationPanel();
+            application[0] = new ApplicationPanel(jBackup);
         } else {
             SwingUtilities.invokeAndWait(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        application[0] = new ApplicationPanel();
+                        application[0] = new ApplicationPanel(jBackup);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -97,17 +127,17 @@ public class Application {
         return application[0];
     }
 
-    private static class ApplicationPanel extends JPanel {
+    static class ApplicationPanel extends JPanel {
         private final JBackup jBackup;
         private final ConfigurationManager manager;
 
         private final ConfigurationManagerPanel managerPanel;
         private final TaskManagerPanel taskManagerPanel;
 
-        public ApplicationPanel() throws Exception {
+        public ApplicationPanel(JBackup jBackup) throws Exception {
             super(new BorderLayout());
 
-            jBackup = new JBackup();
+            this.jBackup = jBackup;
             manager = new ConfigurationManager(Paths.get(System.getProperty("user.home"), ".jbackup"));
 
             taskManagerPanel = new TaskManagerPanel(jBackup);

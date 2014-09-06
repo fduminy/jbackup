@@ -21,12 +21,18 @@
 package fr.duminy.jbackup.swing;
 
 import fr.duminy.components.swing.AbstractSwingTest;
+import fr.duminy.jbackup.core.JBackup;
 import org.assertj.core.api.Assertions;
 import org.fest.assertions.ImageAssert;
 import org.fest.swing.edt.GuiActionRunner;
 import org.fest.swing.edt.GuiTask;
 import org.fest.swing.fixture.FrameFixture;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.Assertion;
+import org.junit.contrib.java.lang.system.ExpectedSystemExit;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import javax.swing.*;
 import java.awt.*;
@@ -36,8 +42,12 @@ import java.net.URISyntaxException;
 
 import static java.awt.image.BufferedImage.TYPE_INT_ARGB;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 public class ApplicationTest extends AbstractSwingTest {
+    @Rule
+    public final ExpectedSystemExit exit = ExpectedSystemExit.none();
+
     @Test
     public void testGetBackupIcon() throws IOException, URISyntaxException {
         String path = Application.class.getResource("backup.png").toURI().getPath();
@@ -58,23 +68,71 @@ public class ApplicationTest extends AbstractSwingTest {
 
     @Test
     public void testApplicationIcon() {
-        startApplication();
+        startApplication(null);
 
         assertThatImageAreEquals("imageIcon", window.component().getIconImage(), Application.getBackupIcon());
     }
 
     @Test
     public void testApplicationTitle() {
-        startApplication();
+        startApplication(null);
 
         assertThat(window.component().getTitle()).as("application title").isEqualTo("JBackup " + Application.getVersion());
     }
 
-    private void startApplication() {
+    @Test
+    public void testCallShutDownOnFrameClosure_realJBackup() throws InterruptedException {
+        testCallShutDownOnFrameClosure(false);
+    }
+
+    @Test
+    public void testCallShutDownOnFrameClosure_mockJBackup() throws InterruptedException {
+        testCallShutDownOnFrameClosure(true);
+    }
+
+    private void testCallShutDownOnFrameClosure(boolean mockJBackup) throws InterruptedException {
+        final JBackup jBackup;
+        if (mockJBackup) {
+            jBackup = Mockito.mock(JBackup.class);
+            exit.none();
+        } else {
+            jBackup = spy(new JBackup());
+            exit.expectSystemExitWithStatus(0);
+        }
+        exit.checkAssertionAfterwards(new Assertion() {
+            public void checkAssertion() throws InterruptedException {
+                ArgumentCaptor<JBackup.TerminationListener> argument = ArgumentCaptor.forClass(JBackup.TerminationListener.class);
+                verify(jBackup, times(1)).shutdown(argument.capture());
+                assertThat(argument.getValue()).as("TerminationListener").isNotNull();
+
+                window.requireNotVisible();
+            }
+        });
+
+        startApplication(jBackup);
+        window.requireVisible();
+
+        JFrame frame = (JFrame) window.component();
+        assertThat(frame.getDefaultCloseOperation()).isEqualTo(JFrame.DO_NOTHING_ON_CLOSE);
+        window.close();
+    }
+
+    private void startApplication(final JBackup jBackup) {
+        window.close();
         GuiActionRunner.execute(new GuiTask() {
             @Override
             protected void executeInEDT() throws Throwable {
-                new Application();
+                if (jBackup == null) {
+                    new Application();
+                } else {
+                    new Application() {
+                        @Override
+                        JBackup createJBackup() {
+                            return jBackup;
+                        }
+                    };
+                }
+
             }
         });
         window = new FrameFixture(robot(), "jbackup");

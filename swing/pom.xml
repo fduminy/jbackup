@@ -85,6 +85,11 @@
             <groupId>org.ez18n</groupId>
             <artifactId>ez18n-base</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.github.stefanbirkner</groupId>
+            <artifactId>system-rules</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
