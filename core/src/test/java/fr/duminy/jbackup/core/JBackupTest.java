@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,8 +42,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static fr.duminy.jbackup.core.JBackup.TerminationListener;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
 /**
@@ -84,6 +88,81 @@ public class JBackupTest extends AbstractArchivingTest {
     }
 
     @Test
+    public void testShutdown_withoutListener_alreadyTerminatedTask() throws Throwable {
+        testShutdownWithoutListener(false);
+    }
+
+    @Test
+    public void testShutdown_withoutListener_longTask() throws Throwable {
+        testShutdownWithoutListener(true);
+    }
+
+    @Test
+    public void testShutdown_withListener_alreadyTerminatedTask() throws Throwable {
+        testShutdownWithListener(false);
+    }
+
+    @Test
+    public void testShutdown_withListener_longTask() throws Throwable {
+        testShutdownWithListener(true);
+    }
+
+    private void testShutdownWithListener(boolean longTask) throws Throwable {
+        testShutdown(longTask, true);
+    }
+
+    private void testShutdownWithoutListener(boolean longTask) throws Throwable {
+        testShutdown(longTask, false);
+    }
+
+    private void testShutdown(boolean longTask, boolean withListener) throws Throwable {
+        ArchiveFactory archiveFactory = ZipArchiveFactory.INSTANCE;
+        final AtomicBoolean lockTask = new AtomicBoolean(longTask ? true : false);
+        JBackup jbackup = createMockBackupWithLockOnCompressionTask(archiveFactory, lockTask);
+
+        BackupConfiguration config = new BackupConfiguration();
+        config.setName("testShutdown");
+        Path targetDirectory = tempFolder.newFolder().toPath().toAbsolutePath();
+        Files.delete(targetDirectory);
+        config.setTargetDirectory(targetDirectory.toString());
+        config.setArchiveFactory(archiveFactory);
+
+        TerminationListener listener = withListener ? mock(TerminationListener.class) : null;
+        Future<Void> future;
+        Timer timer;
+        if (longTask) {
+            future = jbackup.backup(config);
+
+            timer = jbackup.shutdown(listener);
+            if (withListener) {
+                assertThat(timer).as("shutdown timer").isNotNull();
+                assertThat(timer.isRunning()).as("timer is running").isTrue();
+                verify(listener, never()).terminated();
+            } else {
+                assertThat(timer).as("shutdown timer").isNull();
+            }
+            assertThat(future.isDone()).as("isDone").isFalse();
+
+            lockTask.set(false);
+            waitResult(future);
+        } else {
+            future = jbackup.backup(config);
+            waitResult(future);
+            timer = jbackup.shutdown(listener);
+            if (withListener) {
+                assertThat(timer).as("shutdown timer").isNotNull();
+            } else {
+                assertThat(timer).as("shutdown timer").isNull();
+            }
+        }
+        waitEndOfTimerIfAny(timer);
+        if (withListener) {
+            verify(listener, times(1)).terminated();
+            verifyNoMoreInteractions(listener);
+        }
+    }
+
+    @Test
     public void testDecompress_deleteFilesOnError() throws Throwable {
         Path archive = ZipArchiveFactoryTest.createArchive(tempFolder.newFolder().toPath());
         Path targetDirectory = tempFolder.newFolder("targetDirectory").toPath();
@@ -122,7 +201,7 @@ public class JBackupTest extends AbstractArchivingTest {
         }
 
         waitResult(future);
-        jbackup.shutdown();
+        jbackup.shutdown(null);
 
         verify(mockDeleter, times(1)).registerDirectory(eq(targetDirectory));
         if (error) {
@@ -195,7 +274,7 @@ public class JBackupTest extends AbstractArchivingTest {
             assertThat(actualFiles).isEqualTo(expectedFiles);
         }
 
-        jbackup.shutdown();
+        jbackup.shutdown(null);
 
         Path archive = archiveDirectory.resolve(generatedName[0]);
         verify(mockDeleter, times(1)).registerFile(eq(archive));
@@ -219,5 +298,38 @@ public class JBackupTest extends AbstractArchivingTest {
                 throw e.getCause();
             }
         }
+    }
+
+    private void waitEndOfTimerIfAny(Timer timer) throws InterruptedException {
+        if (timer != null) {
+            long timeout = System.currentTimeMillis() + 5 * timer.getDelay();
+            while (timer.isRunning()) {
+                if (System.currentTimeMillis() > timeout) {
+                    fail("timer not stopped");
+                }
+                Thread.sleep(100);
+            }
+        }
+    }
+
+    private JBackup createMockBackupWithLockOnCompressionTask(final ArchiveFactory archiveFactory, final AtomicBoolean lockTask) {
+        final Archiver mockArchiver = new Archiver(archiveFactory) {
+            @Override
+            protected void compress(ArchiveParameters archiveParameters, ProgressListener listener, Map<Path, List<Path>> filesBySource) throws ArchiverException {
+                while (lockTask.get()) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        throw new ArchiverException(e);
+                    }
+                }
+            }
+        };
+        return new JBackup() {
+            @Override
+            Archiver createArchiver(ArchiveFactory factory) {
+                return mockArchiver;
+            }
+        };
     }
 }

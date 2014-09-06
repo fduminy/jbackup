@@ -31,6 +31,9 @@ import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -63,11 +66,32 @@ public class JBackup {
         return executor.submit(new RestoreTask(this, config, archive, targetDirectory, listener));
     }
 
-    public void shutdown() throws InterruptedException {
+    public Timer shutdown(final TerminationListener listener) throws InterruptedException {
         executor.shutdown();
-        while (!executor.isTerminated()) {
-            executor.awaitTermination(1, TimeUnit.MINUTES);
+
+        Timer timer = null;
+        if (listener != null) {
+            timer = new Timer(0, null);
+            timer.setDelay((int) TimeUnit.SECONDS.toMillis(1));
+            final Timer finalTimer = timer;
+            timer.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (executor.isTerminated()) {
+                        listener.terminated();
+                        finalTimer.stop();
+                    }
+                }
+            });
+            timer.setRepeats(true);
+            timer.start();
         }
+
+        return timer;
+    }
+
+    public static interface TerminationListener {
+        void terminated();
     }
 
     FileDeleter createFileDeleter() {
