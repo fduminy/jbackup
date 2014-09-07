@@ -57,7 +57,7 @@ public class ConfigurationManagerTest {
     private static final String CONFIG1 = "configOne";
     private static final String CONFIG2 = "configTwo";
     private static final String CONFIG_XML = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
-            "<backupConfiguration>\n" +
+            "<backupConfiguration xmlVersion=\"1\">\n" +
             "    <archiveFactory>" + ZipArchiveFactory.class.getName() + "</archiveFactory>\n" +
             "    <name>" + CONFIG1 + "</name>\n" +
             "    <relativeEntries>true</relativeEntries>\n" +

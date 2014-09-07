@@ -42,6 +42,11 @@ import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class BackupConfiguration {
+    /**
+     * Version of the xml schema, for possibly future evolutions.
+     */
+    private int xmlVersion = 1;
+
     private String name;
 
     private List<Source> sources = new ArrayList<>();
@@ -92,6 +97,15 @@ public class BackupConfiguration {
         this.targetDirectory = targetDirectory;
     }
 
+    @XmlAttribute(required = true)
+    public int getXmlVersion() {
+        return xmlVersion;
+    }
+
+    public void setXmlVersion(int xmlVersion) {
+        this.xmlVersion = xmlVersion;
+    }
+
     @XmlElementWrapper(name = "sources")
     @XmlElement(name = "source")
     public List<Source> getSources() {
@@ -130,6 +144,7 @@ public class BackupConfiguration {
                 ", sources=" + sources +
                 ", targetDirectory='" + targetDirectory + '\'' +
                 ", archiveFactory=" + archiveFactory +
+                ", xmlVersion=" + xmlVersion +
                 '}';
     }
 
