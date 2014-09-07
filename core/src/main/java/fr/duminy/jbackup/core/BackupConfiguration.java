@@ -58,7 +58,7 @@ public class BackupConfiguration {
 
     public void addSource(Path sourceDirectory, String dirFilter, String fileFilter) {
         Source source = new Source();
-        source.setSourceDirectory(StringPathTypeMapper.toString(sourceDirectory));
+        source.setPath(StringPathTypeMapper.toString(sourceDirectory));
         source.setDirFilter(dirFilter);
         source.setFileFilter(fileFilter);
         sources.add(source);
@@ -134,12 +134,12 @@ public class BackupConfiguration {
     }
 
     public static class Source {
-        private String sourceDirectory;
+        private String path;
         private String dirFilter;
         private String fileFilter;
 
-        public void setSourceDirectory(String sourceDirectory) {
-            this.sourceDirectory = sourceDirectory;
+        public void setPath(String path) {
+            this.path = path;
         }
 
         public void setDirFilter(String dirFilter) {
@@ -150,8 +150,8 @@ public class BackupConfiguration {
             this.fileFilter = fileFilter;
         }
 
-        public String getSourceDirectory() {
-            return sourceDirectory;
+        public String getPath() {
+            return path;
         }
 
         public String getDirFilter() {
@@ -165,7 +165,7 @@ public class BackupConfiguration {
         @Override
         public String toString() {
             return "Source{" +
-                    "sourceDirectory=" + sourceDirectory +
+                    "path=" + path +
                     ", dirFilter='" + dirFilter + '\'' +
                     ", fileFilter='" + fileFilter + '\'' +
                     '}';

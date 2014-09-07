@@ -164,7 +164,7 @@ public class JBackup {
             for (BackupConfiguration.Source filter : config.getSources()) {
                 IOFileFilter dirFilter = config.createIOFileFilter("_dir", filter.getDirFilter());
                 IOFileFilter fileFilter = config.createIOFileFilter("_file", filter.getFileFilter());
-                Path source = Paths.get(filter.getSourceDirectory());
+                Path source = Paths.get(filter.getPath());
                 archiveParameters.addSource(source, dirFilter, fileFilter);
             }
 

@@ -74,7 +74,7 @@ public class ConfigurationManagerTest {
         return indent + "<source>\n" +
                 ((dirFilter == null) ? "" : indent + "    <dirFilter>" + dirFilter + "</dirFilter>\n") +
                 ((fileFilter == null) ? "" : indent + "    <fileFilter>" + fileFilter + "</fileFilter>\n") +
-                ((sourceDirectory == null) ? "" : indent + "    <sourceDirectory>" + Paths.get(sourceDirectory).toAbsolutePath() + "</sourceDirectory>\n") +
+                ((sourceDirectory == null) ? "" : indent + "    <path>" + Paths.get(sourceDirectory).toAbsolutePath() + "</path>\n") +
                 indent + "</source>\n";
     }
 

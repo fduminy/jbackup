@@ -71,7 +71,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<
             @Override
             protected void configureBuilder(FormBuilder<Source> builder) {
                 super.configureBuilder(builder);
-                builder.useForProperty("sourceDirectory", new StringPathTypeMapper(SHOW_HIDDEN_FILES_BUILDER));
+                builder.useForProperty("path", new StringPathTypeMapper(SHOW_HIDDEN_FILES_BUILDER));
             }
         };
         SimpleItemManager<Source> sourceProvider = new SimpleItemManager<>(Source.class, sourceFormBuilder, parent, "Source", DIALOG);

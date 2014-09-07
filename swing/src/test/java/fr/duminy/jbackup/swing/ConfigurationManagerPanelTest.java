@@ -415,7 +415,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
 
             GuiActionRunner.execute(new GuiTask() {
                 protected void executeInEDT() {
-                    sourcePath.selectPath(Paths.get(source.getSourceDirectory()));
+                    sourcePath.selectPath(Paths.get(source.getPath()));
                 }
             });
 
@@ -465,7 +465,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         sourceList.requireOnlyFeatures(EDITING).requireVisible()/*.requireEnabled()*/;
         String[] renderedSources = new String[sources.size()];
         for (int i = 0; i < renderedSources.length; i++) {
-            renderedSources[i] = sources.get(i).getSourceDirectory();
+            renderedSources[i] = sources.get(i).getPath();
         }
         Assertions.assertThat(sourceList.list().contents()).as("sources").isEqualTo(renderedSources);
 
