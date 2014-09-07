@@ -44,7 +44,7 @@ public interface ProgressListener {
     void progress(long totalReadBytes);
 
     /**
-     * Notify that the task has finished and eventually failed.
+     * Notify that the task has finished and possibly failed.
      *
      * @param error If not null, provides details about the failure.
      */
