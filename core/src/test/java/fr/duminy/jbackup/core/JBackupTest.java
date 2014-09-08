@@ -42,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static fr.duminy.jbackup.core.JBackup.TerminationListener;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -117,8 +116,10 @@ public class JBackupTest extends AbstractArchivingTest {
 
     private void testShutdown(boolean longTask, boolean withListener) throws Throwable {
         ArchiveFactory archiveFactory = ZipArchiveFactory.INSTANCE;
-        final AtomicBoolean lockTask = new AtomicBoolean(longTask ? true : false);
-        JBackup jbackup = createMockBackupWithLockOnCompressionTask(archiveFactory, lockTask);
+        LockableJBackup jbackup = new LockableJBackup(archiveFactory);
+        if (longTask) {
+            jbackup.lockCompression();
+        }
 
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testShutdown");
@@ -143,7 +144,7 @@ public class JBackupTest extends AbstractArchivingTest {
             }
             assertThat(future.isDone()).as("isDone").isFalse();
 
-            lockTask.set(false);
+            jbackup.unlockCompression();
             waitResult(future);
         } else {
             future = jbackup.backup(config);
@@ -310,26 +311,5 @@ public class JBackupTest extends AbstractArchivingTest {
                 Thread.sleep(100);
             }
         }
-    }
-
-    private JBackup createMockBackupWithLockOnCompressionTask(final ArchiveFactory archiveFactory, final AtomicBoolean lockTask) {
-        final Archiver mockArchiver = new Archiver(archiveFactory) {
-            @Override
-            protected void compress(ArchiveParameters archiveParameters, ProgressListener listener, Map<Path, List<Path>> filesBySource) throws ArchiverException {
-                while (lockTask.get()) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        throw new ArchiverException(e);
-                    }
-                }
-            }
-        };
-        return new JBackup() {
-            @Override
-            Archiver createArchiver(ArchiveFactory factory) {
-                return mockArchiver;
-            }
-        };
     }
 }
