@@ -26,7 +26,6 @@ import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -72,7 +71,7 @@ public class JBackupTest extends AbstractArchivingTest {
         Path source = tempFolder.newFolder("source").toPath();
         Files.createDirectories(source);
         Path file = source.resolve("file");
-        Files.write(file, StringUtils.repeat("A", 10).getBytes());
+        TestUtils.createFile(file, 10);
         archiveParameters.addSource(source);
 
         error = true;
