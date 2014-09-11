@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.Cancellable;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +33,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 
-import static java.nio.file.FileVisitResult.CONTINUE;
-import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
+import static java.nio.file.FileVisitResult.*;
 
 /**
  * Class collecting files in a directory. Files are filtered with a directory filter and a file filter.
@@ -41,7 +41,8 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 public class FileCollector {
     private static final Logger LOG = LoggerFactory.getLogger(FileCollector.class);
 
-    public long collect(final Collection<Path> results, final Path startDirectory, final IOFileFilter directoryFilter, final IOFileFilter fileFilter) throws IOException {
+    public long collect(final Collection<Path> results, final Path startDirectory, final IOFileFilter directoryFilter,
+                        final IOFileFilter fileFilter, final Cancellable cancellable) throws IOException {
         final long[] totalSize = {0L};
 
         SimpleFileVisitor<Path> visitor = new SimpleFileVisitor<Path>() {
@@ -57,6 +58,10 @@ public class FileCollector {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                if ((cancellable != null) && cancellable.isCancelled()) {
+                    return TERMINATE;
+                }
+
                 super.visitFile(file, attrs);
 
                 if (!Files.isSymbolicLink(file)) {

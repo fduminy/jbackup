@@ -231,7 +231,7 @@ public class Archiver {
 
             if (Files.isDirectory(sourcePath)) {
                 List<Path> collectedFiles = new ArrayList<>();
-                size = collector.collect(collectedFiles, sourcePath, source.getDirFilter(), source.getFileFilter());
+                size = collector.collect(collectedFiles, sourcePath, source.getDirFilter(), source.getFileFilter(), null);
                 onlyFiles.put(sourcePath, collectedFiles);
             } else {
                 onlyFiles.put(sourcePath, Collections.singletonList(sourcePath));

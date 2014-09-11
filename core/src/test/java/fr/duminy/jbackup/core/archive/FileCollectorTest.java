@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.TestUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
@@ -28,6 +29,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.InOrder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,6 +40,8 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests for {@link FileCollector}.
@@ -70,35 +74,62 @@ public class FileCollectorTest {
     @Test
     public void testCollect_all_withSymbolicLinkToFile() throws Exception {
         addSymbolicLink(FILE2_DIR, FILE2);
-        testCollect(expectedFiles, null, null);
+        testCollect(expectedFiles, null, null, null);
     }
 
     @Test
     public void testCollect_all_withSymbolicLinkToDir() throws Exception {
         addSymbolicLink(null, FILE1_DIR);
-        testCollect(expectedFiles, null, null);
+        testCollect(expectedFiles, null, null, null);
     }
 
     @Test
     public void testCollect_all() throws Exception {
-        testCollect(expectedFiles, null, null);
+        testCollect(expectedFiles, null, null, null);
+    }
+
+    @Test
+    public void testCollect_withCancellableTask_cancelAfterFirstFile() throws Exception {
+        testCollect_withCancellableTask(true);
+    }
+
+    @Test
+    public void testCollect_withCancellableTask_notCancelled() throws Exception {
+        testCollect_withCancellableTask(false);
+    }
+
+    private void testCollect_withCancellableTask(boolean cancelAfterFirstFile) throws Exception {
+        Cancellable cancellable = mock(Cancellable.class);
+        when(cancellable.isCancelled()).thenReturn(false, cancelAfterFirstFile);
+        List<Path> actualFiles = mock(List.class);
+
+        new FileCollector().collect(actualFiles, directory, null, null, cancellable);
+
+        InOrder inOrder = inOrder(cancellable, actualFiles);
+        inOrder.verify(cancellable).isCancelled();
+        inOrder.verify(actualFiles).add(eq(expectedFiles[1]));
+        inOrder.verify(cancellable).isCancelled();
+        if (!cancelAfterFirstFile) {
+            inOrder.verify(actualFiles).add(eq(expectedFiles[0]));
+        }
+        inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testCollect_file1() throws Exception {
         Path[] files = {expectedFiles[0]};
-        testCollect(files, trueFileFilter(), FileFilterUtils.nameFileFilter(FILE1));
+        testCollect(files, trueFileFilter(), FileFilterUtils.nameFileFilter(FILE1), null);
     }
 
     @Test
     public void testCollect_file2() throws Exception {
         Path[] files = {expectedFiles[1]};
-        testCollect(files, trueFileFilter(), FileFilterUtils.nameFileFilter(FILE2));
+        testCollect(files, trueFileFilter(), FileFilterUtils.nameFileFilter(FILE2), null);
     }
 
-    private void testCollect(Path[] expectedFiles, IOFileFilter directoryFilter, IOFileFilter fileFilter) throws Exception {
+    private void testCollect(Path[] expectedFiles, IOFileFilter directoryFilter, IOFileFilter fileFilter, Cancellable cancellable) throws Exception {
         List<Path> files = new ArrayList<>();
-        new FileCollector().collect(files, directory, directoryFilter, fileFilter);
+        new FileCollector().collect(files, directory, directoryFilter, fileFilter, cancellable);
 
         Collections.sort(files);
         Assertions.assertThat(files.toArray()).as("collected files").isEqualTo(expectedFiles);
