@@ -33,7 +33,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A high level class that can (de)compress files in a format managed by the provided {@link ArchiveFactory}.
@@ -55,7 +56,9 @@ public class Archiver {
                 for (int i = 2; i < args.length; i++) {
                     archiveParameters.addSource(Paths.get(args[i]));
                 }
-                new Archiver(factory).compress(archiveParameters);
+                List<SourceWithPath> collectedFiles = new ArrayList<>();
+                new FileCollector().collectFiles(collectedFiles, archiveParameters, null, null);
+                new Archiver(factory).compress(archiveParameters, collectedFiles, null);
                 break;
             case "-d":
                 Path directory = null;
@@ -81,54 +84,33 @@ public class Archiver {
         this.factory = factory;
     }
 
-    public final void compress(ArchiveParameters archiveParameters) throws ArchiverException {
-        compress(archiveParameters, null);
-    }
-
-    public final void compress(ArchiveParameters archiveParameters, final ProgressListener listener) throws ArchiverException {
-        MutableLong totalSize = new MutableLong();
-        final Map<Path, List<Path>> filesBySource;
-        try {
-            filesBySource = collectFiles(archiveParameters.getSources(), totalSize);
-        } catch (IOException ioe) {
-            throw new ArchiverException(ioe);
-        }
-        if (listener != null) {
-            listener.totalSizeComputed(totalSize.longValue());
-        }
-
-        compress(archiveParameters, listener, filesBySource);
-    }
-
-    protected void compress(ArchiveParameters archiveParameters, final ProgressListener listener, Map<Path, List<Path>> filesBySource) throws ArchiverException {
+    public void compress(ArchiveParameters archiveParameters, List<SourceWithPath> files, final ProgressListener listener) throws ArchiverException {
         final String name = archiveParameters.getArchive().toString();
         final MutableLong processedSize = new MutableLong();
 
         try (OutputStream fos = Files.newOutputStream(archiveParameters.getArchive());
              ArchiveOutputStream output = factory.create(fos);) {
             LOG.info("Backup '{}': creating archive {}", name, archiveParameters.getArchive());
-            for (Map.Entry<Path, List<Path>> sourceEntry : filesBySource.entrySet()) {
-                for (final Path file : sourceEntry.getValue()) {
-                    LOG.info("Backup '{}': compressing file {}", name, file.toAbsolutePath());
-                    try (InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file));) {
-                        final String path;
-                        if (archiveParameters.isRelativeEntries()) {
-                            Path source = sourceEntry.getKey();
-                            if (Files.isDirectory(source)) {
-                                if (source.getParent() == null) {
-                                    path = source.relativize(file).toString();
-                                } else {
-                                    path = source.getParent().relativize(file).toString();
-                                }
+            for (final SourceWithPath file : files) {
+                LOG.info("Backup '{}': compressing file {}", name, file.getPath().toAbsolutePath());
+                try (InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file.getPath()));) {
+                    final String path;
+                    if (archiveParameters.isRelativeEntries()) {
+                        Path source = file.getSource();
+                        if (Files.isDirectory(source)) {
+                            if (source.getParent() == null) {
+                                path = source.relativize(file.getPath()).toString();
                             } else {
-                                path = file.getFileName().toString();
+                                path = source.getParent().relativize(file.getPath()).toString();
                             }
                         } else {
-                            path = file.toString();
+                            path = file.getPath().getFileName().toString();
                         }
-                        LOG.info("Backup '{}': adding entry {}", new Object[]{name, path});
-                        output.addEntry(path, input);
+                    } else {
+                        path = file.getPath().toString();
                     }
+                    LOG.info("Backup '{}': adding entry {}", new Object[]{name, path});
+                    output.addEntry(path, input);
                 }
             }
             LOG.info("Backup '{}': archive {} created ({})", new Object[]{name, archiveParameters.getArchive(), FileUtils.byteCountToDisplaySize(Files.size(archiveParameters.getArchive()))});
@@ -214,32 +196,5 @@ public class Archiver {
         } catch (Exception e) {
             throw new ArchiverException(e);
         }
-    }
-
-    private Map<Path, List<Path>> collectFiles(Collection<ArchiveParameters.Source> sources, MutableLong totalSize) throws IOException {
-        totalSize.setValue(0L);
-
-        Map<Path, List<Path>> onlyFiles = new HashMap<>();
-        FileCollector collector = new FileCollector();
-        for (ArchiveParameters.Source source : sources) {
-            Path sourcePath = source.getSource();
-            if (!sourcePath.isAbsolute()) {
-                throw new IllegalArgumentException(String.format("The file '%s' is relative.", sourcePath));
-            }
-
-            long size;
-
-            if (Files.isDirectory(sourcePath)) {
-                List<Path> collectedFiles = new ArrayList<>();
-                size = collector.collect(collectedFiles, sourcePath, source.getDirFilter(), source.getFileFilter(), null);
-                onlyFiles.put(sourcePath, collectedFiles);
-            } else {
-                onlyFiles.put(sourcePath, Collections.singletonList(sourcePath));
-                size = Files.size(sourcePath);
-            }
-
-            totalSize.add(size);
-        }
-        return onlyFiles;
     }
 }

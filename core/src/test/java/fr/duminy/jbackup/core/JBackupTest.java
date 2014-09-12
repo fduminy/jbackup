@@ -38,7 +38,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -226,14 +225,14 @@ public class JBackupTest extends AbstractArchivingTest {
             Archiver createArchiver(ArchiveFactory factory) {
                 return new Archiver(factory) {
                     @Override
-                    protected void compress(ArchiveParameters archiveParameters, ProgressListener listener, Map<Path, List<Path>> filesBySources) throws ArchiverException {
-                        for (List<Path> files : filesBySources.values()) {
-                            actualFiles.addAll(files);
+                    public void compress(ArchiveParameters archiveParameters, List<SourceWithPath> files, ProgressListener listener) throws ArchiverException {
+                        for (SourceWithPath file : files) {
+                            actualFiles.add(file.getPath());
                         }
 
                         // now compress files in the order given by expectedFiles
                         // (otherwise the test will fail on some platforms)
-                        super.compress(archiveParameters, listener, filesBySources);
+                        super.compress(archiveParameters, files, listener);
                     }
                 };
             }

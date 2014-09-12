@@ -22,6 +22,7 @@ package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.Cancellable;
 import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.lang.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,9 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
+import java.util.List;
 
+import static fr.duminy.jbackup.core.archive.Archiver.ArchiverException;
 import static java.nio.file.FileVisitResult.*;
 
 /**
@@ -41,7 +44,41 @@ import static java.nio.file.FileVisitResult.*;
 public class FileCollector {
     private static final Logger LOG = LoggerFactory.getLogger(FileCollector.class);
 
-    public long collect(final Collection<Path> results, final Path startDirectory, final IOFileFilter directoryFilter,
+    public void collectFiles(List<SourceWithPath> collectedFiles, ArchiveParameters archiveParameters, ProgressListener listener, Cancellable cancellable) throws ArchiverException {
+        MutableLong totalSize = new MutableLong();
+        try {
+            collectFilesImpl(collectedFiles, archiveParameters.getSources(), totalSize, cancellable);
+        } catch (IOException ioe) {
+            throw new ArchiverException(ioe);
+        }
+        if (listener != null) {
+            listener.totalSizeComputed(totalSize.longValue());
+        }
+    }
+
+    private void collectFilesImpl(List<SourceWithPath> collectedFiles, Collection<ArchiveParameters.Source> sources, MutableLong totalSize, Cancellable cancellable) throws IOException {
+        totalSize.setValue(0L);
+
+        for (ArchiveParameters.Source source : sources) {
+            Path sourcePath = source.getSource();
+            if (!sourcePath.isAbsolute()) {
+                throw new IllegalArgumentException(String.format("The file '%s' is relative.", sourcePath));
+            }
+
+            long size;
+
+            if (Files.isDirectory(sourcePath)) {
+                size = collect(collectedFiles, sourcePath, source.getDirFilter(), source.getFileFilter(), cancellable);
+            } else {
+                collectedFiles.add(new SourceWithPath(sourcePath, sourcePath));
+                size = Files.size(sourcePath);
+            }
+
+            totalSize.add(size);
+        }
+    }
+
+    private long collect(final List<SourceWithPath> collectedFiles, final Path source, final IOFileFilter directoryFilter,
                         final IOFileFilter fileFilter, final Cancellable cancellable) throws IOException {
         final long[] totalSize = {0L};
 
@@ -49,7 +86,7 @@ public class FileCollector {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 super.preVisitDirectory(dir, attrs);
-                if ((directoryFilter == null) || startDirectory.equals(dir) || directoryFilter.accept(dir.toFile())) {
+                if ((directoryFilter == null) || source.equals(dir) || directoryFilter.accept(dir.toFile())) {
                     return CONTINUE;
                 } else {
                     return SKIP_SUBTREE;
@@ -67,7 +104,7 @@ public class FileCollector {
                 if (!Files.isSymbolicLink(file)) {
                     if ((fileFilter == null) || fileFilter.accept(file.toFile())) {
                         LOG.trace("visitFile {}", file.toAbsolutePath());
-                        results.add(file);
+                        collectedFiles.add(new SourceWithPath(source, file));
                         totalSize[0] += Files.size(file);
                     }
                 }
@@ -75,7 +112,7 @@ public class FileCollector {
                 return CONTINUE;
             }
         };
-        Files.walkFileTree(startDirectory, visitor);
+        Files.walkFileTree(source, visitor);
 
         return totalSize[0];
     }

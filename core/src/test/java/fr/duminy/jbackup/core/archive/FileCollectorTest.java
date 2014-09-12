@@ -24,7 +24,8 @@ import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.TestUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
-import org.assertj.core.api.Assertions;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,13 +35,10 @@ import org.mockito.InOrder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
-import static org.mockito.Matchers.eq;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 /**
@@ -101,18 +99,36 @@ public class FileCollectorTest {
     private void testCollect_withCancellableTask(boolean cancelAfterFirstFile) throws Exception {
         Cancellable cancellable = mock(Cancellable.class);
         when(cancellable.isCancelled()).thenReturn(false, cancelAfterFirstFile);
-        List<Path> actualFiles = mock(List.class);
+        List<SourceWithPath> actualFiles = mock(List.class);
 
-        new FileCollector().collect(actualFiles, directory, null, null, cancellable);
+        collectFiles(actualFiles, null, null, cancellable);
 
         InOrder inOrder = inOrder(cancellable, actualFiles);
         inOrder.verify(cancellable).isCancelled();
-        inOrder.verify(actualFiles).add(eq(expectedFiles[1]));
+        inOrder.verify(actualFiles).add(argThat(new SourceWithPathMatcher(expectedFiles[1])));
         inOrder.verify(cancellable).isCancelled();
         if (!cancelAfterFirstFile) {
-            inOrder.verify(actualFiles).add(eq(expectedFiles[0]));
+            inOrder.verify(actualFiles).add(argThat(new SourceWithPathMatcher(expectedFiles[0])));
         }
         inOrder.verifyNoMoreInteractions();
+    }
+
+    private static class SourceWithPathMatcher extends BaseMatcher<SourceWithPath> {
+        private final Path path;
+
+        private SourceWithPathMatcher(Path path) {
+            this.path = path;
+        }
+
+        @Override
+        public boolean matches(Object o) {
+            SourceWithPath swp = (SourceWithPath) o;
+            return swp.getPath().equals(path);
+        }
+
+        @Override
+        public void describeTo(Description description) {
+        }
     }
 
     @Test
@@ -128,11 +144,38 @@ public class FileCollectorTest {
     }
 
     private void testCollect(Path[] expectedFiles, IOFileFilter directoryFilter, IOFileFilter fileFilter, Cancellable cancellable) throws Exception {
-        List<Path> files = new ArrayList<>();
-        new FileCollector().collect(files, directory, directoryFilter, fileFilter, cancellable);
+        List<SourceWithPath> collectedFiles = new ArrayList<>();
 
-        Collections.sort(files);
-        Assertions.assertThat(files.toArray()).as("collected files").isEqualTo(expectedFiles);
+        collectFiles(collectedFiles, directoryFilter, fileFilter, cancellable);
+
+        assertThat(collectedFiles).hasSize(expectedFiles.length);
+        assertThat(toSortedPaths(collectedFiles)).as("collected files").isEqualTo(expectedFiles);
+    }
+
+    private Path[] toSortedPaths(List<SourceWithPath> collectedFiles) {
+        Collections.sort(collectedFiles, new Comparator<SourceWithPath>() {
+            @Override
+            public int compare(SourceWithPath o1, SourceWithPath o2) {
+                int comp = o1.getSource().compareTo(o2.getSource());
+                if (comp != 0) {
+                    return comp;
+                }
+
+                return o1.getPath().compareTo(o2.getPath());
+            }
+        });
+        Path[] actualFiles = new Path[collectedFiles.size()];
+        int i = 0;
+        for (SourceWithPath swp : collectedFiles) {
+            actualFiles[i++] = swp.getPath();
+        }
+        return actualFiles;
+    }
+
+    private void collectFiles(List<SourceWithPath> collectedFiles, IOFileFilter directoryFilter, IOFileFilter fileFilter, Cancellable cancellable) throws Archiver.ArchiverException {
+        ArchiveParameters archiveParameters = new ArchiveParameters(null, false);
+        archiveParameters.addSource(directory, directoryFilter, fileFilter);
+        new FileCollector().collectFiles(collectedFiles, archiveParameters, null, cancellable);
     }
 
     private Path createFile(String file) throws IOException {
@@ -145,8 +188,6 @@ public class FileCollectorTest {
         Path targetPath = parentDir.resolve(targetName);
         Path linkPath = parentDir.resolve("LinkTo" + targetName);
 
-        /*expectedFiles = Arrays.copyOf(expectedFiles, expectedFiles.length + 1);
-        expectedFiles[expectedFiles.length - 1] = */
         Files.createSymbolicLink(linkPath, targetPath);
     }
 }

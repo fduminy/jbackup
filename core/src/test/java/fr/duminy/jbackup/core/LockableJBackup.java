@@ -20,14 +20,10 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.jbackup.core.archive.ArchiveFactory;
-import fr.duminy.jbackup.core.archive.ArchiveParameters;
-import fr.duminy.jbackup.core.archive.Archiver;
-import fr.duminy.jbackup.core.archive.ProgressListener;
+import fr.duminy.jbackup.core.archive.*;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LockableJBackup extends JBackup {
@@ -37,7 +33,7 @@ public class LockableJBackup extends JBackup {
         }
 
         @Override
-        protected void compress(ArchiveParameters archiveParameters, ProgressListener listener, Map<Path, List<Path>> filesBySource) throws ArchiverException {
+        public void compress(ArchiveParameters archiveParameters, List<SourceWithPath> files, ProgressListener listener) throws ArchiverException {
             waitUnlocked(compressionLock);
         }
 

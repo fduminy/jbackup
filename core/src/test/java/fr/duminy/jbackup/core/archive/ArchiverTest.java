@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -76,11 +77,8 @@ public class ArchiverTest extends AbstractArchivingTest {
 
     @Override
     protected void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, List<Path> expectedFiles, ProgressListener listener, boolean errorIsExpected) throws ArchiverException {
-        Archiver archiver = new Archiver(mockFactory);
-        if (listener == null) {
-            archiver.compress(archiveParameters);
-        } else {
-            archiver.compress(archiveParameters, listener);
-        }
+        List<SourceWithPath> collectedFiles = new ArrayList<>();
+        new FileCollector().collectFiles(collectedFiles, archiveParameters, listener, null);
+        new Archiver(mockFactory).compress(archiveParameters, collectedFiles, listener);
     }
 }

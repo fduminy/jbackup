@@ -20,10 +20,7 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.jbackup.core.archive.ArchiveFactory;
-import fr.duminy.jbackup.core.archive.ArchiveParameters;
-import fr.duminy.jbackup.core.archive.Archiver;
-import fr.duminy.jbackup.core.archive.ProgressListener;
+import fr.duminy.jbackup.core.archive.*;
 import fr.duminy.jbackup.core.util.DefaultFileDeleter;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.io.filefilter.IOFileFilter;
@@ -37,7 +34,9 @@ import java.awt.event.ActionListener;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
 
@@ -172,7 +171,9 @@ public class JBackup {
             try {
                 deleter.registerFile(archiveParameters.getArchive());
 
-                jbackup.createArchiver(factory).compress(archiveParameters, listener);
+                List<SourceWithPath> collectedFiles = new ArrayList<>();
+                new FileCollector().collectFiles(collectedFiles, archiveParameters, listener, null);
+                jbackup.createArchiver(factory).compress(archiveParameters, collectedFiles, listener);
             } catch (Exception e) {
                 deleter.deleteAll();
                 throw e;
