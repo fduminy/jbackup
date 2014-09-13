@@ -20,9 +20,8 @@
  */
 package fr.duminy.jbackup.core.archive;
 
-/**
- * Test for the class {@link Archiver}.
- */
-public class ArchiverTest {
-    //TODO add a test
+public final class ArchiveException extends Exception {
+    public ArchiveException(Exception cause) {
+        super(cause);
+    }
 }

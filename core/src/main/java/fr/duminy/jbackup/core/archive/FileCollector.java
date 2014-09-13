@@ -35,7 +35,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.List;
 
-import static fr.duminy.jbackup.core.archive.Archiver.ArchiverException;
 import static java.nio.file.FileVisitResult.*;
 
 /**
@@ -44,12 +43,12 @@ import static java.nio.file.FileVisitResult.*;
 public class FileCollector {
     private static final Logger LOG = LoggerFactory.getLogger(FileCollector.class);
 
-    public void collectFiles(List<SourceWithPath> collectedFiles, ArchiveParameters archiveParameters, ProgressListener listener, Cancellable cancellable) throws ArchiverException {
+    public void collectFiles(List<SourceWithPath> collectedFiles, ArchiveParameters archiveParameters, ProgressListener listener, Cancellable cancellable) throws ArchiveException {
         MutableLong totalSize = new MutableLong();
         try {
             collectFilesImpl(collectedFiles, archiveParameters.getSources(), totalSize, cancellable);
         } catch (IOException ioe) {
-            throw new ArchiverException(ioe);
+            throw new ArchiveException(ioe);
         }
         if (listener != null) {
             listener.totalSizeComputed(totalSize.longValue());
@@ -79,7 +78,7 @@ public class FileCollector {
     }
 
     private long collect(final List<SourceWithPath> collectedFiles, final Path source, final IOFileFilter directoryFilter,
-                        final IOFileFilter fileFilter, final Cancellable cancellable) throws IOException {
+                         final IOFileFilter fileFilter, final Cancellable cancellable) throws IOException {
         final long[] totalSize = {0L};
 
         SimpleFileVisitor<Path> visitor = new SimpleFileVisitor<Path>() {

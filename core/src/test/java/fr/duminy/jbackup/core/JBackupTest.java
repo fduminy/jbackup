@@ -26,7 +26,11 @@ import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.NameFileFilter;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -49,7 +53,13 @@ import static org.mockito.Mockito.*;
 /**
  * Tests for class {@link fr.duminy.jbackup.core.JBackup}.
  */
-public class JBackupTest extends AbstractArchivingTest {
+public class JBackupTest {
+    @Rule
+    public final TemporaryFolder tempFolder = new TemporaryFolder();
+
+    @Rule
+    public final ExpectedException thrown = ExpectedException.none();
+
     private boolean error = false;
 
     @Test
@@ -178,8 +188,7 @@ public class JBackupTest extends AbstractArchivingTest {
         decompress(ZipArchiveFactory.INSTANCE, archive, targetDirectory, listener);
     }
 
-    @Override
-    protected void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener) throws Throwable {
+    private void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener) throws Throwable {
         final FileDeleter mockDeleter = mock(FileDeleter.class);
         JBackup jbackup = new JBackup() {
             @Override
@@ -209,8 +218,7 @@ public class JBackupTest extends AbstractArchivingTest {
         verifyNoMoreInteractions(mockDeleter);
     }
 
-    @Override
-    protected void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, List<Path> expectedFiles, ProgressListener listener, boolean errorIsExpected) throws Throwable {
+    private void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, List<Path> expectedFiles, ProgressListener listener, boolean errorIsExpected) throws Throwable {
         final List<Path> actualFiles = new ArrayList<>();
         final String[] generatedName = new String[1];
         final FileDeleter mockDeleter = mock(FileDeleter.class);
@@ -222,17 +230,17 @@ public class JBackupTest extends AbstractArchivingTest {
             }
 
             @Override
-            Archiver createArchiver(ArchiveFactory factory) {
-                return new Archiver(factory) {
+            BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
+                return new BackupTask(this, config, listener) {
                     @Override
-                    public void compress(ArchiveParameters archiveParameters, List<SourceWithPath> files, ProgressListener listener) throws ArchiverException {
-                        for (SourceWithPath file : files) {
+                    void compress(ArchiveFactory factory, ArchiveParameters archiveParameters, List<SourceWithPath> collectedFiles) throws ArchiveException {
+                        for (SourceWithPath file : collectedFiles) {
                             actualFiles.add(file.getPath());
                         }
 
                         // now compress files in the order given by expectedFiles
                         // (otherwise the test will fail on some platforms)
-                        super.compress(archiveParameters, files, listener);
+                        super.compress(factory, archiveParameters, collectedFiles);
                     }
                 };
             }
@@ -281,6 +289,23 @@ public class JBackupTest extends AbstractArchivingTest {
             verify(mockDeleter, times(1)).deleteAll();
         }
         verifyNoMoreInteractions(mockDeleter);
+    }
+
+    public static final class CustomNameFileFilter extends NameFileFilter {
+        private final String name;
+
+        public CustomNameFileFilter(String name) {
+            super(name);
+            this.name = name;
+        }
+    }
+
+    protected static final String getName(IOFileFilter filter) {
+        if (filter instanceof CustomNameFileFilter) {
+            return ((CustomNameFileFilter) filter).name;
+        } else {
+            return null;
+        }
     }
 
     private String toJexlExpression(IOFileFilter filter) {

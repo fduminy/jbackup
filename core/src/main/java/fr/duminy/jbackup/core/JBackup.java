@@ -20,10 +20,10 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.jbackup.core.archive.*;
+import fr.duminy.jbackup.core.archive.ArchiveFactory;
+import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.util.DefaultFileDeleter;
 import fr.duminy.jbackup.core.util.FileDeleter;
-import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,17 +31,16 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Main class.
+ * Facade class for features.
  */
 public class JBackup {
     private static final Logger LOG = LoggerFactory.getLogger(JBackup.class);
@@ -54,7 +53,7 @@ public class JBackup {
     }
 
     public Future<Void> backup(BackupConfiguration config, ProgressListener listener) {
-        return executor.submit(new BackupTask(this, config, listener));
+        return executor.submit(createBackupTask(config, listener));
     }
 
     public Future<Void> restore(BackupConfiguration config, Path archive, Path targetDirectory) {
@@ -62,7 +61,7 @@ public class JBackup {
     }
 
     public Future<Void> restore(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
-        return executor.submit(new RestoreTask(this, config, archive, targetDirectory, listener));
+        return executor.submit(createRestoreTask(config, archive, targetDirectory, listener));
     }
 
     public Timer shutdown(final TerminationListener listener) throws InterruptedException {
@@ -93,12 +92,16 @@ public class JBackup {
         void terminated();
     }
 
-    FileDeleter createFileDeleter() {
-        return new DefaultFileDeleter();
+    BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
+        return new BackupTask(this, config, listener);
     }
 
-    Archiver createArchiver(ArchiveFactory factory) {
-        return new Archiver(factory);
+    RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
+        return new RestoreTask(this, config, archive, targetDirectory, listener);
+    }
+
+    FileDeleter createFileDeleter() {
+        return new DefaultFileDeleter();
     }
 
     String generateName(String configName, ArchiveFactory factory) {
@@ -108,101 +111,4 @@ public class JBackup {
         return String.format("%1$s_%2$tY_%2$tm_%2$td_%2$tH_%2$tM_%2$tS.%3$s", configName, date, factory.getExtension());
     }
 
-    private static abstract class Task implements Callable<Void> {
-        protected final JBackup jbackup;
-        protected final ProgressListener listener;
-        protected final BackupConfiguration config;
-
-        protected Task(JBackup jbackup, ProgressListener listener, BackupConfiguration config) {
-            this.jbackup = jbackup;
-            this.listener = listener;
-            this.config = config;
-        }
-
-        @Override
-        public final Void call() throws Exception {
-            Throwable error = null;
-            try {
-                if (listener != null) {
-                    listener.taskStarted();
-                }
-                execute();
-            } catch (Exception e) {
-                LOG.error("Error in " + Task.this.getClass().getSimpleName() + " for configuration '" + config.getName() + "'", e);
-                error = e;
-                throw e;
-            } finally {
-                if (listener != null) {
-                    listener.taskFinished(error);
-                }
-            }
-
-            return null;
-        }
-
-        abstract protected void execute() throws Exception;
-    }
-
-    private class BackupTask extends Task {
-        private BackupTask(JBackup jbackup, BackupConfiguration config, ProgressListener listener) {
-            super(jbackup, listener, config);
-        }
-
-        @Override
-        protected void execute() throws Exception {
-            ArchiveFactory factory = config.getArchiveFactory();
-
-            Path target = Paths.get(config.getTargetDirectory());
-            Files.createDirectories(target);
-
-            String archiveName = generateName(config.getName(), config.getArchiveFactory());
-
-            Path archive = target.resolve(archiveName);
-
-            final ArchiveParameters archiveParameters = new ArchiveParameters(archive, config.isRelativeEntries());
-            for (BackupConfiguration.Source filter : config.getSources()) {
-                IOFileFilter dirFilter = config.createIOFileFilter("_dir", filter.getDirFilter());
-                IOFileFilter fileFilter = config.createIOFileFilter("_file", filter.getFileFilter());
-                Path source = Paths.get(filter.getPath());
-                archiveParameters.addSource(source, dirFilter, fileFilter);
-            }
-
-            FileDeleter deleter = createFileDeleter();
-            try {
-                deleter.registerFile(archiveParameters.getArchive());
-
-                List<SourceWithPath> collectedFiles = new ArrayList<>();
-                new FileCollector().collectFiles(collectedFiles, archiveParameters, listener, null);
-                jbackup.createArchiver(factory).compress(archiveParameters, collectedFiles, listener);
-            } catch (Exception e) {
-                deleter.deleteAll();
-                throw e;
-            }
-        }
-    }
-
-    private class RestoreTask extends Task {
-        private final Path archive;
-        private final Path targetDirectory;
-
-        private RestoreTask(JBackup jbackup, BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
-            super(jbackup, listener, config);
-            this.archive = archive;
-            this.targetDirectory = targetDirectory;
-        }
-
-        @Override
-        protected void execute() throws Exception {
-            FileDeleter deleter = createFileDeleter();
-            try {
-                deleter.registerDirectory(targetDirectory);
-
-                ArchiveFactory factory = config.getArchiveFactory();
-                jbackup.createArchiver(factory).decompress(archive, targetDirectory, listener);
-            } catch (Exception e) {
-                deleter.deleteAll();
-                throw e;
-            }
-        }
-    }
 }

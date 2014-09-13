@@ -172,7 +172,7 @@ public class FileCollectorTest {
         return actualFiles;
     }
 
-    private void collectFiles(List<SourceWithPath> collectedFiles, IOFileFilter directoryFilter, IOFileFilter fileFilter, Cancellable cancellable) throws Archiver.ArchiverException {
+    private void collectFiles(List<SourceWithPath> collectedFiles, IOFileFilter directoryFilter, IOFileFilter fileFilter, Cancellable cancellable) throws ArchiveException {
         ArchiveParameters archiveParameters = new ArchiveParameters(null, false);
         archiveParameters.addSource(directory, directoryFilter, fileFilter);
         new FileCollector().collectFiles(collectedFiles, archiveParameters, null, cancellable);

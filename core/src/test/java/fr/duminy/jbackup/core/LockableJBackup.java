@@ -20,52 +20,20 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.jbackup.core.archive.*;
+import fr.duminy.jbackup.core.archive.ArchiveException;
+import fr.duminy.jbackup.core.archive.ArchiveFactory;
+import fr.duminy.jbackup.core.archive.ProgressListener;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LockableJBackup extends JBackup {
-    private class MockArchiver extends Archiver {
-        public MockArchiver(ArchiveFactory factory) {
-            super(factory);
-        }
-
-        @Override
-        public void compress(ArchiveParameters archiveParameters, List<SourceWithPath> files, ProgressListener listener) throws ArchiverException {
-            waitUnlocked(compressionLock);
-        }
-
-        @Override
-        public void decompress(Path archive, Path targetDirectory, ProgressListener listener) throws ArchiverException {
-            waitUnlocked(decompressionLock);
-        }
-
-        private void waitUnlocked(AtomicBoolean lock) throws ArchiverException {
-            if (lock != null) {
-                while (lock.get()) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        throw new ArchiverException(e);
-                    }
-                }
-            }
-        }
-    }
-
     private final ArchiveFactory archiveFactory;
     private AtomicBoolean compressionLock;
     private AtomicBoolean decompressionLock;
 
     public LockableJBackup(ArchiveFactory archiveFactory) {
         this.archiveFactory = archiveFactory;
-    }
-
-    @Override
-    Archiver createArchiver(ArchiveFactory factory) {
-        return new MockArchiver(archiveFactory);
     }
 
     public void lockCompression() {
@@ -78,6 +46,16 @@ public class LockableJBackup extends JBackup {
         }
     }
 
+    @Override
+    BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
+        return new BackupTask(this, config, listener) {
+            @Override
+            protected void execute() throws Exception {
+                waitUnlocked(compressionLock);
+            }
+        };
+    }
+
     public void lockDecompression() {
         decompressionLock = new AtomicBoolean(true);
     }
@@ -85,6 +63,28 @@ public class LockableJBackup extends JBackup {
     public void unlockDecompression() {
         if (decompressionLock != null) {
             decompressionLock.set(false);
+        }
+    }
+
+    @Override
+    RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
+        return new RestoreTask(this, config, archive, targetDirectory, listener) {
+            @Override
+            protected void execute() throws Exception {
+                waitUnlocked(decompressionLock);
+            }
+        };
+    }
+
+    private static void waitUnlocked(AtomicBoolean lock) throws ArchiveException {
+        if (lock != null) {
+            while (lock.get()) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    throw new ArchiveException(e);
+                }
+            }
         }
     }
 }
