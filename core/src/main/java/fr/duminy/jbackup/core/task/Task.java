@@ -18,8 +18,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
-package fr.duminy.jbackup.core;
+package fr.duminy.jbackup.core.task;
 
+import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,12 +31,10 @@ abstract class Task implements Callable<Void> {
     private static Logger LOG = LoggerFactory.getLogger(Task.class);
 
 
-    protected final JBackup jbackup;
     protected final ProgressListener listener;
     protected final BackupConfiguration config;
 
-    Task(JBackup jbackup, ProgressListener listener, BackupConfiguration config) {
-        this.jbackup = jbackup;
+    Task(ProgressListener listener, BackupConfiguration config) {
         this.listener = listener;
         this.config = config;
     }

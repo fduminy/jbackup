@@ -24,8 +24,6 @@ import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.TestUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import static fr.duminy.jbackup.core.matchers.Matchers.eq;
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -105,30 +104,12 @@ public class FileCollectorTest {
 
         InOrder inOrder = inOrder(cancellable, actualFiles);
         inOrder.verify(cancellable).isCancelled();
-        inOrder.verify(actualFiles).add(argThat(new SourceWithPathMatcher(expectedFiles[1])));
+        inOrder.verify(actualFiles).add(eq(expectedFiles[1]));
         inOrder.verify(cancellable).isCancelled();
         if (!cancelAfterFirstFile) {
-            inOrder.verify(actualFiles).add(argThat(new SourceWithPathMatcher(expectedFiles[0])));
+            inOrder.verify(actualFiles).add(eq(expectedFiles[0]));
         }
         inOrder.verifyNoMoreInteractions();
-    }
-
-    private static class SourceWithPathMatcher extends BaseMatcher<SourceWithPath> {
-        private final Path path;
-
-        private SourceWithPathMatcher(Path path) {
-            this.path = path;
-        }
-
-        @Override
-        public boolean matches(Object o) {
-            SourceWithPath swp = (SourceWithPath) o;
-            return swp.getPath().equals(path);
-        }
-
-        @Override
-        public void describeTo(Description description) {
-        }
     }
 
     @Test

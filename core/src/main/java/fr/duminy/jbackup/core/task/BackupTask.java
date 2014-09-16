@@ -18,8 +18,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
-package fr.duminy.jbackup.core;
+package fr.duminy.jbackup.core.task;
 
+import com.google.common.base.Supplier;
+import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.archive.*;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.io.filefilter.IOFileFilter;
@@ -28,11 +30,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Objects;
 
-class BackupTask extends Task {
-    BackupTask(JBackup jbackup, BackupConfiguration config, ProgressListener listener) {
-        super(jbackup, listener, config);
+public class BackupTask extends Task {
+    private final Supplier<FileDeleter> deleterSupplier;
+
+    public BackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,
+                      ProgressListener listener) {
+        super(listener, config);
+        this.deleterSupplier = deleterSupplier;
     }
 
     @Override
@@ -42,7 +50,7 @@ class BackupTask extends Task {
         Path target = Paths.get(config.getTargetDirectory());
         Files.createDirectories(target);
 
-        String archiveName = jbackup.generateName(config.getName(), config.getArchiveFactory());
+        String archiveName = generateName(config.getName(), config.getArchiveFactory());
 
         Path archive = target.resolve(archiveName);
 
@@ -54,12 +62,12 @@ class BackupTask extends Task {
             archiveParameters.addSource(source, dirFilter, fileFilter);
         }
 
-        FileDeleter deleter = jbackup.createFileDeleter();
+        FileDeleter deleter = deleterSupplier.get();
         try {
             deleter.registerFile(archiveParameters.getArchive());
 
             List<SourceWithPath> collectedFiles = new ArrayList<>();
-            new FileCollector().collectFiles(collectedFiles, archiveParameters, listener, null);
+            createFileCollector().collectFiles(collectedFiles, archiveParameters, listener, null);
             compress(factory, archiveParameters, collectedFiles);
         } catch (Exception e) {
             deleter.deleteAll();
@@ -67,7 +75,23 @@ class BackupTask extends Task {
         }
     }
 
-    void compress(ArchiveFactory factory, ArchiveParameters archiveParameters, List<SourceWithPath> collectedFiles) throws ArchiveException {
-        new Compressor(factory).compress(archiveParameters, collectedFiles, listener);
+    protected void compress(ArchiveFactory factory, ArchiveParameters archiveParameters, List<SourceWithPath> collectedFiles) throws ArchiveException {
+        createCompressor(factory).compress(archiveParameters, collectedFiles, listener);
+    }
+
+    FileCollector createFileCollector() {
+        return new FileCollector();
+    }
+
+    Compressor createCompressor(ArchiveFactory factory) {
+        return new Compressor(factory);
+    }
+
+
+    protected String generateName(String configName, ArchiveFactory factory) {
+        Objects.requireNonNull(factory, "ArchiveFactory is null");
+
+        Calendar date = Calendar.getInstance();
+        return String.format("%1$s_%2$tY_%2$tm_%2$td_%2$tH_%2$tM_%2$tS.%3$s", configName, date, factory.getExtension());
     }
 }

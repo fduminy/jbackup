@@ -20,8 +20,10 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.jbackup.core.archive.ArchiveFactory;
+import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.archive.ProgressListener;
+import fr.duminy.jbackup.core.task.BackupTask;
+import fr.duminy.jbackup.core.task.RestoreTask;
 import fr.duminy.jbackup.core.util.DefaultFileDeleter;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
@@ -32,8 +34,6 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.nio.file.Path;
-import java.util.Calendar;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -48,16 +48,15 @@ public class JBackup {
     private final ExecutorService executor = Executors.newFixedThreadPool(8,
             new BasicThreadFactory.Builder().namingPattern("jbackup-thread-%d").daemon(false).priority(Thread.MAX_PRIORITY).build());
 
-    public Future<Void> backup(BackupConfiguration config) {
-        return backup(config, null);
-    }
+    private final Supplier<FileDeleter> deleterSupplier = new Supplier<FileDeleter>() {
+        @Override
+        public FileDeleter get() {
+            return new DefaultFileDeleter();
+        }
+    };
 
     public Future<Void> backup(BackupConfiguration config, ProgressListener listener) {
         return executor.submit(createBackupTask(config, listener));
-    }
-
-    public Future<Void> restore(BackupConfiguration config, Path archive, Path targetDirectory) {
-        return restore(config, archive, targetDirectory, null);
     }
 
     public Future<Void> restore(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
@@ -93,22 +92,10 @@ public class JBackup {
     }
 
     BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
-        return new BackupTask(this, config, listener);
+        return new BackupTask(config, deleterSupplier, listener);
     }
 
     RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
-        return new RestoreTask(this, config, archive, targetDirectory, listener);
+        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, listener);
     }
-
-    FileDeleter createFileDeleter() {
-        return new DefaultFileDeleter();
-    }
-
-    String generateName(String configName, ArchiveFactory factory) {
-        Objects.requireNonNull(factory, "ArchiveFactory is null");
-
-        Calendar date = Calendar.getInstance();
-        return String.format("%1$s_%2$tY_%2$tm_%2$td_%2$tH_%2$tM_%2$tS.%3$s", configName, date, factory.getExtension());
-    }
-
 }

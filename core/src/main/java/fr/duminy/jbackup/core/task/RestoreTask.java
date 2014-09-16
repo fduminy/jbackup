@@ -18,8 +18,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
-package fr.duminy.jbackup.core;
+package fr.duminy.jbackup.core.task;
 
+import com.google.common.base.Supplier;
+import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.Decompressor;
 import fr.duminy.jbackup.core.archive.ProgressListener;
@@ -27,27 +29,34 @@ import fr.duminy.jbackup.core.util.FileDeleter;
 
 import java.nio.file.Path;
 
-class RestoreTask extends Task {
+public class RestoreTask extends Task {
     private final Path archive;
     private final Path targetDirectory;
+    private final Supplier<FileDeleter> deleterSupplier;
 
-    RestoreTask(JBackup jbackup, BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
-        super(jbackup, listener, config);
+    public RestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
+                       Supplier<FileDeleter> deleterSupplier, ProgressListener listener) {
+        super(listener, config);
         this.archive = archive;
+        this.deleterSupplier = deleterSupplier;
         this.targetDirectory = targetDirectory;
     }
 
     @Override
     protected void execute() throws Exception {
-        FileDeleter deleter = jbackup.createFileDeleter();
+        FileDeleter deleter = deleterSupplier.get();
         try {
             deleter.registerDirectory(targetDirectory);
 
             ArchiveFactory factory = config.getArchiveFactory();
-            new Decompressor(factory).decompress(archive, targetDirectory, listener);
+            createDecompressor(factory).decompress(archive, targetDirectory, listener);
         } catch (Exception e) {
             deleter.deleteAll();
             throw e;
         }
+    }
+
+    Decompressor createDecompressor(ArchiveFactory factory) {
+        return new Decompressor(factory);
     }
 }

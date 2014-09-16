@@ -23,6 +23,8 @@ package fr.duminy.jbackup.core;
 import fr.duminy.jbackup.core.archive.ArchiveException;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ProgressListener;
+import fr.duminy.jbackup.core.task.BackupTask;
+import fr.duminy.jbackup.core.task.RestoreTask;
 
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,7 +50,7 @@ public class LockableJBackup extends JBackup {
 
     @Override
     BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
-        return new BackupTask(this, config, listener) {
+        return new BackupTask(config, null, listener) {
             @Override
             protected void execute() throws Exception {
                 waitUnlocked(compressionLock);
@@ -68,7 +70,7 @@ public class LockableJBackup extends JBackup {
 
     @Override
     RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
-        return new RestoreTask(this, config, archive, targetDirectory, listener) {
+        return new RestoreTask(config, archive, targetDirectory, null, listener) {
             @Override
             protected void execute() throws Exception {
                 waitUnlocked(decompressionLock);
