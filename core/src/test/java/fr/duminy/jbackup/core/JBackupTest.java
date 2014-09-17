@@ -21,7 +21,10 @@
 package fr.duminy.jbackup.core;
 
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
+import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
+import fr.duminy.jbackup.core.task.BackupTask;
+import fr.duminy.jbackup.core.task.RestoreTask;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,6 +32,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import javax.swing.*;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
@@ -78,18 +82,11 @@ public class JBackupTest {
     }
 
     private void testShutdown(boolean longTask, boolean withListener) throws Throwable {
-        ArchiveFactory archiveFactory = ZipArchiveFactory.INSTANCE;
-        LockableJBackup jBackup = new LockableJBackup(archiveFactory);
+        BackupConfiguration config = createConfiguration();
+        LockableJBackup jBackup = new LockableJBackup(config.getArchiveFactory());
         if (longTask) {
             jBackup.lockCompression();
         }
-
-        BackupConfiguration config = new BackupConfiguration();
-        config.setName("testShutdown");
-        Path targetDirectory = tempFolder.newFolder().toPath().toAbsolutePath();
-        Files.delete(targetDirectory);
-        config.setTargetDirectory(targetDirectory.toString());
-        config.setArchiveFactory(archiveFactory);
 
         TerminationListener listener = withListener ? mock(TerminationListener.class) : null;
         Future<Void> future;
@@ -126,6 +123,84 @@ public class JBackupTest {
         }
     }
 
+    @Test
+    public void testBackup_withListener() throws Throwable {
+        ProgressListener listener = mock(ProgressListener.class);
+
+        testBackup(listener);
+
+        verifyNoMoreInteractions(listener);
+    }
+
+    @Test
+    public void testBackup_withoutListener() throws Throwable {
+        testBackup(null);
+    }
+
+    private void testBackup(ProgressListener listener) throws Throwable {
+        final BackupConfiguration config = createConfiguration();
+        final BackupTask mockBackupTask = mock(BackupTask.class);
+        JBackup jBackup = spy(new JBackup() {
+            @Override
+            BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
+                return mockBackupTask;
+            }
+        });
+
+        try {
+            Future<Void> future = jBackup.backup(config, listener);
+            waitResult(future);
+        } finally {
+            jBackup.shutdown(null);
+        }
+
+        verify(jBackup, times(1)).backup(eq(config), eq(listener)); // called above
+        verify(jBackup, times(1)).shutdown(null); // called above
+        verify(jBackup, times(1)).createBackupTask(eq(config), eq(listener));
+        verify(mockBackupTask, times(1)).call();
+        verifyNoMoreInteractions(mockBackupTask, jBackup);
+    }
+
+    @Test
+    public void testRestore_withListener() throws Throwable {
+        ProgressListener listener = mock(ProgressListener.class);
+
+        testRestore(listener);
+
+        verifyNoMoreInteractions(listener);
+    }
+
+    @Test
+    public void testRestore_withoutListener() throws Throwable {
+        testRestore(null);
+    }
+
+    private void testRestore(ProgressListener listener) throws Throwable {
+        final Path archive = tempFolder.newFolder().toPath().resolve("archive.zip");
+        final Path targetDirectory = tempFolder.newFolder().toPath();
+        final BackupConfiguration config = createConfiguration();
+        final RestoreTask mockRestoreTask = mock(RestoreTask.class);
+        JBackup jBackup = spy(new JBackup() {
+            @Override
+            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
+                return mockRestoreTask;
+            }
+        });
+
+        try {
+            Future<Void> future = jBackup.restore(config, archive, targetDirectory, listener);
+            waitResult(future);
+        } finally {
+            jBackup.shutdown(null);
+        }
+
+        verify(jBackup, times(1)).restore(eq(config), eq(archive), eq(targetDirectory), eq(listener)); // called above
+        verify(jBackup, times(1)).shutdown(null); // called above
+        verify(jBackup, times(1)).createRestoreTask(eq(config), eq(archive), eq(targetDirectory), eq(listener));
+        verify(mockRestoreTask, times(1)).call();
+        verifyNoMoreInteractions(mockRestoreTask, jBackup);
+    }
+
     public static final class CustomNameFileFilter extends NameFileFilter {
         private final String name;
 
@@ -158,5 +233,16 @@ public class JBackupTest {
                 Thread.sleep(100);
             }
         }
+    }
+
+    private BackupConfiguration createConfiguration() throws IOException {
+        ArchiveFactory archiveFactory = ZipArchiveFactory.INSTANCE;
+        BackupConfiguration config = new BackupConfiguration();
+        config.setName("test");
+        Path targetDirectory = tempFolder.newFolder().toPath().toAbsolutePath();
+        Files.delete(targetDirectory);
+        config.setTargetDirectory(targetDirectory.toString());
+        config.setArchiveFactory(archiveFactory);
+        return config;
     }
 }
