@@ -51,11 +51,11 @@ public class Compressor {
         final MutableLong processedSize = new MutableLong();
 
         try (OutputStream fos = Files.newOutputStream(archiveParameters.getArchive());
-             ArchiveOutputStream output = factory.create(fos);) {
+             ArchiveOutputStream output = factory.create(fos)) {
             LOG.info("Backup '{}': creating archive {}", name, archiveParameters.getArchive());
             for (final SourceWithPath file : files) {
                 LOG.info("Backup '{}': compressing file {}", name, file.getPath().toAbsolutePath());
-                try (InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file.getPath()));) {
+                try (InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file.getPath()))) {
                     final String path;
                     if (archiveParameters.isRelativeEntries()) {
                         Path source = file.getSource();
