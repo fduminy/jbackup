@@ -49,8 +49,6 @@ public class JBackupTest {
     @Rule
     public final ExpectedException thrown = ExpectedException.none();
 
-    private boolean error = false;
-
     @Test
     public void testShutdown_withoutListener_alreadyTerminatedTask() throws Throwable {
         testShutdownWithoutListener(false);
@@ -81,9 +79,9 @@ public class JBackupTest {
 
     private void testShutdown(boolean longTask, boolean withListener) throws Throwable {
         ArchiveFactory archiveFactory = ZipArchiveFactory.INSTANCE;
-        LockableJBackup jbackup = new LockableJBackup(archiveFactory);
+        LockableJBackup jBackup = new LockableJBackup(archiveFactory);
         if (longTask) {
-            jbackup.lockCompression();
+            jBackup.lockCompression();
         }
 
         BackupConfiguration config = new BackupConfiguration();
@@ -97,9 +95,9 @@ public class JBackupTest {
         Future<Void> future;
         Timer timer;
         if (longTask) {
-            future = jbackup.backup(config, null);
+            future = jBackup.backup(config, null);
 
-            timer = jbackup.shutdown(listener);
+            timer = jBackup.shutdown(listener);
             if (withListener) {
                 assertThat(timer).as("shutdown timer").isNotNull();
                 assertThat(timer.isRunning()).as("timer is running").isTrue();
@@ -109,12 +107,12 @@ public class JBackupTest {
             }
             assertThat(future.isDone()).as("isDone").isFalse();
 
-            jbackup.unlockCompression();
+            jBackup.unlockCompression();
             waitResult(future);
         } else {
-            future = jbackup.backup(config, null);
+            future = jBackup.backup(config, null);
             waitResult(future);
-            timer = jbackup.shutdown(listener);
+            timer = jBackup.shutdown(listener);
             if (withListener) {
                 assertThat(timer).as("shutdown timer").isNotNull();
             } else {
@@ -146,9 +144,7 @@ public class JBackupTest {
         try {
             future.get(); // block until finished and maybe throw an Exception if task has thrown one.
         } catch (ExecutionException e) {
-            if (!error) {
-                throw e.getCause();
-            }
+            throw e.getCause();
         }
     }
 
