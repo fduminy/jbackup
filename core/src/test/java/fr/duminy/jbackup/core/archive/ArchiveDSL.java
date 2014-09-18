@@ -76,10 +76,6 @@ public class ArchiveDSL {
             this.filter = filter;
         }
 
-        DataSource acceptAll() {
-            return new DataSource(this);
-        }
-
         DataSource accept(String... acceptedFiles) {
             return new DataSource(this, acceptedFiles);
         }
@@ -95,6 +91,10 @@ public class ArchiveDSL {
         private SourceFile(Filter filter, String file) {
             super(filter);
             this.file = file;
+        }
+
+        public DataSource acceptAll() {
+            return accept(file);
         }
 
         @Override
@@ -116,6 +116,10 @@ public class ArchiveDSL {
         private SourceDir(Filter filter, String dir) {
             super(filter);
             this.dir = dir;
+        }
+
+        public DataSource acceptAll() {
+            return accept(); // used only for empty source directories
         }
 
         @Override
