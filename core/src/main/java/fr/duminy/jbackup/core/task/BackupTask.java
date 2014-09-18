@@ -76,7 +76,7 @@ public class BackupTask extends Task {
     }
 
     protected void compress(ArchiveFactory factory, ArchiveParameters archiveParameters, List<SourceWithPath> collectedFiles) throws ArchiveException {
-        createCompressor(factory).compress(archiveParameters, collectedFiles, listener);
+        createCompressor(factory).compress(archiveParameters, collectedFiles, listener, null);
     }
 
     FileCollector createFileCollector() {

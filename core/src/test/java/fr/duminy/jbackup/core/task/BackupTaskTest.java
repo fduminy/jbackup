@@ -116,7 +116,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         final FileCollector mockFileCollector = mock(FileCollector.class);
         if (exception != null) {
             doThrow(new ArchiveException(exception)).when(mockCompressor).
-                    compress(any(ArchiveParameters.class), anyListOf(SourceWithPath.class), eq(listener));
+                    compress(any(ArchiveParameters.class), anyListOf(SourceWithPath.class), eq(listener), any(Cancellable.class));
         }
 
         BackupTask task = new BackupTask(config, createDeleterSupplier(mockDeleter), listener) {
@@ -152,7 +152,7 @@ public class BackupTaskTest extends AbstractTaskTest {
             } else {
                 inOrder.verify(mockDeleter, times(1)).registerFile(org.mockito.Matchers.eq(expectedArchive));
                 inOrder.verify(mockFileCollector, times(1)).collectFiles(anyListOf(SourceWithPath.class), eq(archiveParameters, expectedArchive), eq(listener), any(Cancellable.class));
-                inOrder.verify(mockCompressor, times(1)).compress(eq(archiveParameters, expectedArchive), anyListOf(SourceWithPath.class), eq(listener));
+                inOrder.verify(mockCompressor, times(1)).compress(eq(archiveParameters, expectedArchive), anyListOf(SourceWithPath.class), eq(listener), any(Cancellable.class));
             }
             inOrder.verifyNoMoreInteractions();
         }

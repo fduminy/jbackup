@@ -45,7 +45,7 @@ public class Archiver {
                 }
                 List<SourceWithPath> collectedFiles = new ArrayList<>();
                 new FileCollector().collectFiles(collectedFiles, archiveParameters, null, null);
-                new Compressor(factory).compress(archiveParameters, collectedFiles, null);
+                new Compressor(factory).compress(archiveParameters, collectedFiles, null, null);
                 break;
             case "-d":
                 Path directory = null;

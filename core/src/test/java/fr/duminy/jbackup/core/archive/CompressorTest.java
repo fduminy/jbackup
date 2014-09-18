@@ -20,10 +20,13 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.Cancellable;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.junit.experimental.theories.Theory;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -58,10 +61,46 @@ public class CompressorTest extends AbstractArchivingTest {
 
             final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath(), false);
             archiveParameters.addSource(relativeFile);
-            compress(mockFactory, archiveParameters, null);
+            compress(mockFactory, archiveParameters, null, null);
         } finally {
             Files.delete(relativeFile);
         }
+    }
+
+    @Test
+    public void testCompress_withCancellable_cancelAfterFirstFile() throws Throwable {
+        testCompress_withCancellable(true);
+    }
+
+    @Test
+    public void testCompress_withCancellable_neverCancelled() throws Throwable {
+        testCompress_withCancellable(false);
+    }
+
+    private void testCompress_withCancellable(boolean cancelAfterFirstFile) throws Throwable {
+        // prepare
+        Cancellable cancellable = mock(Cancellable.class);
+        when(cancellable.isCancelled()).thenReturn(false, cancelAfterFirstFile ? true : false);
+        final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath(), true);
+        ArchiveOutputStream mockOutput = mock(ArchiveOutputStream.class);
+        ArchiveFactory mockFactory = createMockArchiveFactory(mockOutput);
+        Path baseDirectory = createBaseDirectory();
+        Map<Path, List<Path>> expectedFilesBySource = TWO_SRC_FILES.createFiles(baseDirectory, archiveParameters);
+        List<Path> expectedFiles = mergeFiles(expectedFilesBySource);
+
+        // test compression
+        compress(mockFactory, archiveParameters, null, cancellable);
+
+        // assertions
+        InOrder inOrder = Mockito.inOrder(cancellable, mockOutput);
+        inOrder.verify(cancellable, times(1)).isCancelled();
+        inOrder.verify(mockOutput, times(1)).addEntry(eq("file4"), any(InputStream.class));
+        inOrder.verify(cancellable, times(1)).isCancelled();
+        if (!cancelAfterFirstFile) {
+            inOrder.verify(mockOutput, times(1)).addEntry(eq("file3"), any(InputStream.class));
+        }
+        inOrder.verify(mockOutput, times(1)).close();
+        inOrder.verifyNoMoreInteractions();
     }
 
     @Theory
@@ -93,7 +132,7 @@ public class CompressorTest extends AbstractArchivingTest {
             errorType.setUp(expectedFiles);
 
             // test compression
-            compress(mockFactory, archiveParameters, listener);
+            compress(mockFactory, archiveParameters, listener, null);
 
             // assertions
             verify(mockFactory, times(1)).create(any(OutputStream.class));
@@ -128,10 +167,10 @@ public class CompressorTest extends AbstractArchivingTest {
         assertThatNotificationsAreValid(listener, pathArgument.getAllValues(), expectedEntryToFile, errorType);
     }
 
-    private void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, ProgressListener listener) throws ArchiveException {
+    private void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, ProgressListener listener, Cancellable cancellable) throws ArchiveException {
         List<SourceWithPath> collectedFiles = new ArrayList<>();
         new FileCollector().collectFiles(collectedFiles, archiveParameters, listener, null);
-        new Compressor(mockFactory).compress(archiveParameters, collectedFiles, listener);
+        new Compressor(mockFactory).compress(archiveParameters, collectedFiles, listener, cancellable);
     }
 
     private List<Path> mergeFiles(Map<Path, List<Path>> filesBySource) {
