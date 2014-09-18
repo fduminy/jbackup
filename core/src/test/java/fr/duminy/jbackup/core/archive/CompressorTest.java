@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 import static fr.duminy.jbackup.core.TestUtils.createFile;
+import static fr.duminy.jbackup.core.archive.ArchiveDSL.Data;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
