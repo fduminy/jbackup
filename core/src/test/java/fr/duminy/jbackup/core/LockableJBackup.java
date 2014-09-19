@@ -50,7 +50,7 @@ public class LockableJBackup extends JBackup {
 
     @Override
     BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
-        return new BackupTask(config, null, listener) {
+        return new BackupTask(config, null, listener, null) {
             @Override
             protected void execute() throws Exception {
                 waitUnlocked(compressionLock);

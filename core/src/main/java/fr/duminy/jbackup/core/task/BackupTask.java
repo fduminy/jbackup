@@ -22,6 +22,7 @@ package fr.duminy.jbackup.core.task;
 
 import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
+import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.*;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.io.filefilter.IOFileFilter;
@@ -36,11 +37,13 @@ import java.util.Objects;
 
 public class BackupTask extends Task {
     private final Supplier<FileDeleter> deleterSupplier;
+    private final Cancellable cancellable;
 
     public BackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,
-                      ProgressListener listener) {
+                      ProgressListener listener, Cancellable cancellable) {
         super(listener, config);
         this.deleterSupplier = deleterSupplier;
+        this.cancellable = cancellable;
     }
 
     @Override
@@ -67,16 +70,16 @@ public class BackupTask extends Task {
             deleter.registerFile(archiveParameters.getArchive());
 
             List<SourceWithPath> collectedFiles = new ArrayList<>();
-            createFileCollector().collectFiles(collectedFiles, archiveParameters, listener, null);
-            compress(factory, archiveParameters, collectedFiles);
+            createFileCollector().collectFiles(collectedFiles, archiveParameters, listener, cancellable);
+            compress(factory, archiveParameters, collectedFiles, cancellable);
         } catch (Exception e) {
             deleter.deleteAll();
             throw e;
         }
     }
 
-    protected void compress(ArchiveFactory factory, ArchiveParameters archiveParameters, List<SourceWithPath> collectedFiles) throws ArchiveException {
-        createCompressor(factory).compress(archiveParameters, collectedFiles, listener, null);
+    protected void compress(ArchiveFactory factory, ArchiveParameters archiveParameters, List<SourceWithPath> collectedFiles, Cancellable cancellable) throws ArchiveException {
+        createCompressor(factory).compress(archiveParameters, collectedFiles, listener, cancellable);
     }
 
     FileCollector createFileCollector() {

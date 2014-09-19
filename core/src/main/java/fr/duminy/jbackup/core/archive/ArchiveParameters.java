@@ -58,6 +58,15 @@ public class ArchiveParameters {
         return relativeEntries;
     }
 
+    @Override
+    public String toString() {
+        return "ArchiveParameters{" +
+                "sources=" + sources +
+                ", archive=" + archive +
+                ", relativeEntries=" + relativeEntries +
+                '}';
+    }
+
     public static final class Source {
         private final Path source;
         private final IOFileFilter dirFilter;
@@ -79,6 +88,15 @@ public class ArchiveParameters {
 
         public IOFileFilter getFileFilter() {
             return fileFilter;
+        }
+
+        @Override
+        public String toString() {
+            return "Source{" +
+                    "source=" + source +
+                    ", dirFilter=" + dirFilter +
+                    ", fileFilter=" + fileFilter +
+                    '}';
         }
     }
 }
