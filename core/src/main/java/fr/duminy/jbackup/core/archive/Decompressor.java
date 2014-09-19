@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.Cancellable;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +45,7 @@ public class Decompressor {
         this.factory = factory;
     }
 
-    public void decompress(Path archive, Path targetDirectory, ProgressListener listener) throws ArchiveException {
+    public void decompress(Path archive, Path targetDirectory, ProgressListener listener, Cancellable cancellable) throws ArchiveException {
         if (listener != null) {
             try {
                 listener.totalSizeComputed(Files.size(archive));
@@ -62,7 +63,7 @@ public class Decompressor {
 
         try (InputStream archiveStream = Files.newInputStream(archive);
              ArchiveInputStream input = factory.create(archiveStream)) {
-            ArchiveInputStream.Entry entry = input.getNextEntry();
+            ArchiveInputStream.Entry entry = getNextEntryIfNotCancelled(input, cancellable);
             while (entry != null) {
                 InputStream entryStream = createCountingInputStream(listener, processedSize, entry.getInput());
                 try {
@@ -72,12 +73,21 @@ public class Decompressor {
                 } finally {
                     entry.close();
                 }
-                entry = input.getNextEntry();
+
+                entry = getNextEntryIfNotCancelled(input, cancellable);
             }
         } catch (IOException e) {
             throw new ArchiveException(e);
         } catch (Exception e) {
             throw new ArchiveException(e);
         }
+    }
+
+    private ArchiveInputStream.Entry getNextEntryIfNotCancelled(ArchiveInputStream input, Cancellable cancellable) throws IOException {
+        if ((cancellable != null) && cancellable.isCancelled()) {
+            return null;
+        }
+
+        return input.getNextEntry();
     }
 }

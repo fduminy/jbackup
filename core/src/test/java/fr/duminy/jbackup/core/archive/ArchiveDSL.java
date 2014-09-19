@@ -140,7 +140,7 @@ public class ArchiveDSL {
     }
 
     final static class Data {
-        protected final List<DataSource> dataSources;
+        private final List<DataSource> dataSources;
 
         private Data(DataSource[] dataSources) {
             this.dataSources = Arrays.asList(dataSources);
@@ -153,6 +153,22 @@ public class ArchiveDSL {
                 acceptedFilesBySource.put(dataSource.source.getPath(baseDirectory), acceptedFiles);
             }
             return acceptedFilesBySource;
+        }
+
+        Entries entries() {
+            return entries(false);
+        }
+
+        private Entries entries(boolean rejected) {
+            Entries entries = new Entries();
+            for (DataSource dataSource : dataSources) {
+                dataSource.addEntriesTo(entries, rejected);
+            }
+            return entries;
+        }
+
+        public int size() {
+            return dataSources.size();
         }
     }
 
@@ -172,19 +188,21 @@ public class ArchiveDSL {
         }
 
         public Entries entries() {
-            Entries entries = new Entries();
-            for (String entry : acceptedFiles) {
-                entries.addFile(entry);
-            }
+            final Entries entries = new Entries();
+            addEntriesTo(entries, false);
             return entries;
         }
 
         public Entries rejectedEntries() {
-            Entries entries = new Entries();
-            for (String entry : rejectedFiles) {
+            final Entries entries = new Entries();
+            addEntriesTo(entries, true);
+            return entries;
+        }
+
+        private void addEntriesTo(Entries entries, boolean rejected) {
+            for (String entry : rejected ? rejectedFiles : acceptedFiles) {
                 entries.addFile(entry);
             }
-            return entries;
         }
 
         private static Path createFile(Path sourceDirectory, Entry entry) throws IOException {

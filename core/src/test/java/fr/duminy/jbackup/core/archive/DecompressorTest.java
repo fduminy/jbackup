@@ -20,9 +20,12 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.Cancellable;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.experimental.theories.Theory;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -57,30 +60,64 @@ public class DecompressorTest extends AbstractArchivingTest {
         thrown.expectMessage(String.format("The target directory '%s' doesn't exist.", targetDirectory));
 
         createDirectory = false;
-        decompress(mockFactory, archive, targetDirectory, null);
+        decompress(mockFactory, archive, targetDirectory, null, null);
+    }
+
+
+    @Test
+    public void testDecompress_withCancellable_cancelAfterFirstFile() throws Throwable {
+        testDecompress_withCancellable(true);
+    }
+
+    @Test
+    public void testDecompress_withCancellable_neverCancelled() throws Throwable {
+        testDecompress_withCancellable(false);
+    }
+
+    private void testDecompress_withCancellable(boolean cancelAfterFirstFile) throws Throwable {
+        // prepare
+        Cancellable cancellable = mock(Cancellable.class);
+        when(cancellable.isCancelled()).thenReturn(false, cancelAfterFirstFile ? true : false);
+
+        ArchiveInputStream mockInput = createMockArchiveInputStream(TWO_SRC_FILES);
+        ArchiveFactory mockFactory = mock(ArchiveFactory.class);
+        when(mockFactory.create(any(InputStream.class))).thenReturn(mockInput);
+
+        Path archive = createArchivePath();
+        Path targetDirectory = tempFolder.newFolder("targetDir").toPath();
+        createFile(archive, 10);
+
+        // test decompression
+        decompress(mockFactory, archive, targetDirectory, null, cancellable);
+
+        // assertions
+        InOrder inOrder = Mockito.inOrder(cancellable, mockInput);
+        inOrder.verify(cancellable, times(1)).isCancelled();
+        inOrder.verify(mockInput, times(1)).getNextEntry();
+        inOrder.verify(cancellable, times(1)).isCancelled();
+        if (!cancelAfterFirstFile) {
+            inOrder.verify(mockInput, times(1)).getNextEntry();
+        }
+        inOrder.verify(mockInput, times(1)).close();
+        inOrder.verifyNoMoreInteractions();
     }
 
     @Theory
     public void testDecompress(Data data, boolean useListener) throws Throwable {
-        Assume.assumeTrue(data.dataSources.size() == 1);
+        Assume.assumeTrue(data.size() == 1);
 
         // preparation of archiver & mocks
         ErrorType errorType = ErrorType.NO_ERROR;
-        Entries entries = data.dataSources.get(0).entries();
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
-        for (Entry e : entries) {
+        for (Entry e : data.entries()) {
             if (e != null) {
                 expectedTotalSize += e.getCompressedSize();
                 expectedNotifications.add(expectedTotalSize);
             }
         }
 
-        ArchiveInputStream mockInput = mock(ArchiveInputStream.class);
-        final ArchiveInputStream.Entry firstEntry = entries.firstEntry(); //Do not inline this or the test will fail
-        final ArchiveInputStream.Entry[] nextEntries = entries.nextEntries(); //Do not inline this or the test will fail
-        when(mockInput.getNextEntry()).thenReturn(firstEntry, nextEntries);
-
+        ArchiveInputStream mockInput = createMockArchiveInputStream(data);
         ArchiveFactory mockFactory = mock(ArchiveFactory.class);
         when(mockFactory.create(any(InputStream.class))).thenReturn(mockInput);
 
@@ -94,13 +131,13 @@ public class DecompressorTest extends AbstractArchivingTest {
         try {
             errorType.setUp(archive);
 
-            decompress(mockFactory, archive, targetDirectory, listener);
+            decompress(mockFactory, archive, targetDirectory, listener, null);
 
             // assertions
             verify(mockFactory, times(1)).create(any(InputStream.class));
             verifyNoMoreInteractions(mockFactory);
 
-            verify(mockInput, times(entries.size() + 1)).getNextEntry();
+            verify(mockInput, times(data.entries().size() + 1)).getNextEntry();
             verify(mockInput, times(1)).close();
             verifyNoMoreInteractions(mockInput);
         } catch (Throwable t) {
@@ -112,7 +149,18 @@ public class DecompressorTest extends AbstractArchivingTest {
         assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorType);
     }
 
-    private void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener) throws ArchiveException {
+    private ArchiveInputStream createMockArchiveInputStream(Data data) throws IOException {
+        ArchiveInputStream mockInput = mock(ArchiveInputStream.class);
+
+        Entries entries = data.entries();
+        final ArchiveInputStream.Entry[] nextEntries = entries.nextEntries(); //Do not inline this or the test will fail
+        final ArchiveInputStream.Entry firstEntry = entries.firstEntry(); //Do not inline this or the test will fail
+        when(mockInput.getNextEntry()).thenReturn(firstEntry, nextEntries);
+
+        return mockInput;
+    }
+
+    private void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener, Cancellable cancellable) throws ArchiveException {
         if (createDirectory) {
             try {
                 Files.createDirectories(targetDirectory);
@@ -121,6 +169,6 @@ public class DecompressorTest extends AbstractArchivingTest {
             }
         }
 
-        new Decompressor(mockFactory).decompress(archive, targetDirectory, listener);
+        new Decompressor(mockFactory).decompress(archive, targetDirectory, listener, cancellable);
     }
 }

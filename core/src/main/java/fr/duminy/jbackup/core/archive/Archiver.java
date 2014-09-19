@@ -54,7 +54,7 @@ public class Archiver {
                     directory = Paths.get(args[2]);
                 }
 
-                new Decompressor(factory).decompress(archive, directory, null);
+                new Decompressor(factory).decompress(archive, directory, null, null);
                 break;
             default:
                 throw new IOException("unsupported operation: " + operation);

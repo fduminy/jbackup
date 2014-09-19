@@ -21,6 +21,7 @@
 package fr.duminy.jbackup.core.task;
 
 import fr.duminy.jbackup.core.BackupConfiguration;
+import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.ArchiveException;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.Decompressor;
@@ -28,6 +29,7 @@ import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.junit.experimental.theories.Theory;
+import org.mockito.Matchers;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -60,7 +62,7 @@ public class RestoreTaskTest extends AbstractTaskTest {
         final Decompressor mockDecompressor = mock(Decompressor.class);
         if (exception != null) {
             doThrow(new ArchiveException(exception)).when(mockDecompressor).
-                    decompress(eq(archive), eq(targetDirectory), eq(listener));
+                    decompress(eq(archive), eq(targetDirectory), eq(listener), Matchers.<Cancellable>eq(null));
         }
 
         BackupConfiguration config = new BackupConfiguration();
@@ -86,7 +88,7 @@ public class RestoreTaskTest extends AbstractTaskTest {
             if (exception != null) {
                 verify(mockDeleter, times(1)).deleteAll();
             }
-            verify(mockDecompressor).decompress(eq(archive), eq(targetDirectory), eq(listener));
+            verify(mockDecompressor).decompress(eq(archive), eq(targetDirectory), eq(listener), Matchers.<Cancellable>eq(null));
             verifyNoMoreInteractions(mockDeleter, mockDecompressor);
         }
     }

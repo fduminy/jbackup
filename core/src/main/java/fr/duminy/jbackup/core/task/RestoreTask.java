@@ -49,7 +49,7 @@ public class RestoreTask extends Task {
             deleter.registerDirectory(targetDirectory);
 
             ArchiveFactory factory = config.getArchiveFactory();
-            createDecompressor(factory).decompress(archive, targetDirectory, listener);
+            createDecompressor(factory).decompress(archive, targetDirectory, listener, null);
         } catch (Exception e) {
             deleter.deleteAll();
             throw e;
