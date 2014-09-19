@@ -33,7 +33,6 @@ import org.apache.commons.io.filefilter.IOFileFilter;
 import org.junit.experimental.theories.Theory;
 import org.mockito.InOrder;
 import org.mockito.Matchers;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -48,18 +47,12 @@ import static org.mockito.Mockito.*;
 public class BackupTaskTest extends AbstractTaskTest {
     @Theory
     public void testCall(ProgressListener listener) throws Throwable {
-        Path archive = tempFolder.newFolder().toPath().resolve("archive.mock");
-        final ArchiveParameters archiveParameters = new ArchiveParameters(archive, true);
-        Path source = tempFolder.newFolder("source").toPath();
-        Files.createDirectories(source);
-        Path file = source.resolve("file");
-        TestUtils.createFile(file, 10);
-        archiveParameters.addSource(source);
+        final ArchiveParameters archiveParameters = createArchiveParameters();
 
         testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, null);
 
         if (listener != null) {
-            InOrder inOrder = Mockito.inOrder(listener);
+            InOrder inOrder = inOrder(listener);
             inOrder.verify(listener).taskStarted();
             inOrder.verify(listener).taskFinished(null);
             inOrder.verifyNoMoreInteractions();
@@ -90,13 +83,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         thrown.expect(exception.getClass());
         thrown.expectMessage(exception.getMessage());
 
-        Path archive = tempFolder.newFolder().toPath().resolve("archive.mock");
-        final ArchiveParameters archiveParameters = new ArchiveParameters(archive, true);
-        Path source = tempFolder.newFolder("source").toPath();
-        Files.createDirectories(source);
-        Path file = source.resolve("file");
-        TestUtils.createFile(file, 10);
-        archiveParameters.addSource(source);
+        final ArchiveParameters archiveParameters = createArchiveParameters();
 
         testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, exception);
 
@@ -108,7 +95,6 @@ public class BackupTaskTest extends AbstractTaskTest {
     private void testCall(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, ProgressListener listener,
                           Exception exception) throws Throwable {
         // prepare test
-        final String[] generatedName = new String[1];
         final FileDeleter mockDeleter = mock(FileDeleter.class);
         final BackupConfiguration config = toBackupConfiguration(mockFactory, archiveParameters);
 
@@ -119,23 +105,9 @@ public class BackupTaskTest extends AbstractTaskTest {
                     compress(any(ArchiveParameters.class), anyListOf(SourceWithPath.class), eq(listener), any(Cancellable.class));
         }
 
-        BackupTask task = new BackupTask(config, createDeleterSupplier(mockDeleter), listener) {
-            @Override
-            Compressor createCompressor(ArchiveFactory factory) {
-                return mockCompressor;
-            }
-
-            @Override
-            FileCollector createFileCollector() {
-                return mockFileCollector;
-            }
-
-            @Override
-            protected String generateName(String configName, ArchiveFactory factory) {
-                generatedName[0] = super.generateName(configName, factory);
-                return generatedName[0];
-            }
-        };
+        TestableBackupTask task = new TestableBackupTask(config, createDeleterSupplier(mockDeleter), listener);
+        task.setMockCompressor(mockCompressor);
+        task.setMockFileCollector(mockFileCollector);
 
         // test
         try {
@@ -144,8 +116,8 @@ public class BackupTaskTest extends AbstractTaskTest {
             throw e.getCause();
         } finally {
             // assertions
-            Path expectedArchive = Paths.get(config.getTargetDirectory()).resolve(generatedName[0]);
-            InOrder inOrder = Mockito.inOrder(mockDeleter, mockCompressor, mockFileCollector);
+            Path expectedArchive = getExpectedArchive(config, task);
+            InOrder inOrder = inOrder(mockDeleter, mockCompressor, mockFileCollector);
             if (exception != null) {
                 inOrder.verify(mockDeleter, times(1)).registerFile(org.mockito.Matchers.eq(expectedArchive));
                 inOrder.verify(mockDeleter, times(1)).deleteAll();
@@ -156,6 +128,10 @@ public class BackupTaskTest extends AbstractTaskTest {
             }
             inOrder.verifyNoMoreInteractions();
         }
+    }
+
+    private Path getExpectedArchive(BackupConfiguration config, TestableBackupTask task) {
+        return Paths.get(config.getTargetDirectory()).resolve(task.getGeneratedName());
     }
 
     private BackupConfiguration toBackupConfiguration(ArchiveFactory mockFactory, ArchiveParameters archiveParameters) {
@@ -194,5 +170,59 @@ public class BackupTaskTest extends AbstractTaskTest {
                 return mockDeleter;
             }
         };
+    }
+
+    private ArchiveParameters createArchiveParameters() throws IOException {
+        Path archive = tempFolder.newFolder().toPath().resolve("archive.mock");
+        final ArchiveParameters archiveParameters = new ArchiveParameters(archive, true);
+        Path source = tempFolder.newFolder("source").toPath();
+        Files.createDirectories(source);
+        Path file = source.resolve("file");
+        TestUtils.createFile(file, 10);
+        archiveParameters.addSource(source);
+        return archiveParameters;
+    }
+
+    private static class TestableBackupTask extends BackupTask {
+        private final String generatedName = "archive.mock";
+        private FileCollector mockFileCollector;
+        private Compressor mockCompressor;
+
+        public TestableBackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier, ProgressListener listener) {
+            super(config, deleterSupplier, listener);
+        }
+
+        @Override
+        FileCollector createFileCollector() {
+            if (mockFileCollector == null) {
+                return super.createFileCollector();
+            }
+            return mockFileCollector;
+        }
+
+        @Override
+        Compressor createCompressor(ArchiveFactory factory) {
+            if (mockCompressor == null) {
+                return super.createCompressor(factory);
+            }
+            return mockCompressor;
+        }
+
+        @Override
+        protected String generateName(String configName, ArchiveFactory factory) {
+            return generatedName;
+        }
+
+        public void setMockFileCollector(FileCollector mockFileCollector) {
+            this.mockFileCollector = mockFileCollector;
+        }
+
+        public void setMockCompressor(Compressor mockCompressor) {
+            this.mockCompressor = mockCompressor;
+        }
+
+        public String getGeneratedName() {
+            return generatedName;
+        }
     }
 }
