@@ -34,10 +34,7 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.nio.file.Path;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Facade class for features.
@@ -55,12 +52,22 @@ public class JBackup {
         }
     };
 
-    public Future<Void> backup(BackupConfiguration config, ProgressListener listener) {
-        return executor.submit(createBackupTask(config, listener));
+    public Future<Void> backup(final BackupConfiguration config, final ProgressListener listener) {
+        return submitNewTask(new TaskFactory<BackupTask>() {
+            @Override
+            public BackupTask createTask(Cancellable cancellable) {
+                return createBackupTask(config, listener, cancellable);
+            }
+        });
     }
 
-    public Future<Void> restore(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
-        return executor.submit(createRestoreTask(config, archive, targetDirectory, listener));
+    public Future<Void> restore(final BackupConfiguration config, final Path archive, final Path targetDirectory, final ProgressListener listener) {
+        return submitNewTask(new TaskFactory<RestoreTask>() {
+            @Override
+            public RestoreTask createTask(Cancellable cancellable) {
+                return createRestoreTask(config, archive, targetDirectory, listener, cancellable);
+            }
+        });
     }
 
     public Timer shutdown(final TerminationListener listener) throws InterruptedException {
@@ -91,11 +98,36 @@ public class JBackup {
         void terminated();
     }
 
-    BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
+    BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener, Cancellable cancellable) {
         return new BackupTask(config, deleterSupplier, listener, null);
     }
 
-    RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
+    RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
+                                  ProgressListener listener, Cancellable cancellable) {
         return new RestoreTask(config, archive, targetDirectory, deleterSupplier, listener, null);
+    }
+
+    private static class JBackupCancellable implements Cancellable {
+        private Future<Void> future;
+
+        @Override
+        public boolean isCancelled() throws CancellationException {
+            return (future != null) && future.isCancelled();
+        }
+
+        private void setFuture(Future<Void> future) {
+            this.future = future;
+        }
+    }
+
+    private static interface TaskFactory<T extends Callable<Void>> {
+        T createTask(Cancellable cancellable);
+    }
+
+    private <T extends Callable<Void>> Future<Void> submitNewTask(TaskFactory<T> taskFactory) {
+        JBackupCancellable cancellable = new JBackupCancellable();
+        Future<Void> future = executor.submit(taskFactory.createTask(cancellable));
+        cancellable.setFuture(future);
+        return future;
     }
 }

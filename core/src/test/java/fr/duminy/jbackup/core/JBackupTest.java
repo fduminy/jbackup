@@ -26,19 +26,26 @@ import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
 import org.apache.commons.io.filefilter.NameFileFilter;
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.InOrder;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import javax.swing.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static fr.duminy.jbackup.core.JBackup.TerminationListener;
+import static java.lang.System.currentTimeMillis;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
@@ -124,6 +131,46 @@ public class JBackupTest {
     }
 
     @Test
+    public void testBackup_withCancellable() throws Throwable {
+        // prepare test
+        final BackupConfiguration config = createConfiguration();
+        final MutableBoolean taskStarted = new MutableBoolean(false);
+        final BackupTask mockBackupTask = createAlwaysWaitingTask(BackupTask.class, taskStarted);
+        final MutableObject<Cancellable> actualCancellable = new MutableObject<>();
+        JBackup jBackup = spy(new JBackup() {
+            @Override
+            BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener, Cancellable cancellable) {
+                actualCancellable.setValue(cancellable);
+                return mockBackupTask;
+            }
+        });
+
+        // test
+        try {
+            Future<Void> future = jBackup.backup(config, null);
+
+            // wait task is actually started
+            waitTaskStarted(taskStarted, actualCancellable);
+
+            assertThat(actualCancellable.getValue()).as("cancellable").isNotNull();
+            assertThat(actualCancellable.getValue().isCancelled()).as("cancelled").isFalse();
+
+            future.cancel(true);
+            assertThat(actualCancellable.getValue().isCancelled()).as("cancelled").isTrue();
+        } finally {
+            jBackup.shutdown(null);
+        }
+
+        // assertions
+        InOrder inOrder = inOrder(mockBackupTask, jBackup);
+        inOrder.verify(jBackup, times(1)).backup(eq(config), isNull(ProgressListener.class)); // called above
+        inOrder.verify(jBackup, times(1)).createBackupTask(eq(config), isNull(ProgressListener.class), eq(actualCancellable.getValue()));
+        inOrder.verify(mockBackupTask, times(1)).call();
+        inOrder.verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
+        inOrder.verifyNoMoreInteractions();
+    }
+
+    @Test
     public void testBackup_withListener() throws Throwable {
         ProgressListener listener = mock(ProgressListener.class);
 
@@ -142,7 +189,7 @@ public class JBackupTest {
         final BackupTask mockBackupTask = mock(BackupTask.class);
         JBackup jBackup = spy(new JBackup() {
             @Override
-            BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
+            BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener, Cancellable cancellable) {
                 return mockBackupTask;
             }
         });
@@ -156,9 +203,51 @@ public class JBackupTest {
 
         verify(jBackup, times(1)).backup(eq(config), eq(listener)); // called above
         verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
-        verify(jBackup, times(1)).createBackupTask(eq(config), eq(listener));
+        verify(jBackup, times(1)).createBackupTask(eq(config), eq(listener), notNull(Cancellable.class));
         verify(mockBackupTask, times(1)).call();
         verifyNoMoreInteractions(mockBackupTask, jBackup);
+    }
+
+    @Test
+    public void testRestore_withCancellable() throws Throwable {
+        // prepare test
+        final Path archive = tempFolder.newFolder().toPath().resolve("archive.zip");
+        final Path targetDirectory = tempFolder.newFolder().toPath();
+        final BackupConfiguration config = createConfiguration();
+        final MutableBoolean taskStarted = new MutableBoolean(false);
+        final RestoreTask mockRestoreTask = createAlwaysWaitingTask(RestoreTask.class, taskStarted);
+        final MutableObject<Cancellable> actualCancellable = new MutableObject<>();
+        JBackup jBackup = spy(new JBackup() {
+            @Override
+            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener, Cancellable cancellable) {
+                actualCancellable.setValue(cancellable);
+                return mockRestoreTask;
+            }
+        });
+
+        // test
+        try {
+            Future<Void> future = jBackup.restore(config, archive, targetDirectory, null);
+
+            // wait task is actually started
+            waitTaskStarted(taskStarted, actualCancellable);
+
+            assertThat(actualCancellable.getValue()).as("cancellable").isNotNull();
+            assertThat(actualCancellable.getValue().isCancelled()).as("cancelled").isFalse();
+
+            future.cancel(true);
+            assertThat(actualCancellable.getValue().isCancelled()).as("cancelled").isTrue();
+        } finally {
+            jBackup.shutdown(null);
+        }
+
+        // assertions
+        InOrder inOrder = inOrder(mockRestoreTask, jBackup);
+        inOrder.verify(jBackup, times(1)).restore(eq(config), eq(archive), eq(targetDirectory), isNull(ProgressListener.class)); // called above
+        inOrder.verify(jBackup, times(1)).createRestoreTask(eq(config), eq(archive), eq(targetDirectory), isNull(ProgressListener.class), eq(actualCancellable.getValue()));
+        inOrder.verify(mockRestoreTask, times(1)).call();
+        inOrder.verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
+        inOrder.verifyNoMoreInteractions();
     }
 
     @Test
@@ -182,7 +271,7 @@ public class JBackupTest {
         final RestoreTask mockRestoreTask = mock(RestoreTask.class);
         JBackup jBackup = spy(new JBackup() {
             @Override
-            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
+            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener, Cancellable cancellable) {
                 return mockRestoreTask;
             }
         });
@@ -196,7 +285,7 @@ public class JBackupTest {
 
         verify(jBackup, times(1)).restore(eq(config), eq(archive), eq(targetDirectory), eq(listener)); // called above
         verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
-        verify(jBackup, times(1)).createRestoreTask(eq(config), eq(archive), eq(targetDirectory), eq(listener));
+        verify(jBackup, times(1)).createRestoreTask(eq(config), eq(archive), eq(targetDirectory), eq(listener), notNull(Cancellable.class));
         verify(mockRestoreTask, times(1)).call();
         verifyNoMoreInteractions(mockRestoreTask, jBackup);
     }
@@ -225,9 +314,9 @@ public class JBackupTest {
 
     private void waitEndOfTimerIfAny(Timer timer) throws InterruptedException {
         if (timer != null) {
-            long timeout = System.currentTimeMillis() + 5 * timer.getDelay();
+            long timeout = currentTimeMillis() + 5 * timer.getDelay();
             while (timer.isRunning()) {
-                if (System.currentTimeMillis() > timeout) {
+                if (currentTimeMillis() > timeout) {
                     fail("timer not stopped");
                 }
                 Thread.sleep(100);
@@ -244,5 +333,27 @@ public class JBackupTest {
         config.setTargetDirectory(targetDirectory.toString());
         config.setArchiveFactory(archiveFactory);
         return config;
+    }
+
+    private void waitTaskStarted(MutableBoolean taskStarted, MutableObject<Cancellable> actualCancellable) throws InterruptedException {
+        long start = currentTimeMillis();
+        do {
+            Thread.sleep(100);
+        }
+        while (((actualCancellable.getValue() == null) || taskStarted.isFalse()) && ((currentTimeMillis() - start) < 1000));
+    }
+
+    private <T extends Callable<Void>> T createAlwaysWaitingTask(final Class<T> taskClass, final MutableBoolean taskStarted) throws Exception {
+        final T mockTask = mock(taskClass);
+        when(mockTask.call()).then(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                taskStarted.setValue(true);
+                while (true) {
+                    Thread.sleep(100);
+                }
+            }
+        });
+        return mockTask;
     }
 }

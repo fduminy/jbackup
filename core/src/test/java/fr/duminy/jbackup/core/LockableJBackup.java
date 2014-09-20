@@ -49,8 +49,8 @@ public class LockableJBackup extends JBackup {
     }
 
     @Override
-    BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener) {
-        return new BackupTask(config, null, listener, null) {
+    BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener, Cancellable cancellable) {
+        return new BackupTask(config, null, listener, cancellable) {
             @Override
             protected void execute() throws Exception {
                 waitUnlocked(compressionLock);
@@ -70,8 +70,8 @@ public class LockableJBackup extends JBackup {
 
     @Override
     RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
-                                  ProgressListener listener) {
-        return new RestoreTask(config, archive, targetDirectory, null, listener, null) {
+                                  ProgressListener listener, Cancellable cancellable) {
+        return new RestoreTask(config, archive, targetDirectory, null, listener, cancellable) {
             @Override
             protected void execute() throws Exception {
                 waitUnlocked(decompressionLock);
