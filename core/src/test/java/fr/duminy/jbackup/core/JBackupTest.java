@@ -155,7 +155,7 @@ public class JBackupTest {
         }
 
         verify(jBackup, times(1)).backup(eq(config), eq(listener)); // called above
-        verify(jBackup, times(1)).shutdown(null); // called above
+        verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
         verify(jBackup, times(1)).createBackupTask(eq(config), eq(listener));
         verify(mockBackupTask, times(1)).call();
         verifyNoMoreInteractions(mockBackupTask, jBackup);
@@ -195,7 +195,7 @@ public class JBackupTest {
         }
 
         verify(jBackup, times(1)).restore(eq(config), eq(archive), eq(targetDirectory), eq(listener)); // called above
-        verify(jBackup, times(1)).shutdown(null); // called above
+        verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
         verify(jBackup, times(1)).createRestoreTask(eq(config), eq(archive), eq(targetDirectory), eq(listener));
         verify(mockRestoreTask, times(1)).call();
         verifyNoMoreInteractions(mockRestoreTask, jBackup);

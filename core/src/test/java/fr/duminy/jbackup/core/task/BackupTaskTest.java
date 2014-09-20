@@ -80,10 +80,10 @@ public class BackupTaskTest extends AbstractTaskTest {
         InOrder inOrder = inOrder(mockCompressor, mockFileCollector);
         inOrder.verify(mockFileCollector, times(1)).collectFiles(anyListOf(SourceWithPath.class),
                 fr.duminy.jbackup.core.matchers.Matchers.eq(archiveParameters, expectedArchive),
-                Matchers.<ProgressListener>eq(null), eq(cancellable));
+                isNull(ProgressListener.class), eq(cancellable));
         inOrder.verify(mockCompressor, times(1)).compress(
                 fr.duminy.jbackup.core.matchers.Matchers.eq(archiveParameters, expectedArchive),
-                anyListOf(SourceWithPath.class), Matchers.<ProgressListener>eq(null), eq(cancellable));
+                anyListOf(SourceWithPath.class), isNull(ProgressListener.class), eq(cancellable));
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -136,7 +136,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         if (exception != null) {
             doThrow(new ArchiveException(exception)).when(mockCompressor).
                     compress(eq(archiveParameters, expectedArchive), anyListOf(SourceWithPath.class), eq(listener),
-                            Matchers.<Cancellable>eq(null));
+                            isNull(Cancellable.class));
         }
 
         // test
@@ -153,9 +153,9 @@ public class BackupTaskTest extends AbstractTaskTest {
             } else {
                 inOrder.verify(mockDeleter, times(1)).registerFile(org.mockito.Matchers.eq(expectedArchive));
                 inOrder.verify(mockFileCollector, times(1)).collectFiles(anyListOf(SourceWithPath.class),
-                        eq(archiveParameters, expectedArchive), eq(listener), Matchers.<Cancellable>eq(null));
+                        eq(archiveParameters, expectedArchive), eq(listener), isNull(Cancellable.class));
                 inOrder.verify(mockCompressor, times(1)).compress(eq(archiveParameters, expectedArchive),
-                        anyListOf(SourceWithPath.class), eq(listener), Matchers.<Cancellable>eq(null));
+                        anyListOf(SourceWithPath.class), eq(listener), isNull(Cancellable.class));
             }
             inOrder.verifyNoMoreInteractions();
         }
