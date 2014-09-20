@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.task;
 
+import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.ArchiveException;
@@ -54,28 +55,20 @@ public class RestoreTaskTest extends AbstractTaskTest {
     }
 
     private void testCall(Exception exception, ProgressListener listener) throws Throwable {
+        // prepare test
         Path archive = ZipArchiveFactoryTest.createArchive(tempFolder.newFolder().toPath());
         Path targetDirectory = tempFolder.newFolder("targetDirectory").toPath();
-
-        // prepare test
         FileDeleter mockDeleter = mock(FileDeleter.class);
         final Decompressor mockDecompressor = mock(Decompressor.class);
         if (exception != null) {
             doThrow(new ArchiveException(exception)).when(mockDecompressor).
                     decompress(eq(archive), eq(targetDirectory), eq(listener), Matchers.<Cancellable>eq(null));
         }
+        BackupConfiguration config = createConfiguration(targetDirectory);
 
-        BackupConfiguration config = new BackupConfiguration();
-        config.setName("testRestoreTask");
-        config.setTargetDirectory(targetDirectory.toString());
-        config.setArchiveFactory(null);
-
-        RestoreTask task = new RestoreTask(config, archive, targetDirectory, createDeleterSupplier(mockDeleter), listener) {
-            @Override
-            Decompressor createDecompressor(ArchiveFactory factory) {
-                return mockDecompressor;
-            }
-        };
+        TestableRestoreTask task = new TestableRestoreTask(config, archive, targetDirectory,
+                createDeleterSupplier(mockDeleter), listener);
+        task.setMockDecompressor(mockDecompressor);
 
         // test
         try {
@@ -90,6 +83,32 @@ public class RestoreTaskTest extends AbstractTaskTest {
             }
             verify(mockDecompressor).decompress(eq(archive), eq(targetDirectory), eq(listener), Matchers.<Cancellable>eq(null));
             verifyNoMoreInteractions(mockDeleter, mockDecompressor);
+        }
+    }
+
+    private BackupConfiguration createConfiguration(Path targetDirectory) {
+        BackupConfiguration config = new BackupConfiguration();
+        config.setName("testRestoreTask");
+        config.setTargetDirectory(targetDirectory.toString());
+        config.setArchiveFactory(null);
+        return config;
+    }
+
+    private static class TestableRestoreTask extends RestoreTask {
+        private Decompressor mockDecompressor;
+
+        public TestableRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
+                                   Supplier<FileDeleter> deleterSupplier, ProgressListener listener) {
+            super(config, archive, targetDirectory, deleterSupplier, listener);
+        }
+
+        @Override
+        Decompressor createDecompressor(ArchiveFactory factory) {
+            return mockDecompressor;
+        }
+
+        public void setMockDecompressor(Decompressor mockDecompressor) {
+            this.mockDecompressor = mockDecompressor;
         }
     }
 }
