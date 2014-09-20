@@ -22,6 +22,7 @@ package fr.duminy.jbackup.core.task;
 
 import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
+import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.Decompressor;
 import fr.duminy.jbackup.core.archive.ProgressListener;
@@ -33,13 +34,15 @@ public class RestoreTask extends Task {
     private final Path archive;
     private final Path targetDirectory;
     private final Supplier<FileDeleter> deleterSupplier;
+    private final Cancellable cancellable;
 
     public RestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
-                       Supplier<FileDeleter> deleterSupplier, ProgressListener listener) {
+                       Supplier<FileDeleter> deleterSupplier, ProgressListener listener, Cancellable cancellable) {
         super(listener, config);
         this.archive = archive;
         this.deleterSupplier = deleterSupplier;
         this.targetDirectory = targetDirectory;
+        this.cancellable = cancellable;
     }
 
     @Override
@@ -49,7 +52,7 @@ public class RestoreTask extends Task {
             deleter.registerDirectory(targetDirectory);
 
             ArchiveFactory factory = config.getArchiveFactory();
-            createDecompressor(factory).decompress(archive, targetDirectory, listener, null);
+            createDecompressor(factory).decompress(archive, targetDirectory, listener, cancellable);
         } catch (Exception e) {
             deleter.deleteAll();
             throw e;

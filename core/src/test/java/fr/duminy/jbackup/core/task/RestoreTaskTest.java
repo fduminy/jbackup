@@ -29,6 +29,7 @@ import fr.duminy.jbackup.core.archive.Decompressor;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import fr.duminy.jbackup.core.util.FileDeleter;
+import org.junit.Test;
 import org.junit.experimental.theories.Theory;
 import org.mockito.Matchers;
 
@@ -40,6 +41,29 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 public class RestoreTaskTest extends AbstractTaskTest {
+    @Test
+    public void testCall_withCancellable() throws Throwable {
+        // prepare test
+        Path archive = ZipArchiveFactoryTest.createArchive(tempFolder.newFolder().toPath());
+        Path targetDirectory = tempFolder.newFolder("targetDirectory").toPath();
+        FileDeleter mockDeleter = mock(FileDeleter.class);
+        Cancellable mockCancellable = mock(Cancellable.class);
+        final Decompressor mockDecompressor = mock(Decompressor.class);
+        BackupConfiguration config = createConfiguration(targetDirectory);
+
+        TestableRestoreTask task = new TestableRestoreTask(config, archive, targetDirectory,
+                createDeleterSupplier(mockDeleter), null, mockCancellable);
+        task.setMockDecompressor(mockDecompressor);
+
+        // test
+        task.call();
+
+        // assertions
+        verify(mockDecompressor, times(1)).decompress(eq(archive), eq(targetDirectory),
+                Matchers.<ProgressListener>eq(null), eq(mockCancellable));
+        verifyNoMoreInteractions(mockDecompressor);
+    }
+
     @Theory
     public void testCall(ProgressListener listener) throws Throwable {
         testCall(null, listener);
@@ -67,7 +91,7 @@ public class RestoreTaskTest extends AbstractTaskTest {
         BackupConfiguration config = createConfiguration(targetDirectory);
 
         TestableRestoreTask task = new TestableRestoreTask(config, archive, targetDirectory,
-                createDeleterSupplier(mockDeleter), listener);
+                createDeleterSupplier(mockDeleter), listener, null);
         task.setMockDecompressor(mockDecompressor);
 
         // test
@@ -98,8 +122,9 @@ public class RestoreTaskTest extends AbstractTaskTest {
         private Decompressor mockDecompressor;
 
         public TestableRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
-                                   Supplier<FileDeleter> deleterSupplier, ProgressListener listener) {
-            super(config, archive, targetDirectory, deleterSupplier, listener);
+                                   Supplier<FileDeleter> deleterSupplier, ProgressListener listener,
+                                   Cancellable cancellable) {
+            super(config, archive, targetDirectory, deleterSupplier, listener, cancellable);
         }
 
         @Override

@@ -96,6 +96,6 @@ public class JBackup {
     }
 
     RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener) {
-        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, listener);
+        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, listener, null);
     }
 }
