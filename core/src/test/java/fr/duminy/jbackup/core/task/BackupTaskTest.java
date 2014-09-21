@@ -21,7 +21,6 @@
 package fr.duminy.jbackup.core.task;
 
 import com.google.common.base.Supplier;
-import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.JBackupTest;
@@ -170,11 +169,11 @@ public class BackupTaskTest extends AbstractTaskTest {
         config.setName("testBackupTask");
         config.setRelativeEntries(archiveParameters.isRelativeEntries());
         final Path archiveDirectory2 = archiveParameters.getArchive().getParent().toAbsolutePath();
-        config.setTargetDirectory(StringPathTypeMapper.toString(archiveDirectory2));
+        config.setTargetDirectory(archiveDirectory2.toString());
         for (ArchiveParameters.Source source : archiveParameters.getSources()) {
             String dirFilter = toJexlExpression(source.getDirFilter());
             String fileFilter = toJexlExpression(source.getFileFilter());
-            final Path sourcePath = Paths.get(StringPathTypeMapper.toString(source.getSource().toAbsolutePath()));
+            final Path sourcePath = source.getSource().toAbsolutePath();
             config.addSource(sourcePath, dirFilter, fileFilter);
         }
         config.setArchiveFactory(mockFactory);

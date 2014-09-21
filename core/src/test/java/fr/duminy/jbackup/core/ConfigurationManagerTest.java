@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import org.apache.commons.beanutils.PropertyUtils;
@@ -439,7 +438,7 @@ public class ConfigurationManagerTest {
         config.setName(configName);
         config.setArchiveFactory(ZipArchiveFactory.INSTANCE);
         Path targetPath = (targetDirectory == null) ? Paths.get(TARGET_DIRECTORY) : targetDirectory.toAbsolutePath();
-        config.setTargetDirectory(StringPathTypeMapper.toString(targetPath));
+        config.setTargetDirectory(targetPath.toString());
         config.addSource(Paths.get("aSource").toAbsolutePath(), "aDirFilter", "aFileFilter");
         config.addSource(Paths.get("aSource2").toAbsolutePath());
         config.addSource(Paths.get("anotherSource").toAbsolutePath(), "anotherDirFilter", "anotherFileFilter");

@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.components.swing.form.StringPathTypeMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +80,7 @@ public class ConfigurationManager {
         for (Path configFile : Files.newDirectoryStream(configurationDir, XML_FILE_FILTER)) {
             try {
                 BackupConfiguration config = loadBackupConfiguration(configFile);
-                String fileName = StringPathTypeMapper.toString(configFile.getFileName());
+                String fileName = configFile.getFileName().toString();
                 fileName = fileName.substring(0, fileName.length() - FILE_EXTENSION.length());
                 if (fileName.equals(config.getName())) {
                     doAddBackupConfiguration(config);

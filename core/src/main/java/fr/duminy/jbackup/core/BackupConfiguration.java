@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.components.swing.form.StringPathTypeMapper;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.filter.JexlFileFilter;
@@ -63,7 +62,7 @@ public class BackupConfiguration {
 
     public void addSource(Path sourceDirectory, String dirFilter, String fileFilter) {
         Source source = new Source();
-        source.setPath(StringPathTypeMapper.toString(sourceDirectory));
+        source.setPath(sourceDirectory.toString());
         source.setDirFilter(dirFilter);
         source.setFileFilter(fileFilter);
         sources.add(source);
