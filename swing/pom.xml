@@ -74,6 +74,11 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.easytesting</groupId>
+            <artifactId>fest-swing</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!-- uses cacio-tta to render swing components off-screen -->
         <dependency>

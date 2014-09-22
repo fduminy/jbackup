@@ -22,13 +22,12 @@ package fr.duminy.jbackup.swing;
 
 import fr.duminy.components.swing.Bundle;
 import fr.duminy.jbackup.core.archive.ProgressListener;
-import org.fest.swing.edt.GuiActionRunner;
-import org.fest.swing.edt.GuiQuery;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Future;
 
 import static fr.duminy.jbackup.swing.MathUtils.toInteger;
@@ -57,28 +56,36 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     public void setTask(final Future<?> task) {
         this.task = task;
         if ((task != null) && (cancelButton == null)) {
-            GuiActionRunner.execute(new GuiQuery<Void>() {
-                @Override
-                protected Void executeInEDT() {
-                    ImageIcon icon = new ImageIcon(ProgressPanel.class.getResource("cancel.png"));
-                    cancelButton = new JButton(icon);
-                    cancelButton.setMargin(new Insets(0, 0, 0, 0));
-                    cancelButton.setToolTipText(Bundle.getBundle(Messages.class).cancelTaskTooltip());
-                    add(cancelButton, BorderLayout.EAST);
-                    revalidate();
-                    cancelButton.addActionListener(new ActionListener() {
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            if (task.cancel(false)) {
-                                final Container parent = getParent();
-                                parent.remove(ProgressPanel.this);
-                                parent.revalidate();
+            try {
+                final Runnable query = new Runnable() {
+                    @Override
+                    public void run() {
+                        ImageIcon icon = new ImageIcon(ProgressPanel.class.getResource("cancel.png"));
+                        cancelButton = new JButton(icon);
+                        cancelButton.setMargin(new Insets(0, 0, 0, 0));
+                        cancelButton.setToolTipText(Bundle.getBundle(Messages.class).cancelTaskTooltip());
+                        add(cancelButton, BorderLayout.EAST);
+                        revalidate();
+                        cancelButton.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                if (task.cancel(false)) {
+                                    final Container parent = getParent();
+                                    parent.remove(ProgressPanel.this);
+                                    parent.revalidate();
+                                }
                             }
-                        }
-                    });
-                    return null;
+                        });
+                    }
+                };
+                if (SwingUtilities.isEventDispatchThread()) {
+                    query.run();
+                } else {
+                    SwingUtilities.invokeAndWait(query);
                 }
-            });
+            } catch (InterruptedException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

@@ -21,7 +21,7 @@
 package fr.duminy.jbackup.core.archive;
 
 import org.apache.commons.io.input.CountingInputStream;
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 
 import java.io.InputStream;
 

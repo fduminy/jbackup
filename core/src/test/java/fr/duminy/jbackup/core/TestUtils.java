@@ -21,7 +21,7 @@
 package fr.duminy.jbackup.core;
 
 import fr.duminy.jbackup.core.util.PathUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
