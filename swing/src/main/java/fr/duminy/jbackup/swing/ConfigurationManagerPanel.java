@@ -76,6 +76,7 @@ public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JL
                 builder.useForProperty("sources", new SourceListTypeMapper(parent));
                 builder.useForProperty("archiveFactory", new ArchiveFactoryTypeMapper(factories));
                 builder.useForProperty("targetDirectory", new StringPathTypeMapper(DIRECTORIES_BUILDER));
+                UIManager.getDefaults().put(BackupConfiguration.class.getSimpleName() + ".xmlVersion.hidden", true);
             }
         };
     }

@@ -37,6 +37,7 @@ import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import org.fest.assertions.Assertions;
 import org.fest.swing.core.Robot;
+import org.fest.swing.core.matcher.JLabelMatcher;
 import org.fest.swing.edt.GuiActionRunner;
 import org.fest.swing.edt.GuiTask;
 import org.fest.swing.fixture.JButtonFixture;
@@ -60,10 +61,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static fr.duminy.components.swing.listpanel.StandardListPanelFeature.EDITING;
 import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.*;
@@ -156,6 +154,26 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         BackupConfiguration updatedConfig = manager.getBackupConfigurations().get(0);
         assertThat(updatedConfig).isNotSameAs(oldConfig);
         assertThat(manager.getBackupConfigurations().get(0).getName()).isEqualTo(newConfigName);
+    }
+
+    @Test
+    public void assertXmlVersionFieldNotDisplayed() throws Exception {
+        // prepare test
+        init(1);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+
+        // test
+        configurationList.addButton().click();
+
+        //assertions
+        JPanel form = new JFormPaneFixture(robot(), BackupConfiguration.class).component();
+        TreeSet<String> labels = new TreeSet<>();
+        for (JLabel label : robot().finder().findAll(form, JLabelMatcher.any())) {
+            if (!"List.cellRenderer".equals(label.getName())) {
+                labels.add(label.getName());
+            }
+        }
+        assertThat(labels).containsExactly("archiveFactory", "name", "relativeEntries", "sources", "targetDirectory");
     }
 
     @Theory
