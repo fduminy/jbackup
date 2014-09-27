@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="yes" ?>
+<!--
+
+    JBackup is a software managing backups.
+
+    Copyright (C) 2013-2014 Fabien DUMINY (fabien [dot] duminy [at] webmails [dot] com)
+
+    JBackup is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 3
+    of the License, or (at your option) any later version.
+
+    JBackup is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+    USA.
+
+-->
+
+<installation version="5.0">
+    <info>
+        <appname>JBackup</appname>
+        <appversion>${project.version}</appversion>
+        <authors>
+            <author name="Fabien DUMINY" email="${project.email}"/>
+        </authors>
+        <url>https://github.com/fduminy/jbackup</url>
+        <javaversion>1.7</javaversion>
+    </info>
+
+    <guiprefs width="600" height="480" resizable="no">
+        <modifier key="useButtonIcons" value="yes"/>
+        <modifier key="useLabelIcons" value="yes"/>
+        <modifier key="labelGap" value="2"/>
+        <modifier key="layoutAnchor" value="NORTHWEST"/>
+        <modifier key="useHeadingPanel" value="yes"/>
+        <modifier key="headingImageOnLeft" value="yes"/>
+        <modifier key="headingLineCount" value="1"/>
+        <modifier key="headingFontSize" value="1.5"/>
+        <modifier key="headingBackgroundColor" value="0x00ffffff"/>
+        <modifier key="headingPanelCounter" value="text"/>
+        <modifier key="headingPanelCounterPos" value="inHeading"/>
+    </guiprefs>
+
+    <locale>
+        <langpack iso3="eng"/>
+        <langpack iso3="fra"/>
+    </locale>
+
+    <panels>
+        <panel classname="LicencePanel"/>
+        <panel classname="TargetPanel"/>
+        <panel classname="InstallPanel"/>
+        <panel classname="ShortcutPanel"/>
+        <panel classname="SimpleFinishPanel"/>
+    </panels>
+
+    <variables>
+        <variable name="TargetPanel.dir.windows" value="C:/apps/jbackup"/>
+        <variable name="TargetPanel.dir.unix" value="$USER_HOME/apps/jbackup"/>
+        <variable name="$DesktopShortcutCheckboxEnabled" value="true"/>
+    </variables>
+
+    <resources>
+        <res src="../../../LICENSE.txt" id="LicencePanel.licence"/>
+        <res src="ShortcutSpec.xml" id="ShortcutSpec.xml"/>
+        <res src="Unix_ShortcutSpec.xml" id="Unix_ShortcutSpec.xml"/>
+    </resources>
+
+    <updatecheck>
+        <include name="lib/**" />
+        <exclude name="bin/**"/>
+    </updatecheck>
+
+    <packs>
+        <pack name="Base" required="yes">
+            <description>The base files</description>
+
+            <fileset dir="bin" targetdir="$INSTALL_PATH/bin">
+                <include name="jbackup*"/>
+            </fileset>
+            <executable targetfile="$INSTALL_PATH/bin/jbackup" stage="never">
+                <os family="unix"/>
+            </executable>
+
+            <fileset dir="lib" targetdir="$INSTALL_PATH/lib">
+                <include name="*.jar"/>
+            </fileset>
+        </pack>
+    </packs>
+
+</installation>

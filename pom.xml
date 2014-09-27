@@ -44,6 +44,7 @@
     <modules>
         <module>core</module>
         <module>swing</module>
+        <module>installer</module>
     </modules>
 
     <build>
