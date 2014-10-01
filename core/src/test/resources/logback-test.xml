@@ -1,0 +1,41 @@
+<!--
+
+    JBackup is a software managing backups.
+
+    Copyright (C) 2013-2014 Fabien DUMINY (fabien [dot] duminy [at] webmails [dot] com)
+
+    JBackup is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 3
+    of the License, or (at your option) any later version.
+
+    JBackup is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+    USA.
+
+-->
+<configuration>
+    <appender name="RootSiftAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <Key>TestName</Key>
+            <DefaultValue>TestRun</DefaultValue>
+        </discriminator>
+        <sift>
+            <appender name="FILE-${TestName}" class="ch.qos.logback.core.FileAppender">
+                <File>target/logs/${TestName}.log</File>
+                <layout class="ch.qos.logback.classic.PatternLayout">
+                    <pattern>[%thread] %-5level %logger{20} - %msg %n</pattern>
+                </layout>
+            </appender>
+        </sift>
+    </appender>
+    <root level="DEBUG">
+        <appender-ref ref="RootSiftAppender"/>
+    </root>
+</configuration>

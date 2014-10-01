@@ -22,6 +22,7 @@ package fr.duminy.jbackup.swing;
 
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.JBackup;
+import fr.duminy.jbackup.core.util.LogRule;
 import org.assertj.core.api.Assertions;
 import org.fest.assertions.ImageAssert;
 import org.fest.swing.edt.GuiActionRunner;
@@ -45,6 +46,9 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 public class ApplicationTest extends AbstractSwingTest {
+    @Rule
+    public final LogRule logRule = new LogRule();
+
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
 

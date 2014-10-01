@@ -25,6 +25,7 @@ import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
+import fr.duminy.jbackup.core.util.LogRule;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -54,6 +55,9 @@ import static org.mockito.Mockito.*;
  * Tests for class {@link fr.duminy.jbackup.core.JBackup}.
  */
 public class JBackupTest {
+    @Rule
+    public final LogRule logRule = new LogRule();
+
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 

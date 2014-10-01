@@ -20,7 +20,9 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.util.LogRule;
 import org.apache.commons.io.IOUtils;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +41,9 @@ import static org.junit.Assert.assertNotNull;
 abstract public class ArchiveFactoryTest<T extends ArchiveFactory> {
     private static final Logger LOG = LoggerFactory.getLogger(ArchiveFactoryTest.class);
     private static final String[] RESOURCES = {"file1.txt", "file2.txt"};
+
+    @Rule
+    public final LogRule logRule = new LogRule();
 
     private final String archiveResource;
     private final T factory;

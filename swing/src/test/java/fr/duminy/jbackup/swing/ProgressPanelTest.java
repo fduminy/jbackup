@@ -22,6 +22,7 @@ package fr.duminy.jbackup.swing;
 
 import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
+import fr.duminy.jbackup.core.util.LogRule;
 import org.fest.swing.edt.GuiActionRunner;
 import org.fest.swing.edt.GuiQuery;
 import org.fest.swing.edt.GuiTask;
@@ -29,6 +30,7 @@ import org.fest.swing.exception.ComponentLookupException;
 import org.fest.swing.fixture.JButtonFixture;
 import org.fest.swing.fixture.JPanelFixture;
 import org.fest.swing.fixture.JProgressBarFixture;
+import org.junit.Rule;
 import org.junit.Test;
 
 import javax.swing.border.TitledBorder;
@@ -48,6 +50,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ProgressPanelTest extends AbstractSwingTest {
     private static final String TITLE = "MyTask";
     private ProgressPanel panel;
+
+    @Rule
+    public final LogRule logRule = new LogRule();
 
     @Override
     public void onSetUp() {

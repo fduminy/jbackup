@@ -21,6 +21,7 @@
 package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.TestUtils;
+import fr.duminy.jbackup.core.util.LogRule;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.DataPoints;
@@ -48,6 +49,9 @@ import static org.mockito.Mockito.*;
 
 @RunWith(Theories.class)
 abstract public class AbstractArchivingTest {
+    @Rule
+    public final LogRule logRule = new LogRule();
+
     @DataPoint
     public static final EntryType RELATIVE = EntryType.RELATIVE;
     @DataPoint

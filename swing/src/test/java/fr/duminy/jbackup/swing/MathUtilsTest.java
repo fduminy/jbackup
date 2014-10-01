@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.swing;
 
+import fr.duminy.jbackup.core.util.LogRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -30,6 +31,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for {@link MathUtils}.
  */
 public class MathUtilsTest {
+    @Rule
+    public final LogRule logRule = new LogRule();
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 

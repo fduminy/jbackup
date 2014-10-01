@@ -18,17 +18,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  */
-package fr.duminy.jbackup.core.archive;
+package fr.duminy.jbackup.core.util;
 
-import fr.duminy.jbackup.core.util.LogRule;
-import org.junit.Rule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.slf4j.MDC;
 
 /**
- * Test for the class {@link Archiver}.
+ * A rule that allows to write logs in a dedicated file for each file.
+ * TODO : move this class to a library of utilities or to junit (or one of its extensions).
  */
-public class ArchiverTest {
-    @Rule
-    public final LogRule logRule = new LogRule();
+public class LogRule extends TestWatcher {
+    private static final String TEST_NAME = "TestName";
 
-    //TODO add a test
+    @Override
+    protected void starting(Description description) {
+        MDC.put(TEST_NAME, description.getMethodName());
+    }
+
+    @Override
+    protected void finished(Description description) {
+        MDC.remove(TEST_NAME);
+    }
 }

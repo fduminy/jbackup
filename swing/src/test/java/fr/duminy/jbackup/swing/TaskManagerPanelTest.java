@@ -24,6 +24,7 @@ import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.JBackup;
+import fr.duminy.jbackup.core.util.LogRule;
 import org.fest.swing.edt.GuiActionRunner;
 import org.fest.swing.edt.GuiTask;
 import org.fest.swing.exception.UnexpectedException;
@@ -53,6 +54,9 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
     public static final int INIT_1_CONFIG = 1;
     @DataPoint
     public static final int INIT_2_CONFIGS = 2;
+
+    @Rule
+    public final LogRule logRule = new LogRule();
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();

@@ -35,6 +35,7 @@ import fr.duminy.jbackup.core.archive.ArchiveInputStream;
 import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
+import fr.duminy.jbackup.core.util.LogRule;
 import org.fest.assertions.Assertions;
 import org.fest.swing.core.Robot;
 import org.fest.swing.core.matcher.JLabelMatcher;
@@ -115,6 +116,9 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     private Path configDir;
     private ConfigurationManager manager;
     private BackupConfigurationActions configActions;
+
+    @Rule
+    public final LogRule logRule = new LogRule();
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();

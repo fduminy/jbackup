@@ -20,6 +20,8 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.util.LogRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static fr.duminy.jbackup.core.archive.ArchiveDSL.Entries;
@@ -27,6 +29,9 @@ import static fr.duminy.jbackup.core.archive.ArchiveDSL.withoutFilter;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ArchiveDSLTest {
+    @Rule
+    public final LogRule logRule = new LogRule();
+
     @Test
     public void testEntries_SourceFile() {
         final String file1 = "file1";

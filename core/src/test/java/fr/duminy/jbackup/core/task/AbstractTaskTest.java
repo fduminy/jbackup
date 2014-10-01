@@ -21,6 +21,7 @@
 package fr.duminy.jbackup.core.task;
 
 import fr.duminy.jbackup.core.archive.ProgressListener;
+import fr.duminy.jbackup.core.util.LogRule;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
@@ -37,6 +38,9 @@ abstract public class AbstractTaskTest {
 
     @DataPoint
     public static final ProgressListener WITHOUT_LISTENER = null;
+
+    @Rule
+    public final LogRule logRule = new LogRule();
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();

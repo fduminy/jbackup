@@ -20,9 +20,11 @@
  */
 package fr.duminy.jbackup.core.filter;
 
+import fr.duminy.jbackup.core.util.LogRule;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.testtools.FileBasedTestCase;
+import org.junit.Rule;
 
 import java.io.File;
 
@@ -32,6 +34,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * .
  */
 public class JexlFileFilterTest extends FileBasedTestCase {
+
+    @Rule
+    public final LogRule logRule = new LogRule();
+
     public JexlFileFilterTest(String name) {
         super(name);
     }

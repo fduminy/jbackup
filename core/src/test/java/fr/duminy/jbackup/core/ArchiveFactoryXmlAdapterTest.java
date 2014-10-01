@@ -22,11 +22,15 @@ package fr.duminy.jbackup.core;
 
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
+import fr.duminy.jbackup.core.util.LogRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ArchiveFactoryXmlAdapterTest {
+    @Rule
+    public final LogRule logRule = new LogRule();
 
     @Test
     public void testUnmarshal() throws Exception {

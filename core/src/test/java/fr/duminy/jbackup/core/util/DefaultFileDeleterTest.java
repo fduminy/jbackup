@@ -35,6 +35,9 @@ import static org.junit.Assert.assertTrue;
 
 public class DefaultFileDeleterTest {
     @Rule
+    public final LogRule logRule = new LogRule();
+
+    @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Rule

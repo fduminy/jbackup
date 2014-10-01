@@ -22,6 +22,7 @@ package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.TestUtils;
+import fr.duminy.jbackup.core.util.LogRule;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.junit.Before;
@@ -52,6 +53,9 @@ public class FileCollectorTest {
 
     private Path directory;
     private Path[] expectedFiles;
+
+    @Rule
+    public final LogRule logRule = new LogRule();
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();

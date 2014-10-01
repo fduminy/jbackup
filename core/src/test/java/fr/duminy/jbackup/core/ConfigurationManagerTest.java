@@ -22,6 +22,7 @@ package fr.duminy.jbackup.core;
 
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
+import fr.duminy.jbackup.core.util.LogRule;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
@@ -79,6 +80,9 @@ public class ConfigurationManagerTest {
 
     private Path configDir;
     private ConfigurationManager manager;
+
+    @Rule
+    public final LogRule logRule = new LogRule();
 
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
