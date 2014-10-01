@@ -43,8 +43,13 @@
                     <repositoryName>lib</repositoryName>
                     <programs>
                         <program>
-                            <mainClass>fr.duminy.jbackup.swing.Application</mainClass>
                             <id>jbackup</id>
+                            <mainClass>fr.duminy.jbackup.swing.Application</mainClass>
+                            <jvmSettings>
+                                <systemProperties>
+                                    <systemProperty>logback.configurationFile=../conf/logback.xml</systemProperty>
+                                </systemProperties>
+                            </jvmSettings>
                         </program>
                     </programs>
                 </configuration>

@@ -81,6 +81,10 @@
         <pack name="Base" required="yes">
             <description>The base files</description>
 
+            <fileset dir="." targetdir="$INSTALL_PATH/conf">
+                <include name="logback.xml"/>
+            </fileset>
+
             <fileset dir="bin" targetdir="$INSTALL_PATH/bin">
                 <include name="jbackup*"/>
             </fileset>
