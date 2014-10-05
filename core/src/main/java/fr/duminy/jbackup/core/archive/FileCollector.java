@@ -21,6 +21,7 @@
 package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.Cancellable;
+import fr.duminy.jbackup.core.task.TaskListener;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
@@ -43,7 +44,7 @@ import static java.nio.file.FileVisitResult.*;
 public class FileCollector {
     private static final Logger LOG = LoggerFactory.getLogger(FileCollector.class);
 
-    public void collectFiles(List<SourceWithPath> collectedFiles, ArchiveParameters archiveParameters, ProgressListener listener, Cancellable cancellable) throws ArchiveException {
+    public void collectFiles(List<SourceWithPath> collectedFiles, ArchiveParameters archiveParameters, TaskListener listener, Cancellable cancellable) throws ArchiveException {
         MutableLong totalSize = new MutableLong();
         try {
             collectFilesImpl(collectedFiles, archiveParameters.getSources(), totalSize, cancellable);

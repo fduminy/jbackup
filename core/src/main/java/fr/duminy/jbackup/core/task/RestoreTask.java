@@ -25,7 +25,6 @@ import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.Decompressor;
-import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.util.FileDeleter;
 
 import java.nio.file.Path;
@@ -37,7 +36,7 @@ public class RestoreTask extends Task {
     private final Cancellable cancellable;
 
     public RestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
-                       Supplier<FileDeleter> deleterSupplier, ProgressListener listener, Cancellable cancellable) {
+                       Supplier<FileDeleter> deleterSupplier, TaskListener listener, Cancellable cancellable) {
         super(listener, config);
         this.archive = archive;
         this.deleterSupplier = deleterSupplier;

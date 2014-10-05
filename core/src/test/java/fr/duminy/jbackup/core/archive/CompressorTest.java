@@ -21,6 +21,7 @@
 package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.Cancellable;
+import fr.duminy.jbackup.core.task.TaskListener;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.junit.experimental.theories.Theory;
@@ -122,7 +123,7 @@ public class CompressorTest extends AbstractArchivingTest {
 
         ArchiveFactory mockFactory = createMockArchiveFactory(mockOutput);
         Path baseDirectory = createBaseDirectory();
-        ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
+        TaskListener listener = useListener ? mock(TaskListener.class) : null;
 
         final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath(), relativeEntries);
         Map<Path, List<Path>> expectedFilesBySource = data.createFiles(baseDirectory, archiveParameters);
@@ -168,7 +169,7 @@ public class CompressorTest extends AbstractArchivingTest {
         assertThatNotificationsAreValid(listener, pathArgument.getAllValues(), expectedEntryToFile, errorType);
     }
 
-    private void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, ProgressListener listener, Cancellable cancellable) throws ArchiveException {
+    private void compress(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, TaskListener listener, Cancellable cancellable) throws ArchiveException {
         List<SourceWithPath> collectedFiles = new ArrayList<>();
         new FileCollector().collectFiles(collectedFiles, archiveParameters, listener, null);
         new Compressor(mockFactory).compress(archiveParameters, collectedFiles, listener, cancellable);

@@ -21,7 +21,6 @@
 package fr.duminy.jbackup.core.task;
 
 import fr.duminy.jbackup.core.BackupConfiguration;
-import fr.duminy.jbackup.core.archive.ProgressListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,11 +29,10 @@ import java.util.concurrent.Callable;
 abstract class Task implements Callable<Void> {
     private static Logger LOG = LoggerFactory.getLogger(Task.class);
 
-
-    protected final ProgressListener listener;
+    protected final TaskListener listener;
     protected final BackupConfiguration config;
 
-    Task(ProgressListener listener, BackupConfiguration config) {
+    Task(TaskListener listener, BackupConfiguration config) {
         this.listener = listener;
         this.config = config;
     }

@@ -21,6 +21,7 @@
 package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.Cancellable;
+import fr.duminy.jbackup.core.task.TaskListener;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ public class Decompressor {
         this.factory = factory;
     }
 
-    public void decompress(Path archive, Path targetDirectory, ProgressListener listener, Cancellable cancellable) throws ArchiveException {
+    public void decompress(Path archive, Path targetDirectory, TaskListener listener, Cancellable cancellable) throws ArchiveException {
         if (listener != null) {
             try {
                 listener.totalSizeComputed(Files.size(archive));

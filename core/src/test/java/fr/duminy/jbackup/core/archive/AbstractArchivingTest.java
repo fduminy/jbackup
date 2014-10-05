@@ -21,6 +21,7 @@
 package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.TestUtils;
+import fr.duminy.jbackup.core.task.TaskListener;
 import fr.duminy.jbackup.core.util.LogRule;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
@@ -121,7 +122,7 @@ abstract public class AbstractArchivingTest {
         return mockFactory;
     }
 
-    protected final void assertThatNotificationsAreValid(ProgressListener listener, List<String> actualEntries, Map<String, Path> expectedEntryToFile, ErrorType errorType) throws IOException {
+    protected final void assertThatNotificationsAreValid(TaskListener listener, List<String> actualEntries, Map<String, Path> expectedEntryToFile, ErrorType errorType) throws IOException {
         List<Long> expectedNotifications = new ArrayList<>();
         long expectedTotalSize = 0L;
         for (String actualEntry : actualEntries) {
@@ -132,7 +133,7 @@ abstract public class AbstractArchivingTest {
         assertThatNotificationsAreValid(listener, expectedNotifications, expectedTotalSize, errorType);
     }
 
-    protected final void assertThatNotificationsAreValid(ProgressListener listener, List<Long> expectedNotifications, long expectedTotalSize, ErrorType errorType) throws IOException {
+    protected final void assertThatNotificationsAreValid(TaskListener listener, List<Long> expectedNotifications, long expectedTotalSize, ErrorType errorType) throws IOException {
         if (listener != null) {
             InOrder inOrder = inOrder(listener);
 

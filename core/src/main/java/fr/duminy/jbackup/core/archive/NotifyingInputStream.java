@@ -20,13 +20,14 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import fr.duminy.jbackup.core.task.TaskListener;
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.commons.lang3.mutable.MutableLong;
 
 import java.io.InputStream;
 
 class NotifyingInputStream extends CountingInputStream {
-    static InputStream createCountingInputStream(final ProgressListener listener, final MutableLong processedSize, final InputStream input) {
+    static InputStream createCountingInputStream(final TaskListener listener, final MutableLong processedSize, final InputStream input) {
         InputStream result = input;
 
         if (listener != null) {
@@ -36,7 +37,7 @@ class NotifyingInputStream extends CountingInputStream {
         return result;
     }
 
-    private final ProgressListener listener;
+    private final TaskListener listener;
     private final MutableLong processedSize;
 
     /**
@@ -44,7 +45,7 @@ class NotifyingInputStream extends CountingInputStream {
      *
      * @param input the InputStream to delegate to
      */
-    private NotifyingInputStream(final ProgressListener listener, final MutableLong processedSize, final InputStream input) {
+    private NotifyingInputStream(final TaskListener listener, final MutableLong processedSize, final InputStream input) {
         super(input);
         this.listener = listener;
         this.processedSize = processedSize;

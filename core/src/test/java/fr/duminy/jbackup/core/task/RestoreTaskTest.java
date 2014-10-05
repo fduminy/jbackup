@@ -26,7 +26,6 @@ import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.ArchiveException;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.Decompressor;
-import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.junit.Test;
@@ -59,17 +58,17 @@ public class RestoreTaskTest extends AbstractTaskTest {
 
         // assertions
         verify(mockDecompressor, times(1)).decompress(eq(archive), eq(targetDirectory),
-                isNull(ProgressListener.class), eq(mockCancellable));
+                isNull(TaskListener.class), eq(mockCancellable));
         verifyNoMoreInteractions(mockDecompressor);
     }
 
     @Theory
-    public void testCall(ProgressListener listener) throws Throwable {
+    public void testCall(TaskListener listener) throws Throwable {
         testCall(null, listener);
     }
 
     @Theory
-    public void testCall_deleteFilesOnError(ProgressListener listener) throws Throwable {
+    public void testCall_deleteFilesOnError(TaskListener listener) throws Throwable {
         final IOException exception = new IOException("An unexpected error");
         thrown.expect(exception.getClass());
         thrown.expectMessage(exception.getMessage());
@@ -77,7 +76,7 @@ public class RestoreTaskTest extends AbstractTaskTest {
         testCall(exception, listener);
     }
 
-    private void testCall(Exception exception, ProgressListener listener) throws Throwable {
+    private void testCall(Exception exception, TaskListener listener) throws Throwable {
         // prepare test
         Path archive = ZipArchiveFactoryTest.createArchive(tempFolder.newFolder().toPath());
         Path targetDirectory = tempFolder.newFolder("targetDirectory").toPath();
@@ -121,7 +120,7 @@ public class RestoreTaskTest extends AbstractTaskTest {
         private Decompressor mockDecompressor;
 
         public TestableRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
-                                   Supplier<FileDeleter> deleterSupplier, ProgressListener listener,
+                                   Supplier<FileDeleter> deleterSupplier, TaskListener listener,
                                    Cancellable cancellable) {
             super(config, archive, targetDirectory, deleterSupplier, listener, cancellable);
         }

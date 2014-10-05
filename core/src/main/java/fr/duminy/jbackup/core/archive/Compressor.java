@@ -21,6 +21,7 @@
 package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.Cancellable;
+import fr.duminy.jbackup.core.task.TaskListener;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
@@ -47,7 +48,7 @@ public class Compressor {
         this.factory = factory;
     }
 
-    public void compress(ArchiveParameters archiveParameters, List<SourceWithPath> files, final ProgressListener listener, Cancellable cancellable) throws ArchiveException {
+    public void compress(ArchiveParameters archiveParameters, List<SourceWithPath> files, final TaskListener listener, Cancellable cancellable) throws ArchiveException {
         final String name = archiveParameters.getArchive().toString();
         final MutableLong processedSize = new MutableLong();
 

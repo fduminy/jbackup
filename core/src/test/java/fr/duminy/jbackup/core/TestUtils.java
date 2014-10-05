@@ -22,6 +22,7 @@ package fr.duminy.jbackup.core;
 
 import fr.duminy.jbackup.core.util.PathUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,5 +51,13 @@ public class TestUtils {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    public static Path createSourceWithFiles(TemporaryFolder tempFolder, String sourceName) throws IOException {
+        Path source = tempFolder.newFolder(sourceName).toPath();
+        Files.createDirectories(source);
+        Path file = source.resolve("file");
+        createFile(file, 10);
+        return source;
     }
 }

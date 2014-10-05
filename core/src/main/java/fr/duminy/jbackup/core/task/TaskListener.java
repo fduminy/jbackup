@@ -20,30 +20,33 @@
  */
 package fr.duminy.jbackup.core.task;
 
-import fr.duminy.jbackup.core.util.LogRule;
-import org.junit.Rule;
-import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.Theories;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
+/**
+ * Interface used to notify progress of a task.
+ */
+public interface TaskListener {
+    /**
+     * Notify that the task has just started (by computing the totalSize).
+     */
+    void taskStarted();
 
-import static org.mockito.Mockito.mock;
+    /**
+     * Notify that the total number of bytes has been computed. Note that this method must be called before {@link #progress(long)}.
+     *
+     * @param totalSize The total number of bytes to be read for (de)compression.
+     */
+    void totalSizeComputed(long totalSize);
 
-@RunWith(Theories.class)
-abstract public class AbstractTaskTest {
-    @DataPoint
-    public static final TaskListener WITH_LISTENER = mock(TaskListener.class);
+    /**
+     * Notify that some bytes have been read.
+     *
+     * @param totalReadBytes The total number of bytes read since the begin of (de)compression.
+     */
+    void progress(long totalReadBytes);
 
-    @DataPoint
-    public static final TaskListener WITHOUT_LISTENER = null;
-
-    @Rule
-    public final LogRule logRule = new LogRule();
-
-    @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
-
-    @Rule
-    public final ExpectedException thrown = ExpectedException.none();
+    /**
+     * Notify that the task has finished and possibly failed.
+     *
+     * @param error If not null, provides details about the failure.
+     */
+    void taskFinished(Throwable error);
 }

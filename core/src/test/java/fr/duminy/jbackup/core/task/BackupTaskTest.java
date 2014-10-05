@@ -35,7 +35,6 @@ import org.mockito.InOrder;
 import org.mockito.Matchers;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -45,7 +44,7 @@ import static org.mockito.Mockito.*;
 
 public class BackupTaskTest extends AbstractTaskTest {
     @Theory
-    public void testCall(ProgressListener listener) throws Throwable {
+    public void testCall(TaskListener listener) throws Throwable {
         final ArchiveParameters archiveParameters = createArchiveParameters();
 
         testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, null);
@@ -79,15 +78,15 @@ public class BackupTaskTest extends AbstractTaskTest {
         InOrder inOrder = inOrder(mockCompressor, mockFileCollector);
         inOrder.verify(mockFileCollector, times(1)).collectFiles(anyListOf(SourceWithPath.class),
                 fr.duminy.jbackup.core.matchers.Matchers.eq(archiveParameters, expectedArchive),
-                isNull(ProgressListener.class), eq(cancellable));
+                isNull(TaskListener.class), eq(cancellable));
         inOrder.verify(mockCompressor, times(1)).compress(
                 fr.duminy.jbackup.core.matchers.Matchers.eq(archiveParameters, expectedArchive),
-                anyListOf(SourceWithPath.class), isNull(ProgressListener.class), eq(cancellable));
+                anyListOf(SourceWithPath.class), isNull(TaskListener.class), eq(cancellable));
         inOrder.verifyNoMoreInteractions();
     }
 
     @Theory
-    public void testCall_NullArchiveFactory(ProgressListener listener) throws Throwable {
+    public void testCall_NullArchiveFactory(TaskListener listener) throws Throwable {
         // prepare test
         thrown.expect(NullPointerException.class);
         thrown.expectMessage("ArchiveFactory is null");
@@ -105,7 +104,7 @@ public class BackupTaskTest extends AbstractTaskTest {
     }
 
     @Theory
-    public void testCall_deleteArchiveOnError(ProgressListener listener) throws Throwable {
+    public void testCall_deleteArchiveOnError(TaskListener listener) throws Throwable {
         final IOException exception = new IOException("An unexpected error");
         thrown.expect(exception.getClass());
         thrown.expectMessage(exception.getMessage());
@@ -119,7 +118,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         verifyNoMoreInteractions(listener);
     }
 
-    private void testCall(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, ProgressListener listener,
+    private void testCall(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, TaskListener listener,
                           Exception exception) throws Throwable {
         // prepare test
         final FileDeleter mockDeleter = mock(FileDeleter.class);
@@ -205,11 +204,7 @@ public class BackupTaskTest extends AbstractTaskTest {
     private ArchiveParameters createArchiveParameters() throws IOException {
         Path archive = tempFolder.newFolder().toPath().resolve("archive.mock");
         final ArchiveParameters archiveParameters = new ArchiveParameters(archive, true);
-        Path source = tempFolder.newFolder("source").toPath();
-        Files.createDirectories(source);
-        Path file = source.resolve("file");
-        TestUtils.createFile(file, 10);
-        archiveParameters.addSource(source);
+        archiveParameters.addSource(TestUtils.createSourceWithFiles(tempFolder, "source"));
         return archiveParameters;
     }
 
@@ -219,7 +214,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         private Compressor mockCompressor;
 
         public TestableBackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,
-                                  ProgressListener listener, Cancellable cancellable) {
+                                  TaskListener listener, Cancellable cancellable) {
             super(config, deleterSupplier, listener, cancellable);
         }
 

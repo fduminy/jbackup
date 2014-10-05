@@ -40,7 +40,7 @@ public class BackupTask extends Task {
     private final Cancellable cancellable;
 
     public BackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,
-                      ProgressListener listener, Cancellable cancellable) {
+                      TaskListener listener, Cancellable cancellable) {
         super(listener, config);
         this.deleterSupplier = deleterSupplier;
         this.cancellable = cancellable;

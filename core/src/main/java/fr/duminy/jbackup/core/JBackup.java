@@ -24,6 +24,7 @@ import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
+import fr.duminy.jbackup.core.task.TaskListener;
 import fr.duminy.jbackup.core.util.DefaultFileDeleter;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
@@ -45,12 +46,7 @@ public class JBackup {
     private final ExecutorService executor = Executors.newFixedThreadPool(8,
             new BasicThreadFactory.Builder().namingPattern("jbackup-thread-%d").daemon(false).priority(Thread.MAX_PRIORITY).build());
 
-    private final Supplier<FileDeleter> deleterSupplier = new Supplier<FileDeleter>() {
-        @Override
-        public FileDeleter get() {
-            return new DefaultFileDeleter();
-        }
-    };
+    private final Supplier<FileDeleter> deleterSupplier = createDeleterSupplier();
 
     public Future<Void> backup(final BackupConfiguration config, final ProgressListener listener) {
         return submitNewTask(new TaskFactory<BackupTask>() {
@@ -99,12 +95,21 @@ public class JBackup {
     }
 
     BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener, Cancellable cancellable) {
-        return new BackupTask(config, deleterSupplier, listener, null);
+        return new BackupTask(config, deleterSupplier, createTaskListener(listener), null);
     }
 
     RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
                                   ProgressListener listener, Cancellable cancellable) {
-        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, listener, null);
+        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, createTaskListener(listener), null);
+    }
+
+    Supplier<FileDeleter> createDeleterSupplier() {
+        return new Supplier<FileDeleter>() {
+            @Override
+            public FileDeleter get() {
+                return new DefaultFileDeleter();
+            }
+        };
     }
 
     private static class JBackupCancellable implements Cancellable {
@@ -129,5 +134,33 @@ public class JBackup {
         Future<Void> future = executor.submit(taskFactory.createTask(cancellable));
         cancellable.setFuture(future);
         return future;
+    }
+
+    private TaskListener createTaskListener(final ProgressListener listener) {
+        if (listener == null) {
+            return null;
+        }
+
+        return new TaskListener() {
+            @Override
+            public void taskStarted() {
+                listener.taskStarted();
+            }
+
+            @Override
+            public void totalSizeComputed(long totalSize) {
+                listener.totalSizeComputed(totalSize);
+            }
+
+            @Override
+            public void progress(long totalReadBytes) {
+                listener.progress(totalReadBytes);
+            }
+
+            @Override
+            public void taskFinished(Throwable error) {
+                listener.taskFinished(error);
+            }
+        };
     }
 }

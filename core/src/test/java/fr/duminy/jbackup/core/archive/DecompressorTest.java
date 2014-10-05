@@ -21,6 +21,7 @@
 package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.Cancellable;
+import fr.duminy.jbackup.core.task.TaskListener;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.experimental.theories.Theory;
@@ -125,7 +126,7 @@ public class DecompressorTest extends AbstractArchivingTest {
         Path targetDirectory = tempFolder.newFolder("targetDir").toPath();
         createFile(archive, expectedTotalSize);
 
-        ProgressListener listener = useListener ? mock(ProgressListener.class) : null;
+        TaskListener listener = useListener ? mock(TaskListener.class) : null;
 
         // test decompression
         try {
@@ -160,7 +161,7 @@ public class DecompressorTest extends AbstractArchivingTest {
         return mockInput;
     }
 
-    private void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, ProgressListener listener, Cancellable cancellable) throws ArchiveException {
+    private void decompress(ArchiveFactory mockFactory, Path archive, Path targetDirectory, TaskListener listener, Cancellable cancellable) throws ArchiveException {
         if (createDirectory) {
             try {
                 Files.createDirectories(targetDirectory);

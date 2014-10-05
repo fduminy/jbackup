@@ -20,11 +20,15 @@
  */
 package fr.duminy.jbackup.core;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
+import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
+import fr.duminy.jbackup.core.util.FileDeleter;
 import fr.duminy.jbackup.core.util.LogRule;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -213,6 +217,22 @@ public class JBackupTest {
     }
 
     @Test
+    public void testCreateBackupTask_callProgressListener() throws Throwable {
+        final BackupConfiguration config = createConfiguration();
+        JBackup jBackup = new JBackup();
+        ProgressListener listener = mock(ProgressListener.class);
+
+        BackupTask backupTask = jBackup.createBackupTask(config, listener, mock(Cancellable.class));
+        backupTask.call();
+
+        verify(listener, times(1)).taskStarted();
+        verify(listener, times(1)).totalSizeComputed(anyLong());
+        verify(listener, times(1)).progress(anyLong());
+        verify(listener, times(1)).taskFinished(isNull(Throwable.class));
+        verifyNoMoreInteractions(listener);
+    }
+
+    @Test
     public void testRestore_withCancellable() throws Throwable {
         // prepare test
         final Path archive = tempFolder.newFolder().toPath().resolve("archive.zip");
@@ -294,6 +314,29 @@ public class JBackupTest {
         verifyNoMoreInteractions(mockRestoreTask, jBackup);
     }
 
+    @Test
+    public void testCreateRestoreTask_callProgressListener() throws Throwable {
+        final Path archive = ZipArchiveFactoryTest.createArchive(tempFolder.newFolder().toPath());
+        final Path targetDirectory = tempFolder.newFolder().toPath();
+        final BackupConfiguration config = createConfiguration();
+        JBackup jBackup = new JBackup() {
+            @Override
+            Supplier<FileDeleter> createDeleterSupplier() {
+                return Suppliers.ofInstance(mock(FileDeleter.class));
+            }
+        };
+        ProgressListener listener = mock(ProgressListener.class);
+
+        RestoreTask restoreTask = jBackup.createRestoreTask(config, archive, targetDirectory, listener, mock(Cancellable.class));
+        restoreTask.call();
+
+        verify(listener, times(1)).taskStarted();
+        verify(listener, times(1)).totalSizeComputed(anyLong());
+        verify(listener, times(1)).progress(anyLong());
+        verify(listener, times(1)).taskFinished(isNull(Throwable.class));
+        verifyNoMoreInteractions(listener);
+    }
+
     public static final class CustomNameFileFilter extends NameFileFilter {
         private final String name;
 
@@ -336,6 +379,7 @@ public class JBackupTest {
         Files.delete(targetDirectory);
         config.setTargetDirectory(targetDirectory.toString());
         config.setArchiveFactory(archiveFactory);
+        config.addSource(TestUtils.createSourceWithFiles(tempFolder, "source"));
         return config;
     }
 
