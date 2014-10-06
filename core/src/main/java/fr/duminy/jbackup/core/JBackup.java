@@ -95,12 +95,12 @@ public class JBackup {
     }
 
     BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener, Cancellable cancellable) {
-        return new BackupTask(config, deleterSupplier, createTaskListener(listener), null);
+        return new BackupTask(config, deleterSupplier, createTaskListener(config.getName(), listener), null);
     }
 
     RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
                                   ProgressListener listener, Cancellable cancellable) {
-        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, createTaskListener(listener), null);
+        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, createTaskListener(config.getName(), listener), null);
     }
 
     Supplier<FileDeleter> createDeleterSupplier() {
@@ -136,7 +136,7 @@ public class JBackup {
         return future;
     }
 
-    private TaskListener createTaskListener(final ProgressListener listener) {
+    private TaskListener createTaskListener(final String configurationName, final ProgressListener listener) {
         if (listener == null) {
             return null;
         }
@@ -144,22 +144,22 @@ public class JBackup {
         return new TaskListener() {
             @Override
             public void taskStarted() {
-                listener.taskStarted();
+                listener.taskStarted(configurationName);
             }
 
             @Override
             public void totalSizeComputed(long totalSize) {
-                listener.totalSizeComputed(totalSize);
+                listener.totalSizeComputed(configurationName, totalSize);
             }
 
             @Override
             public void progress(long totalReadBytes) {
-                listener.progress(totalReadBytes);
+                listener.progress(configurationName, totalReadBytes);
             }
 
             @Override
             public void taskFinished(Throwable error) {
-                listener.taskFinished(error);
+                listener.taskFinished(configurationName, error);
             }
         };
     }

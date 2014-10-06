@@ -113,7 +113,7 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         runBackup(config);
 
         ProgressPanel pPanel = verifyBackup(config);
-        notifyTaskFinished(error, pPanel);
+        notifyTaskFinished(config, error, pPanel);
 
         reset(jBackup);
         runBackup(config);
@@ -155,7 +155,7 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         runRestore(archive, targetDirectory, config);
 
         ProgressPanel pPanel = verifyRestore(archive, targetDirectory, config);
-        notifyTaskFinished(error, pPanel);
+        notifyTaskFinished(config, error, pPanel);
 
         reset(jBackup);
         runRestore(archive, targetDirectory, config);
@@ -246,10 +246,10 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         }
     }
 
-    private void notifyTaskFinished(final Exception error, final ProgressPanel pPanel) {
+    private void notifyTaskFinished(final BackupConfiguration config, final Exception error, final ProgressPanel pPanel) {
         GuiActionRunner.execute(new GuiTask() {
             protected void executeInEDT() throws DuplicateTaskException {
-                pPanel.taskFinished(error);
+                pPanel.taskFinished(config.getName(), error);
             }
         });
     }

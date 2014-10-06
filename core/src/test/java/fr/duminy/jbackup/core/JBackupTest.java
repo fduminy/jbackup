@@ -225,10 +225,10 @@ public class JBackupTest {
         BackupTask backupTask = jBackup.createBackupTask(config, listener, mock(Cancellable.class));
         backupTask.call();
 
-        verify(listener, times(1)).taskStarted();
-        verify(listener, times(1)).totalSizeComputed(anyLong());
-        verify(listener, times(1)).progress(anyLong());
-        verify(listener, times(1)).taskFinished(isNull(Throwable.class));
+        verify(listener, times(1)).taskStarted(eq(config.getName()));
+        verify(listener, times(1)).totalSizeComputed(eq(config.getName()), anyLong());
+        verify(listener, times(1)).progress(eq(config.getName()), anyLong());
+        verify(listener, times(1)).taskFinished(eq(config.getName()), isNull(Throwable.class));
         verifyNoMoreInteractions(listener);
     }
 
@@ -330,10 +330,10 @@ public class JBackupTest {
         RestoreTask restoreTask = jBackup.createRestoreTask(config, archive, targetDirectory, listener, mock(Cancellable.class));
         restoreTask.call();
 
-        verify(listener, times(1)).taskStarted();
-        verify(listener, times(1)).totalSizeComputed(anyLong());
-        verify(listener, times(1)).progress(anyLong());
-        verify(listener, times(1)).taskFinished(isNull(Throwable.class));
+        verify(listener, times(1)).taskStarted(eq(config.getName()));
+        verify(listener, times(1)).totalSizeComputed(eq(config.getName()), anyLong());
+        verify(listener, times(1)).progress(eq(config.getName()), anyLong());
+        verify(listener, times(1)).taskFinished(eq(config.getName()), isNull(Throwable.class));
         verifyNoMoreInteractions(listener);
     }
 

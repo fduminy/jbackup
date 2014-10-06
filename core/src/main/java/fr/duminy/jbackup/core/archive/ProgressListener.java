@@ -26,27 +26,31 @@ package fr.duminy.jbackup.core.archive;
 public interface ProgressListener {
     /**
      * Notify that the task has just started (by computing the totalSize).
+     * @param configurationName The name of the configuration.
      */
-    void taskStarted();
+    void taskStarted(String configurationName);
 
     /**
-     * Notify that the total number of bytes has been computed. Note that this method must be called before {@link #progress(long)}.
+     * Notify that the total number of bytes has been computed. Note that this method must be called before {@link #progress(String, long)}.
      *
+     * @param configurationName The name of the configuration.
      * @param totalSize The total number of bytes to be read for (de)compression.
      */
-    void totalSizeComputed(long totalSize);
+    void totalSizeComputed(String configurationName, long totalSize);
 
     /**
      * Notify that some bytes have been read.
      *
+     * @param configurationName The name of the configuration.
      * @param totalReadBytes The total number of bytes read since the begin of (de)compression.
      */
-    void progress(long totalReadBytes);
+    void progress(String configurationName, long totalReadBytes);
 
     /**
      * Notify that the task has finished and possibly failed.
      *
+     * @param configurationName The name of the configuration.
      * @param error If not null, provides details about the failure.
      */
-    void taskFinished(Throwable error);
+    void taskFinished(String configurationName, Throwable error);
 }

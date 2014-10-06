@@ -90,12 +90,12 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     }
 
     @Override
-    public void taskStarted() {
+    public void taskStarted(String configurationName) {
         progressBar.setString("Estimating total size");
     }
 
     @Override
-    public void totalSizeComputed(long totalSize) {
+    public void totalSizeComputed(String configurationName, long totalSize) {
         progressBar.setIndeterminate(false);
         progressBar.setMinimum(0);
 
@@ -110,7 +110,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     }
 
     @Override
-    public void progress(long totalReadBytes) {
+    public void progress(String configurationName, long totalReadBytes) {
         int value;
         if (totalSize > Integer.MAX_VALUE) {
             value = toInteger(totalReadBytes, totalSize);
@@ -122,7 +122,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     }
 
     @Override
-    public void taskFinished(Throwable error) {
+    public void taskFinished(String configurationName, Throwable error) {
         progressBar.setIndeterminate(false);
         if (error == null) {
             progressBar.setString("Finished");

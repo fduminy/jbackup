@@ -49,6 +49,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class ProgressPanelTest extends AbstractSwingTest {
     private static final String TITLE = "MyTask";
+    private static final String CONFIGURATION_NAME = "NotChecked";
+
     private ProgressPanel panel;
 
     @Rule
@@ -91,9 +93,9 @@ public class ProgressPanelTest extends AbstractSwingTest {
         final long maxValue = 10L;
         GuiActionRunner.execute(new GuiTask() {
             protected void executeInEDT() {
-                panel.taskStarted();
-                panel.totalSizeComputed(maxValue);
-                panel.progress(actualValue);
+                panel.taskStarted(CONFIGURATION_NAME);
+                panel.totalSizeComputed(CONFIGURATION_NAME, maxValue);
+                panel.progress(CONFIGURATION_NAME, actualValue);
             }
         });
 
@@ -104,7 +106,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
     public void testTaskStarted() {
         GuiActionRunner.execute(new GuiTask() {
             protected void executeInEDT() {
-                panel.taskStarted();
+                panel.taskStarted(CONFIGURATION_NAME);
             }
         });
 
@@ -124,8 +126,8 @@ public class ProgressPanelTest extends AbstractSwingTest {
     private void testTotalSizeComputed(final long maxValue) throws Exception {
         GuiActionRunner.execute(new GuiTask() {
             protected void executeInEDT() {
-                panel.taskStarted();
-                panel.totalSizeComputed(maxValue);
+                panel.taskStarted(CONFIGURATION_NAME);
+                panel.totalSizeComputed(CONFIGURATION_NAME, maxValue);
             }
         });
 
@@ -145,9 +147,9 @@ public class ProgressPanelTest extends AbstractSwingTest {
     private void testProgress(final long value, final long maxValue) throws Exception {
         GuiActionRunner.execute(new GuiTask() {
             protected void executeInEDT() {
-                panel.taskStarted();
-                panel.totalSizeComputed(maxValue);
-                panel.progress(value);
+                panel.taskStarted(CONFIGURATION_NAME);
+                panel.totalSizeComputed(CONFIGURATION_NAME, maxValue);
+                panel.progress(CONFIGURATION_NAME, value);
             }
         });
 
@@ -179,12 +181,12 @@ public class ProgressPanelTest extends AbstractSwingTest {
             protected TestableTask executeInEDT() {
                 final TestableTask task = new TestableTask();
                 panel.setTask(task);
-                panel.taskStarted();
+                panel.taskStarted(CONFIGURATION_NAME);
                 if ((error == null) || ((error != null) && !beforeTotalSizeComputed)) {
-                    panel.totalSizeComputed(10);
-                    panel.progress(0);
+                    panel.totalSizeComputed(CONFIGURATION_NAME, 10);
+                    panel.progress(CONFIGURATION_NAME, 0);
                 }
-                panel.taskFinished(error);
+                panel.taskFinished(CONFIGURATION_NAME, error);
                 if (error != null) {
                     task.setException(error);
                 }
