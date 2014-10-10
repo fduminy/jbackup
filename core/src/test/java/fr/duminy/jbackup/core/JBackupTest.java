@@ -20,15 +20,12 @@
  */
 package fr.duminy.jbackup.core;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
-import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
-import fr.duminy.jbackup.core.util.FileDeleter;
+import fr.duminy.jbackup.core.task.TaskListener;
 import fr.duminy.jbackup.core.util.LogRule;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -53,6 +50,7 @@ import static fr.duminy.jbackup.core.JBackup.TerminationListener;
 import static java.lang.System.currentTimeMillis;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -107,7 +105,7 @@ public class JBackupTest {
         Future<Void> future;
         Timer timer;
         if (longTask) {
-            future = jBackup.backup(config, null);
+            future = jBackup.backup(config);
 
             timer = jBackup.shutdown(listener);
             if (withListener) {
@@ -122,7 +120,7 @@ public class JBackupTest {
             jBackup.unlockCompression();
             waitResult(future);
         } else {
-            future = jBackup.backup(config, null);
+            future = jBackup.backup(config);
             waitResult(future);
             timer = jBackup.shutdown(listener);
             if (withListener) {
@@ -145,9 +143,11 @@ public class JBackupTest {
         final MutableBoolean taskStarted = new MutableBoolean(false);
         final BackupTask mockBackupTask = createAlwaysWaitingTask(BackupTask.class, taskStarted);
         final MutableObject<Cancellable> actualCancellable = new MutableObject<>();
+        final MutableObject<TaskListener> actualListener = new MutableObject<>();
         JBackup jBackup = spy(new JBackup() {
             @Override
-            BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener, Cancellable cancellable) {
+            BackupTask createBackupTask(BackupConfiguration config, TaskListener listener, Cancellable cancellable) {
+                actualListener.setValue(listener);
                 actualCancellable.setValue(cancellable);
                 return mockBackupTask;
             }
@@ -155,7 +155,7 @@ public class JBackupTest {
 
         // test
         try {
-            Future<Void> future = jBackup.backup(config, null);
+            Future<Void> future = jBackup.backup(config);
 
             // wait task is actually started
             waitTaskStarted(taskStarted, actualCancellable);
@@ -171,8 +171,8 @@ public class JBackupTest {
 
         // assertions
         InOrder inOrder = inOrder(mockBackupTask, jBackup);
-        inOrder.verify(jBackup, times(1)).backup(eq(config), isNull(ProgressListener.class)); // called above
-        inOrder.verify(jBackup, times(1)).createBackupTask(eq(config), isNull(ProgressListener.class), eq(actualCancellable.getValue()));
+        inOrder.verify(jBackup, times(1)).backup(eq(config)); // called above
+        inOrder.verify(jBackup, times(1)).createBackupTask(eq(config), eq(actualListener.getValue()), eq(actualCancellable.getValue()));
         inOrder.verify(mockBackupTask, times(1)).call();
         inOrder.verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
         inOrder.verifyNoMoreInteractions();
@@ -195,41 +195,33 @@ public class JBackupTest {
     private void testBackup(ProgressListener listener) throws Throwable {
         final BackupConfiguration config = createConfiguration();
         final BackupTask mockBackupTask = mock(BackupTask.class);
+        final MutableObject<TaskListener> actualTaskListener = new MutableObject<>();
         JBackup jBackup = spy(new JBackup() {
             @Override
-            BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener, Cancellable cancellable) {
+            BackupTask createBackupTask(BackupConfiguration config, TaskListener listener, Cancellable cancellable) {
+                actualTaskListener.setValue(listener);
                 return mockBackupTask;
             }
         });
 
         try {
-            Future<Void> future = jBackup.backup(config, listener);
+            if (listener != null) {
+                jBackup.addProgressListener(config.getName(), listener);
+            }
+            Future<Void> future = jBackup.backup(config);
             waitResult(future);
         } finally {
             jBackup.shutdown(null);
         }
 
-        verify(jBackup, times(1)).backup(eq(config), eq(listener)); // called above
+        verify(jBackup, times(1)).backup(eq(config)); // called above
         verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
-        verify(jBackup, times(1)).createBackupTask(eq(config), eq(listener), notNull(Cancellable.class));
+        verify(jBackup, times(1)).createBackupTask(eq(config), eq(actualTaskListener.getValue()), notNull(Cancellable.class));
         verify(mockBackupTask, times(1)).call();
+        if (listener != null) {
+            verify(jBackup, times(1)).addProgressListener(eq(config.getName()), eq(listener));
+        }
         verifyNoMoreInteractions(mockBackupTask, jBackup);
-    }
-
-    @Test
-    public void testCreateBackupTask_callProgressListener() throws Throwable {
-        final BackupConfiguration config = createConfiguration();
-        JBackup jBackup = new JBackup();
-        ProgressListener listener = mock(ProgressListener.class);
-
-        BackupTask backupTask = jBackup.createBackupTask(config, listener, mock(Cancellable.class));
-        backupTask.call();
-
-        verify(listener, times(1)).taskStarted(eq(config.getName()));
-        verify(listener, times(1)).totalSizeComputed(eq(config.getName()), anyLong());
-        verify(listener, times(1)).progress(eq(config.getName()), anyLong());
-        verify(listener, times(1)).taskFinished(eq(config.getName()), isNull(Throwable.class));
-        verifyNoMoreInteractions(listener);
     }
 
     @Test
@@ -241,9 +233,11 @@ public class JBackupTest {
         final MutableBoolean taskStarted = new MutableBoolean(false);
         final RestoreTask mockRestoreTask = createAlwaysWaitingTask(RestoreTask.class, taskStarted);
         final MutableObject<Cancellable> actualCancellable = new MutableObject<>();
+        final MutableObject<TaskListener> actualListener = new MutableObject<>();
         JBackup jBackup = spy(new JBackup() {
             @Override
-            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener, Cancellable cancellable) {
+            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener listener, Cancellable cancellable) {
+                actualListener.setValue(listener);
                 actualCancellable.setValue(cancellable);
                 return mockRestoreTask;
             }
@@ -251,7 +245,7 @@ public class JBackupTest {
 
         // test
         try {
-            Future<Void> future = jBackup.restore(config, archive, targetDirectory, null);
+            Future<Void> future = jBackup.restore(config, archive, targetDirectory);
 
             // wait task is actually started
             waitTaskStarted(taskStarted, actualCancellable);
@@ -267,8 +261,8 @@ public class JBackupTest {
 
         // assertions
         InOrder inOrder = inOrder(mockRestoreTask, jBackup);
-        inOrder.verify(jBackup, times(1)).restore(eq(config), eq(archive), eq(targetDirectory), isNull(ProgressListener.class)); // called above
-        inOrder.verify(jBackup, times(1)).createRestoreTask(eq(config), eq(archive), eq(targetDirectory), isNull(ProgressListener.class), eq(actualCancellable.getValue()));
+        inOrder.verify(jBackup, times(1)).restore(eq(config), eq(archive), eq(targetDirectory)); // called above
+        inOrder.verify(jBackup, times(1)).createRestoreTask(eq(config), eq(archive), eq(targetDirectory), eq(actualListener.getValue()), eq(actualCancellable.getValue()));
         inOrder.verify(mockRestoreTask, times(1)).call();
         inOrder.verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
         inOrder.verifyNoMoreInteractions();
@@ -293,48 +287,136 @@ public class JBackupTest {
         final Path targetDirectory = tempFolder.newFolder().toPath();
         final BackupConfiguration config = createConfiguration();
         final RestoreTask mockRestoreTask = mock(RestoreTask.class);
+        final MutableObject<TaskListener> actualTaskListener = new MutableObject<>();
         JBackup jBackup = spy(new JBackup() {
             @Override
-            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, ProgressListener listener, Cancellable cancellable) {
+            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
+                actualTaskListener.setValue(taskListener);
                 return mockRestoreTask;
             }
         });
 
         try {
-            Future<Void> future = jBackup.restore(config, archive, targetDirectory, listener);
+            if (listener != null) {
+                jBackup.addProgressListener(config.getName(), listener);
+            }
+            Future<Void> future = jBackup.restore(config, archive, targetDirectory);
             waitResult(future);
         } finally {
             jBackup.shutdown(null);
         }
 
-        verify(jBackup, times(1)).restore(eq(config), eq(archive), eq(targetDirectory), eq(listener)); // called above
+        verify(jBackup, times(1)).restore(eq(config), eq(archive), eq(targetDirectory)); // called above
         verify(jBackup, times(1)).shutdown(isNull(TerminationListener.class)); // called above
-        verify(jBackup, times(1)).createRestoreTask(eq(config), eq(archive), eq(targetDirectory), eq(listener), notNull(Cancellable.class));
+        verify(jBackup, times(1)).createRestoreTask(eq(config), eq(archive), eq(targetDirectory), eq(actualTaskListener.getValue()), notNull(Cancellable.class));
         verify(mockRestoreTask, times(1)).call();
+        if (listener != null) {
+            verify(jBackup, times(1)).addProgressListener(eq(config.getName()), eq(listener));
+        }
         verifyNoMoreInteractions(mockRestoreTask, jBackup);
     }
 
     @Test
-    public void testCreateRestoreTask_callProgressListener() throws Throwable {
-        final Path archive = ZipArchiveFactoryTest.createArchive(tempFolder.newFolder().toPath());
-        final Path targetDirectory = tempFolder.newFolder().toPath();
-        final BackupConfiguration config = createConfiguration();
-        JBackup jBackup = new JBackup() {
-            @Override
-            Supplier<FileDeleter> createDeleterSupplier() {
-                return Suppliers.ofInstance(mock(FileDeleter.class));
-            }
-        };
+    public void testAddProgressListener_backup() throws Throwable {
+        testAddProgressListener(new BackupAction());
+    }
+
+    @Test
+    public void testAddProgressListener_restore() throws Throwable {
+        testAddProgressListener(new RestoreAction());
+    }
+
+    private void testAddProgressListener(JBackupAction action) throws Throwable {
+        JBackup jBackup = createMockJBackup();
         ProgressListener listener = mock(ProgressListener.class);
+        BackupConfiguration config = action.getConfiguration();
 
-        RestoreTask restoreTask = jBackup.createRestoreTask(config, archive, targetDirectory, listener, mock(Cancellable.class));
-        restoreTask.call();
+        jBackup.addProgressListener(config.getName(), listener);
+        try {
+            Future<Void> future = action.executeAction(jBackup);
+            waitResult(future);
+        } finally {
+            jBackup.shutdown(null);
+        }
 
+        verifyListenerNotifiedOnlyForConfig(listener, config);
+    }
+
+    @Test
+    public void testAddProgressListener_backup_TwoListeners() throws Throwable {
+        testAddProgressListener_TwoListeners(new BackupAction(), new BackupAction());
+    }
+
+    @Test
+    public void testAddProgressListener_restore_TwoListeners() throws Throwable {
+        testAddProgressListener_TwoListeners(new RestoreAction(), new RestoreAction());
+    }
+
+    private void testAddProgressListener_TwoListeners(JBackupAction action, JBackupAction action2) throws Throwable {
+        JBackup jBackup = createMockJBackup();
+        ProgressListener listener = mock(ProgressListener.class);
+        BackupConfiguration config = action.getConfiguration();
+        ProgressListener listener2 = mock(ProgressListener.class);
+        BackupConfiguration config2 = action2.getConfiguration();
+        config2.setName("test2");
+
+        jBackup.addProgressListener(config.getName(), listener);
+        jBackup.addProgressListener(config2.getName(), listener2);
+        try {
+            Future<Void> future = action.executeAction(jBackup);
+            Future<Void> future2 = action2.executeAction(jBackup);
+            waitResult(future);
+            waitResult(future2);
+        } finally {
+            jBackup.shutdown(null);
+        }
+
+        verifyListenerNotifiedOnlyForConfig(listener, config);
+        verifyListenerNotifiedOnlyForConfig(listener2, config2);
+    }
+
+    private void verifyListenerNotifiedOnlyForConfig(ProgressListener listener, BackupConfiguration config) {
         verify(listener, times(1)).taskStarted(eq(config.getName()));
         verify(listener, times(1)).totalSizeComputed(eq(config.getName()), anyLong());
         verify(listener, times(1)).progress(eq(config.getName()), anyLong());
-        verify(listener, times(1)).taskFinished(eq(config.getName()), isNull(Throwable.class));
+        verify(listener, times(1)).taskFinished(eq(config.getName()), any(Throwable.class));
         verifyNoMoreInteractions(listener);
+    }
+
+    @Test
+    public void testRemoveProgressListener_backup() throws Throwable {
+        testRemoveProgressListener(new BackupAction());
+    }
+
+    @Test
+    public void testRemoveProgressListener_restore() throws Throwable {
+        testRemoveProgressListener(new RestoreAction());
+    }
+
+    private void testRemoveProgressListener(JBackupAction action) throws Throwable {
+        final JBackup jBackup = createMockJBackup();
+        final ProgressListener listener = mock(ProgressListener.class);
+        final BackupConfiguration config = action.getConfiguration();
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                jBackup.removeProgressListener(config.getName(), listener);
+                return null;
+            }
+        }).when(listener).taskStarted(anyString());
+
+        jBackup.addProgressListener(config.getName(), listener);
+        try {
+            Future<Void> future = action.executeAction(jBackup);
+            waitResult(future);
+        } finally {
+            jBackup.shutdown(null);
+        }
+
+        verify(listener, times(1)).taskStarted(eq(config.getName()));
+        verify(listener, never()).totalSizeComputed(eq(config.getName()), anyLong());
+        verify(listener, never()).progress(eq(config.getName()), anyLong());
+        verify(listener, never()).taskFinished(eq(config.getName()), any(Throwable.class));
     }
 
     public static final class CustomNameFileFilter extends NameFileFilter {
@@ -403,5 +485,66 @@ public class JBackupTest {
             }
         });
         return mockTask;
+    }
+
+    private abstract class JBackupAction {
+        protected final BackupConfiguration config;
+
+        private JBackupAction() throws IOException {
+            config = createConfiguration();
+        }
+
+        public abstract Future<Void> executeAction(JBackup jBackup) throws IOException;
+
+        public final BackupConfiguration getConfiguration() {
+            return config;
+        }
+    }
+
+    private class BackupAction extends JBackupAction {
+        private BackupAction() throws IOException {
+        }
+
+        public Future<Void> executeAction(JBackup jBackup) throws IOException {
+            return jBackup.backup(config);
+        }
+    }
+
+    private class RestoreAction extends JBackupAction {
+        private RestoreAction() throws IOException {
+        }
+
+        public Future<Void> executeAction(JBackup jBackup) throws IOException {
+            return jBackup.restore(config, null, null);
+        }
+    }
+
+    private JBackup createMockJBackup() {
+        return new JBackup() {
+            @Override
+            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, final TaskListener taskListener, Cancellable cancellable) {
+                return new RestoreTask(config, archive, targetDirectory, null, taskListener, cancellable) {
+                    @Override
+                    protected void execute() throws Exception {
+                        simulateTask(taskListener);
+                    }
+                };
+            }
+
+            @Override
+            BackupTask createBackupTask(BackupConfiguration config, final TaskListener taskListener, Cancellable cancellable) {
+                return new BackupTask(config, null, taskListener, cancellable) {
+                    @Override
+                    protected void execute() throws Exception {
+                        simulateTask(taskListener);
+                    }
+                };
+            }
+
+            private void simulateTask(TaskListener taskListener) {
+                taskListener.totalSizeComputed(1);
+                taskListener.progress(1);
+            }
+        };
     }
 }

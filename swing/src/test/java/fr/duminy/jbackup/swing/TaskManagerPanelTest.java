@@ -36,6 +36,7 @@ import org.junit.experimental.theories.Theory;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 
 import java.nio.file.Path;
 
@@ -93,8 +94,9 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
             runBackup(configs[i]);
         }
 
-        for (BackupConfiguration config : configs) {
-            verifyBackup(config);
+        for (int i = 0; i < configs.length; i++) {
+            boolean lastConfig = (i == (configs.length - 1));
+            verifyBackup(configs[i], lastConfig);
         }
     }
 
@@ -112,12 +114,12 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         BackupConfiguration config = createConfiguration();
         runBackup(config);
 
-        ProgressPanel pPanel = verifyBackup(config);
+        ProgressPanel pPanel = verifyBackup(config, true);
         notifyTaskFinished(config, error, pPanel);
 
         reset(jBackup);
         runBackup(config);
-        verifyBackup(config);
+        verifyBackup(config, true);
     }
 
     @Theory
@@ -133,8 +135,8 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         }
 
         for (int i = 0; i < configs.length; i++) {
-            BackupConfiguration config = configs[i];
-            verifyRestore(archives[i], targetDirectories[i], config);
+            boolean lastConfig = (i == (configs.length - 1));
+            verifyRestore(archives[i], targetDirectories[i], configs[i], lastConfig);
         }
     }
 
@@ -154,12 +156,12 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         BackupConfiguration config = createConfiguration();
         runRestore(archive, targetDirectory, config);
 
-        ProgressPanel pPanel = verifyRestore(archive, targetDirectory, config);
+        ProgressPanel pPanel = verifyRestore(archive, targetDirectory, config, true);
         notifyTaskFinished(config, error, pPanel);
 
         reset(jBackup);
         runRestore(archive, targetDirectory, config);
-        verifyRestore(archive, targetDirectory, config);
+        verifyRestore(archive, targetDirectory, config, true);
     }
 
     @Test
@@ -208,17 +210,31 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         return config;
     }
 
-    private ProgressPanel verifyRestore(Path archive, Path targetDirectory, BackupConfiguration config) {
+    private ProgressPanel verifyRestore(Path archive, Path targetDirectory, BackupConfiguration config, boolean lastConfig) {
         ProgressPanel pPanel = (ProgressPanel) window.panel(config.getName()).requireVisible().component();
         assertThatPanelHasTitle(pPanel, config.getName());
-        verify(jBackup, times(1)).restore(config, archive, targetDirectory, pPanel);
+
+        InOrder inOrder = inOrder(jBackup);
+        inOrder.verify(jBackup, times(1)).addProgressListener(config.getName(), pPanel);
+        inOrder.verify(jBackup, times(1)).restore(config, archive, targetDirectory);
+        if (lastConfig) {
+            inOrder.verifyNoMoreInteractions();
+        }
+
         return pPanel;
     }
 
-    private ProgressPanel verifyBackup(BackupConfiguration config) {
+    private ProgressPanel verifyBackup(BackupConfiguration config, boolean lastConfig) {
         ProgressPanel pPanel = (ProgressPanel) window.panel(config.getName()).requireVisible().component();
         assertThatPanelHasTitle(pPanel, config.getName());
-        verify(jBackup, times(1)).backup(config, pPanel);
+
+        InOrder inOrder = inOrder(jBackup);
+        inOrder.verify(jBackup, times(1)).addProgressListener(config.getName(), pPanel);
+        inOrder.verify(jBackup, times(1)).backup(config);
+        if (lastConfig) {
+            inOrder.verifyNoMoreInteractions();
+        }
+
         return pPanel;
     }
 

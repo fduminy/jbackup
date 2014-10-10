@@ -28,6 +28,7 @@ import fr.duminy.jbackup.core.task.TaskListener;
 import fr.duminy.jbackup.core.util.DefaultFileDeleter;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.apache.commons.lang3.event.EventListenerSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,8 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.*;
 
 /**
@@ -48,22 +51,32 @@ public class JBackup {
 
     private final Supplier<FileDeleter> deleterSupplier = createDeleterSupplier();
 
-    public Future<Void> backup(final BackupConfiguration config, final ProgressListener listener) {
+    private final Map<String, JBackupTaskListener> listeners = new HashMap<>();
+
+    public Future<Void> backup(final BackupConfiguration config) {
         return submitNewTask(new TaskFactory<BackupTask>() {
             @Override
             public BackupTask createTask(Cancellable cancellable) {
-                return createBackupTask(config, listener, cancellable);
+                return createBackupTask(config, getTaskListener(config.getName()), cancellable);
             }
         });
     }
 
-    public Future<Void> restore(final BackupConfiguration config, final Path archive, final Path targetDirectory, final ProgressListener listener) {
+    public Future<Void> restore(final BackupConfiguration config, final Path archive, final Path targetDirectory) {
         return submitNewTask(new TaskFactory<RestoreTask>() {
             @Override
             public RestoreTask createTask(Cancellable cancellable) {
-                return createRestoreTask(config, archive, targetDirectory, listener, cancellable);
+                return createRestoreTask(config, archive, targetDirectory, getTaskListener(config.getName()), cancellable);
             }
         });
+    }
+
+    public void addProgressListener(String configurationName, ProgressListener listener) {
+        getTaskListener(configurationName).addListener(listener);
+    }
+
+    public void removeProgressListener(String configurationName, ProgressListener listener) {
+        getTaskListener(configurationName).removeProgressListener(listener);
     }
 
     public Timer shutdown(final TerminationListener listener) throws InterruptedException {
@@ -94,13 +107,12 @@ public class JBackup {
         void terminated();
     }
 
-    BackupTask createBackupTask(BackupConfiguration config, ProgressListener listener, Cancellable cancellable) {
-        return new BackupTask(config, deleterSupplier, createTaskListener(config.getName(), listener), null);
+    BackupTask createBackupTask(BackupConfiguration config, TaskListener taskListener, Cancellable cancellable) {
+        return new BackupTask(config, deleterSupplier, taskListener, null);
     }
 
-    RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
-                                  ProgressListener listener, Cancellable cancellable) {
-        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, createTaskListener(config.getName(), listener), null);
+    RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
+        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, taskListener, null);
     }
 
     Supplier<FileDeleter> createDeleterSupplier() {
@@ -129,6 +141,15 @@ public class JBackup {
         T createTask(Cancellable cancellable);
     }
 
+    private JBackupTaskListener getTaskListener(String configurationName) {
+        JBackupTaskListener taskListener = listeners.get(configurationName);
+        if (taskListener == null) {
+            taskListener = new JBackupTaskListener(configurationName);
+            listeners.put(configurationName, taskListener);
+        }
+        return taskListener;
+    }
+
     private <T extends Callable<Void>> Future<Void> submitNewTask(TaskFactory<T> taskFactory) {
         JBackupCancellable cancellable = new JBackupCancellable();
         Future<Void> future = executor.submit(taskFactory.createTask(cancellable));
@@ -136,31 +157,40 @@ public class JBackup {
         return future;
     }
 
-    private TaskListener createTaskListener(final String configurationName, final ProgressListener listener) {
-        if (listener == null) {
-            return null;
+    private static class JBackupTaskListener implements TaskListener {
+        private final EventListenerSupport<ProgressListener> listeners = EventListenerSupport.create(ProgressListener.class);
+        private final String configurationName;
+
+        private JBackupTaskListener(String configurationName) {
+            this.configurationName = configurationName;
         }
 
-        return new TaskListener() {
-            @Override
-            public void taskStarted() {
-                listener.taskStarted(configurationName);
-            }
+        @Override
+        public void taskStarted() {
+            listeners.fire().taskStarted(configurationName);
+        }
 
-            @Override
-            public void totalSizeComputed(long totalSize) {
-                listener.totalSizeComputed(configurationName, totalSize);
-            }
+        @Override
+        public void totalSizeComputed(long totalSize) {
+            listeners.fire().totalSizeComputed(configurationName, totalSize);
+        }
 
-            @Override
-            public void progress(long totalReadBytes) {
-                listener.progress(configurationName, totalReadBytes);
-            }
+        @Override
+        public void progress(long totalReadBytes) {
+            listeners.fire().progress(configurationName, totalReadBytes);
+        }
 
-            @Override
-            public void taskFinished(Throwable error) {
-                listener.taskFinished(configurationName, error);
-            }
-        };
+        @Override
+        public void taskFinished(Throwable error) {
+            listeners.fire().taskFinished(configurationName, error);
+        }
+
+        public void addListener(ProgressListener listener) {
+            listeners.addListener(listener);
+        }
+
+        public void removeProgressListener(ProgressListener listener) {
+            listeners.removeListener(listener);
+        }
     }
 }

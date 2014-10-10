@@ -46,7 +46,8 @@ public class TaskManagerPanel extends JPanel implements BackupConfigurationActio
     public void backup(BackupConfiguration config) throws DuplicateTaskException {
         checkNoTaskIsAlreadyRunningFor(config);
         final ProgressPanel progressPanel = createProgressPanel(config);
-        Future<Void> task = jBackup.backup(config, progressPanel);
+        jBackup.addProgressListener(config.getName(), progressPanel);
+        Future<Void> task = jBackup.backup(config);
         progressPanel.setTask(task);
     }
 
@@ -54,7 +55,8 @@ public class TaskManagerPanel extends JPanel implements BackupConfigurationActio
     public void restore(BackupConfiguration config, Path archive, Path targetDirectory) throws DuplicateTaskException {
         checkNoTaskIsAlreadyRunningFor(config);
         final ProgressPanel progressPanel = createProgressPanel(config);
-        Future<Void> task = jBackup.restore(config, archive, targetDirectory, progressPanel);
+        jBackup.addProgressListener(config.getName(), progressPanel);
+        Future<Void> task = jBackup.restore(config, archive, targetDirectory);
         progressPanel.setTask(task);
     }
 
