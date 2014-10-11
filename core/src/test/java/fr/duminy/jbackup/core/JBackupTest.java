@@ -344,12 +344,16 @@ public class JBackupTest {
 
     @Test
     public void testAddProgressListener_backup_TwoListeners() throws Throwable {
-        testAddProgressListener_TwoListeners(new BackupAction(), new BackupAction());
+        BackupConfiguration config1 = ConfigurationManagerTest.createConfiguration("config1");
+        BackupConfiguration config2 = ConfigurationManagerTest.createConfiguration("config2");
+        testAddProgressListener_TwoListeners(new BackupAction(config1), new BackupAction(config2));
     }
 
     @Test
     public void testAddProgressListener_restore_TwoListeners() throws Throwable {
-        testAddProgressListener_TwoListeners(new RestoreAction(), new RestoreAction());
+        BackupConfiguration config1 = ConfigurationManagerTest.createConfiguration("config1");
+        BackupConfiguration config2 = ConfigurationManagerTest.createConfiguration("config2");
+        testAddProgressListener_TwoListeners(new RestoreAction(config1), new RestoreAction(config2));
     }
 
     private void testAddProgressListener_TwoListeners(JBackupAction action, JBackupAction action2) throws Throwable {
@@ -358,7 +362,6 @@ public class JBackupTest {
         BackupConfiguration config = action.getConfiguration();
         ProgressListener listener2 = mock(ProgressListener.class);
         BackupConfiguration config2 = action2.getConfiguration();
-        config2.setName("test2");
 
         jBackup.addProgressListener(config.getName(), listener);
         jBackup.addProgressListener(config2.getName(), listener2);
@@ -491,7 +494,11 @@ public class JBackupTest {
         protected final BackupConfiguration config;
 
         private JBackupAction() throws IOException {
-            config = createConfiguration();
+            this(createConfiguration());
+        }
+
+        private JBackupAction(BackupConfiguration config) throws IOException {
+            this.config = config;
         }
 
         public abstract Future<Void> executeAction(JBackup jBackup) throws IOException;
@@ -505,6 +512,10 @@ public class JBackupTest {
         private BackupAction() throws IOException {
         }
 
+        private BackupAction(BackupConfiguration config) throws IOException {
+            super(config);
+        }
+
         public Future<Void> executeAction(JBackup jBackup) throws IOException {
             return jBackup.backup(config);
         }
@@ -512,6 +523,10 @@ public class JBackupTest {
 
     private class RestoreAction extends JBackupAction {
         private RestoreAction() throws IOException {
+        }
+
+        private RestoreAction(BackupConfiguration config) throws IOException {
+            super(config);
         }
 
         public Future<Void> executeAction(JBackup jBackup) throws IOException {

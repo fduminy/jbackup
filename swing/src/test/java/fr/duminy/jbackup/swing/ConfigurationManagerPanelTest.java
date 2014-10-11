@@ -387,17 +387,13 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         }
     }
 
-    private List<BackupConfiguration> createConfigurations(int nbConfigurations) {
+    private List<BackupConfiguration> createConfigurations(int nbConfigurations) throws IOException {
         List<BackupConfiguration> configs = new ArrayList<>();
+        Path targetDirectory = tempFolder.newFolder("archiveDirectory").toPath();
         for (int i = 0; i < nbConfigurations; i++) {
-            configs.add(createConfiguration(i));
+            configs.add(ConfigurationManagerTest.createConfiguration("name" + i, targetDirectory));
         }
         return configs;
-    }
-
-    private BackupConfiguration createConfiguration(int i) {
-        Path targetDirectory = tempFolder.newFolder("archiveDirectory").toPath();
-        return ConfigurationManagerTest.createConfiguration("name" + i, targetDirectory);
     }
 
     private void assertFormValues(List<BackupConfiguration> configs) {

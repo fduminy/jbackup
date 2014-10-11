@@ -111,7 +111,7 @@ abstract public class AbstractArchivingTest {
         return tempFolder.newFile("archive.mock").toPath();
     }
 
-    Path createBaseDirectory() {
+    Path createBaseDirectory() throws IOException {
         return tempFolder.newFolder("baseDirectory").toPath().toAbsolutePath();
     }
 
