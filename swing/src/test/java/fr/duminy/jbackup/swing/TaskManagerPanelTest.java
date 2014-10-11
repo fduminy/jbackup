@@ -20,22 +20,11 @@
  */
 package fr.duminy.jbackup.swing;
 
-import com.google.common.base.Supplier;
-import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.JBackup;
-import fr.duminy.jbackup.core.util.LogRule;
-import org.fest.swing.edt.GuiActionRunner;
-import org.fest.swing.edt.GuiTask;
-import org.fest.swing.exception.UnexpectedException;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 
 import java.nio.file.Path;
@@ -47,8 +36,7 @@ import static org.mockito.Mockito.*;
 /**
  * Tests for class {@link TaskManagerPanel}.
  */
-@RunWith(Theories.class)
-public class TaskManagerPanelTest extends AbstractSwingTest {
+public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel, TaskManagerPanel> {
     @DataPoint
     public static final int INIT_NO_CONFIG = 0;
     @DataPoint
@@ -56,34 +44,9 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
     @DataPoint
     public static final int INIT_2_CONFIGS = 2;
 
-    @Rule
-    public final LogRule logRule = new LogRule();
-
-    @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
-    private JBackup jBackup;
-    private TaskManagerPanel panel;
-
     @Override
-    public void onSetUp() {
-        super.onSetUp();
-
-        jBackup = mock(JBackup.class);
-
-        try {
-            panel = buildAndShowWindow(new Supplier<TaskManagerPanel>() {
-                @Override
-                public TaskManagerPanel get() {
-                    return new TaskManagerPanel(jBackup);
-                }
-            });
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    protected TaskManagerPanel createComponent(JBackup jBackup) {
+        return new TaskManagerPanel(jBackup);
     }
 
     @Theory
@@ -117,7 +80,7 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         ProgressPanel pPanel = verifyBackup(config, true);
         notifyTaskFinished(config, error, pPanel);
 
-        reset(jBackup);
+        reset(getJBackup());
         runBackup(config);
         verifyBackup(config, true);
     }
@@ -159,7 +122,7 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         ProgressPanel pPanel = verifyRestore(archive, targetDirectory, config, true);
         notifyTaskFinished(config, error, pPanel);
 
-        reset(jBackup);
+        reset(getJBackup());
         runRestore(archive, targetDirectory, config);
         verifyRestore(archive, targetDirectory, config, true);
     }
@@ -203,20 +166,13 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         runRestore(archive, targetDirectory, config);
     }
 
-    private BackupConfiguration createConfigurationForDuplicateTaskTest() throws Exception {
-        BackupConfiguration config = createConfiguration();
-        thrown.expect(DuplicateTaskException.class);
-        thrown.expectMessage("There is already a task running for configuration '" + config.getName() + "'");
-        return config;
-    }
-
-    private ProgressPanel verifyRestore(Path archive, Path targetDirectory, BackupConfiguration config, boolean lastConfig) {
-        ProgressPanel pPanel = (ProgressPanel) window.panel(config.getName()).requireVisible().component();
+    protected final ProgressPanel verifyRestore(Path archive, Path targetDirectory, BackupConfiguration config, boolean lastConfig) {
+        ProgressPanel pPanel = findComponentFor(config);
         assertThatPanelHasTitle(pPanel, config.getName());
 
-        InOrder inOrder = inOrder(jBackup);
-        inOrder.verify(jBackup, times(1)).addProgressListener(config.getName(), pPanel);
-        inOrder.verify(jBackup, times(1)).restore(config, archive, targetDirectory);
+        InOrder inOrder = inOrder(getJBackup());
+        inOrder.verify(getJBackup(), times(1)).addProgressListener(config.getName(), pPanel);
+        inOrder.verify(getJBackup(), times(1)).restore(config, archive, targetDirectory);
         if (lastConfig) {
             inOrder.verifyNoMoreInteractions();
         }
@@ -224,13 +180,13 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         return pPanel;
     }
 
-    private ProgressPanel verifyBackup(BackupConfiguration config, boolean lastConfig) {
-        ProgressPanel pPanel = (ProgressPanel) window.panel(config.getName()).requireVisible().component();
+    protected final ProgressPanel verifyBackup(BackupConfiguration config, boolean lastConfig) {
+        ProgressPanel pPanel = findComponentFor(config);
         assertThatPanelHasTitle(pPanel, config.getName());
 
-        InOrder inOrder = inOrder(jBackup);
-        inOrder.verify(jBackup, times(1)).addProgressListener(config.getName(), pPanel);
-        inOrder.verify(jBackup, times(1)).backup(config);
+        InOrder inOrder = inOrder(getJBackup());
+        inOrder.verify(getJBackup(), times(1)).addProgressListener(config.getName(), pPanel);
+        inOrder.verify(getJBackup(), times(1)).backup(config);
         if (lastConfig) {
             inOrder.verifyNoMoreInteractions();
         }
@@ -238,35 +194,7 @@ public class TaskManagerPanelTest extends AbstractSwingTest {
         return pPanel;
     }
 
-    private void runBackup(final BackupConfiguration config) throws DuplicateTaskException {
-        try {
-            GuiActionRunner.execute(new GuiTask() {
-                protected void executeInEDT() throws DuplicateTaskException {
-                    panel.backup(config);
-                }
-            });
-        } catch (UnexpectedException e) {
-            throw (DuplicateTaskException) e.getCause();
-        }
-    }
-
-    private void runRestore(final Path archive, final Path targetDirectory, final BackupConfiguration config) throws DuplicateTaskException {
-        try {
-            GuiActionRunner.execute(new GuiTask() {
-                protected void executeInEDT() throws DuplicateTaskException {
-                    panel.restore(config, archive, targetDirectory);
-                }
-            });
-        } catch (UnexpectedException e) {
-            throw (DuplicateTaskException) e.getCause();
-        }
-    }
-
-    private void notifyTaskFinished(final BackupConfiguration config, final Exception error, final ProgressPanel pPanel) {
-        GuiActionRunner.execute(new GuiTask() {
-            protected void executeInEDT() throws DuplicateTaskException {
-                pPanel.taskFinished(config.getName(), error);
-            }
-        });
+    private ProgressPanel findComponentFor(BackupConfiguration config) {
+        return (ProgressPanel) window.panel(config.getName()).requireVisible().component();
     }
 }

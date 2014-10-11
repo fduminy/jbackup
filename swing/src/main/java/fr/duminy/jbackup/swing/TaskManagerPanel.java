@@ -23,47 +23,26 @@ package fr.duminy.jbackup.swing;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.JBackup;
 
-import javax.swing.*;
 import java.awt.*;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Future;
 
 /**
  * This is the panel that show current tasks.
  */
-public class TaskManagerPanel extends JPanel implements BackupConfigurationActions {
-    private final JBackup jBackup;
-    private final Map<String, ProgressPanel> taskPanels = new HashMap<>();
-
+public class TaskManagerPanel extends TaskManagerComponent<ProgressPanel> {
     public TaskManagerPanel(JBackup jBackup) {
-        super(new GridLayout(1, 1));
-        this.jBackup = jBackup;
+        super(new GridLayout(1, 1), jBackup);
     }
 
     @Override
-    public void backup(BackupConfiguration config) throws DuplicateTaskException {
-        checkNoTaskIsAlreadyRunningFor(config);
-        final ProgressPanel progressPanel = createProgressPanel(config);
-        jBackup.addProgressListener(config.getName(), progressPanel);
-        Future<Void> task = jBackup.backup(config);
-        progressPanel.setTask(task);
+    protected void associate(ProgressPanel progressListener, Future task) {
+        progressListener.setTask(task);
     }
 
     @Override
-    public void restore(BackupConfiguration config, Path archive, Path targetDirectory) throws DuplicateTaskException {
-        checkNoTaskIsAlreadyRunningFor(config);
-        final ProgressPanel progressPanel = createProgressPanel(config);
-        jBackup.addProgressListener(config.getName(), progressPanel);
-        Future<Void> task = jBackup.restore(config, archive, targetDirectory);
-        progressPanel.setTask(task);
-    }
-
-    private ProgressPanel createProgressPanel(BackupConfiguration config) {
+    protected ProgressPanel createProgressListener(BackupConfiguration config) {
         ProgressPanel pPanel = new ProgressPanel(config.getName());
         pPanel.setName(config.getName());
-        taskPanels.put(config.getName(), pPanel);
 
         GridLayout layout = (GridLayout) getLayout();
         if (getComponentCount() > 0) {
@@ -75,15 +54,13 @@ public class TaskManagerPanel extends JPanel implements BackupConfigurationActio
         return pPanel;
     }
 
-    private void checkNoTaskIsAlreadyRunningFor(BackupConfiguration config) throws DuplicateTaskException {
-        ProgressPanel pPanel = taskPanels.get(config.getName());
-        if (pPanel != null) {
-            if (pPanel.isFinished()) {
-                taskPanels.remove(config.getName());
-                remove(pPanel);
-            } else {
-                throw new DuplicateTaskException(config.getName());
-            }
+    @Override
+    protected boolean removeIfFinished(ProgressPanel progressListener, BackupConfiguration config) {
+        boolean finished = false;
+        if (progressListener.isFinished()) {
+            finished = true;
+            remove(progressListener);
         }
+        return finished;
     }
 }
