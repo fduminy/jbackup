@@ -108,11 +108,11 @@ public class JBackup {
     }
 
     BackupTask createBackupTask(BackupConfiguration config, TaskListener taskListener, Cancellable cancellable) {
-        return new BackupTask(config, deleterSupplier, taskListener, null);
+        return new BackupTask(config, deleterSupplier, taskListener, cancellable);
     }
 
     RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
-        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, taskListener, null);
+        return new RestoreTask(config, archive, targetDirectory, deleterSupplier, taskListener, cancellable);
     }
 
     Supplier<FileDeleter> createDeleterSupplier() {

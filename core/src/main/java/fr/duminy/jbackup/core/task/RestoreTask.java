@@ -33,15 +33,13 @@ public class RestoreTask extends Task {
     private final Path archive;
     private final Path targetDirectory;
     private final Supplier<FileDeleter> deleterSupplier;
-    private final Cancellable cancellable;
 
     public RestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
                        Supplier<FileDeleter> deleterSupplier, TaskListener listener, Cancellable cancellable) {
-        super(listener, config);
+        super(listener, config, cancellable);
         this.archive = archive;
         this.deleterSupplier = deleterSupplier;
         this.targetDirectory = targetDirectory;
-        this.cancellable = cancellable;
     }
 
     @Override

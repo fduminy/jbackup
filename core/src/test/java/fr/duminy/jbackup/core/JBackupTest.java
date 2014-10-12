@@ -26,6 +26,7 @@ import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
 import fr.duminy.jbackup.core.task.TaskListener;
+import fr.duminy.jbackup.core.task.TaskTestUtils;
 import fr.duminy.jbackup.core.util.LogRule;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -137,6 +138,19 @@ public class JBackupTest {
     }
 
     @Test
+    public void testCreateBackupTask() throws Throwable {
+        JBackup jBackup = new JBackup();
+        BackupConfiguration config = mock(BackupConfiguration.class);
+        TaskListener taskListener = mock(TaskListener.class);
+        Cancellable cancellable = mock(Cancellable.class);
+
+        BackupTask task = jBackup.createBackupTask(config, taskListener, cancellable);
+
+        assertThat(task).as("returned task").isNotNull();
+        assertThat(TaskTestUtils.getCancellable(task)).isSameAs(cancellable);
+    }
+
+    @Test
     public void testBackup_withCancellable() throws Throwable {
         // prepare test
         final BackupConfiguration config = createConfiguration();
@@ -222,6 +236,21 @@ public class JBackupTest {
             verify(jBackup, times(1)).addProgressListener(eq(config.getName()), eq(listener));
         }
         verifyNoMoreInteractions(mockBackupTask, jBackup);
+    }
+
+    @Test
+    public void testCreateRestoreTask() throws Throwable {
+        JBackup jBackup = new JBackup();
+        BackupConfiguration config = mock(BackupConfiguration.class);
+        TaskListener taskListener = mock(TaskListener.class);
+        Cancellable cancellable = mock(Cancellable.class);
+        Path archive = mock(Path.class);
+        Path targetDirectory = mock(Path.class);
+
+        RestoreTask task = jBackup.createRestoreTask(config, archive, targetDirectory, taskListener, cancellable);
+
+        assertThat(task).as("returned task").isNotNull();
+        assertThat(TaskTestUtils.getCancellable(task)).isSameAs(cancellable);
     }
 
     @Test

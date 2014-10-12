@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import static fr.duminy.jbackup.core.task.BackupTaskTest.createDeleterSupplier;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -60,6 +61,7 @@ public class RestoreTaskTest extends AbstractTaskTest {
         verify(mockDecompressor, times(1)).decompress(eq(archive), eq(targetDirectory),
                 isNull(TaskListener.class), eq(mockCancellable));
         verifyNoMoreInteractions(mockDecompressor);
+        assertThat(TaskTestUtils.getCancellable(task)).isSameAs(mockCancellable);
     }
 
     @Theory

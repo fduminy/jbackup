@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static fr.duminy.jbackup.core.matchers.Matchers.eq;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.*;
 
@@ -83,6 +84,7 @@ public class BackupTaskTest extends AbstractTaskTest {
                 fr.duminy.jbackup.core.matchers.Matchers.eq(archiveParameters, expectedArchive),
                 anyListOf(SourceWithPath.class), isNull(TaskListener.class), eq(cancellable));
         inOrder.verifyNoMoreInteractions();
+        assertThat(TaskTestUtils.getCancellable(task)).isSameAs(cancellable);
     }
 
     @Theory

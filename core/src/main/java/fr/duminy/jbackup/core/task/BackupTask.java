@@ -37,13 +37,11 @@ import java.util.Objects;
 
 public class BackupTask extends Task {
     private final Supplier<FileDeleter> deleterSupplier;
-    private final Cancellable cancellable;
 
     public BackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,
                       TaskListener listener, Cancellable cancellable) {
-        super(listener, config);
+        super(listener, config, cancellable);
         this.deleterSupplier = deleterSupplier;
-        this.cancellable = cancellable;
     }
 
     @Override
