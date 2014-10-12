@@ -48,7 +48,7 @@ public class BackupTaskTest extends AbstractTaskTest {
     public void testCall(TaskListener listener) throws Throwable {
         final ArchiveParameters archiveParameters = createArchiveParameters();
 
-        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, null);
+        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, null, null);
 
         if (listener != null) {
             InOrder inOrder = inOrder(listener);
@@ -113,22 +113,31 @@ public class BackupTaskTest extends AbstractTaskTest {
 
         final ArchiveParameters archiveParameters = createArchiveParameters();
 
-        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, exception);
+        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, exception, null);
 
         verify(listener).taskStarted();
         verify(listener).taskFinished(eq(exception));
         verifyNoMoreInteractions(listener);
     }
 
+    @Test
+    public void testCall_deleteArchiveOnCancel() throws Throwable {
+        Cancellable cancellable = mock(Cancellable.class);
+        when(cancellable.isCancelled()).thenReturn(true);
+        ArchiveParameters archiveParameters = createArchiveParameters();
+
+        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, null, null, cancellable);
+    }
+
     private void testCall(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, TaskListener listener,
-                          Exception exception) throws Throwable {
+                          Exception exception, Cancellable cancellable) throws Throwable {
         // prepare test
         final FileDeleter mockDeleter = mock(FileDeleter.class);
         final BackupConfiguration config = toBackupConfiguration(mockFactory, archiveParameters);
         final Compressor mockCompressor = mock(Compressor.class);
         final FileCollector mockFileCollector = mock(FileCollector.class);
 
-        TestableBackupTask task = new TestableBackupTask(config, createDeleterSupplier(mockDeleter), listener, null);
+        TestableBackupTask task = new TestableBackupTask(config, createDeleterSupplier(mockDeleter), listener, cancellable);
         task.setMockCompressor(mockCompressor);
         task.setMockFileCollector(mockFileCollector);
         Path expectedArchive = getExpectedArchive(config, task);
@@ -147,7 +156,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         } finally {
             // assertions
             InOrder inOrder = inOrder(mockDeleter, mockCompressor, mockFileCollector);
-            if (exception != null) {
+            if ((cancellable != null) || (exception != null)) {
                 inOrder.verify(mockDeleter, times(1)).registerFile(org.mockito.Matchers.eq(expectedArchive));
                 inOrder.verify(mockDeleter, times(1)).deleteAll();
             } else {

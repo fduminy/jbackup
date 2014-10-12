@@ -61,5 +61,9 @@ abstract class Task implements Callable<Void> {
         return null;
     }
 
+    protected final boolean isCancelled() {
+        return (cancellable != null) && cancellable.isCancelled();
+    }
+
     abstract protected void execute() throws Exception;
 }

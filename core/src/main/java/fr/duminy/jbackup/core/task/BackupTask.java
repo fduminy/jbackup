@@ -64,15 +64,18 @@ public class BackupTask extends Task {
         }
 
         FileDeleter deleter = deleterSupplier.get();
+        boolean taskComplete = false;
         try {
             deleter.registerFile(archiveParameters.getArchive());
 
             List<SourceWithPath> collectedFiles = new ArrayList<>();
             createFileCollector().collectFiles(collectedFiles, archiveParameters, listener, cancellable);
             compress(factory, archiveParameters, collectedFiles, cancellable);
-        } catch (Exception e) {
-            deleter.deleteAll();
-            throw e;
+            taskComplete = !isCancelled();
+        } finally {
+            if (!taskComplete) {
+                deleter.deleteAll();
+            }
         }
     }
 

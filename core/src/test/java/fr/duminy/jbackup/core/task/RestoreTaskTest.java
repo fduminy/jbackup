@@ -66,7 +66,7 @@ public class RestoreTaskTest extends AbstractTaskTest {
 
     @Theory
     public void testCall(TaskListener listener) throws Throwable {
-        testCall(null, listener);
+        testCall(null, listener, null);
     }
 
     @Theory
@@ -75,10 +75,18 @@ public class RestoreTaskTest extends AbstractTaskTest {
         thrown.expect(exception.getClass());
         thrown.expectMessage(exception.getMessage());
 
-        testCall(exception, listener);
+        testCall(exception, listener, null);
     }
 
-    private void testCall(Exception exception, TaskListener listener) throws Throwable {
+    @Test
+    public void testCall_deleteFilesOnCancel() throws Throwable {
+        Cancellable cancellable = mock(Cancellable.class);
+        when(cancellable.isCancelled()).thenReturn(true);
+
+        testCall(null, null, cancellable);
+    }
+
+    private void testCall(Exception exception, TaskListener listener, Cancellable cancellable) throws Throwable {
         // prepare test
         Path archive = ZipArchiveFactoryTest.createArchive(tempFolder.newFolder().toPath());
         Path targetDirectory = tempFolder.newFolder("targetDirectory").toPath();
@@ -91,7 +99,7 @@ public class RestoreTaskTest extends AbstractTaskTest {
         BackupConfiguration config = createConfiguration(targetDirectory);
 
         TestableRestoreTask task = new TestableRestoreTask(config, archive, targetDirectory,
-                createDeleterSupplier(mockDeleter), listener, null);
+                createDeleterSupplier(mockDeleter), listener, cancellable);
         task.setMockDecompressor(mockDecompressor);
 
         // test
@@ -102,10 +110,10 @@ public class RestoreTaskTest extends AbstractTaskTest {
         } finally {
             // assertions
             verify(mockDeleter, times(1)).registerDirectory(eq(targetDirectory));
-            if (exception != null) {
+            if ((cancellable != null) || (exception != null)) {
                 verify(mockDeleter, times(1)).deleteAll();
             }
-            verify(mockDecompressor).decompress(eq(archive), eq(targetDirectory), eq(listener), isNull(Cancellable.class));
+            verify(mockDecompressor).decompress(eq(archive), eq(targetDirectory), eq(listener), eq(cancellable));
             verifyNoMoreInteractions(mockDeleter, mockDecompressor);
         }
     }

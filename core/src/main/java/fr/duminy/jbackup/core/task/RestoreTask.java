@@ -45,14 +45,17 @@ public class RestoreTask extends Task {
     @Override
     protected void execute() throws Exception {
         FileDeleter deleter = deleterSupplier.get();
+        boolean taskComplete = false;
         try {
             deleter.registerDirectory(targetDirectory);
 
             ArchiveFactory factory = config.getArchiveFactory();
             createDecompressor(factory).decompress(archive, targetDirectory, listener, cancellable);
-        } catch (Exception e) {
-            deleter.deleteAll();
-            throw e;
+            taskComplete = !isCancelled();
+        } finally {
+            if (!taskComplete) {
+                deleter.deleteAll();
+            }
         }
     }
 
