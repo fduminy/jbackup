@@ -25,7 +25,6 @@ import fr.duminy.jbackup.core.task.TaskListener;
 import fr.duminy.jbackup.core.util.LogRule;
 import org.junit.Rule;
 import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
@@ -52,19 +51,6 @@ import static org.mockito.Mockito.*;
 abstract public class AbstractArchivingTest {
     @Rule
     public final LogRule logRule = new LogRule();
-
-    @DataPoint
-    public static final EntryType RELATIVE = EntryType.RELATIVE;
-    @DataPoint
-    public static final EntryType ABSOLUTE = EntryType.ABSOLUTE;
-
-    @DataPoint
-    public static final boolean NO_LISTENER = false;
-    @DataPoint
-    public static final boolean LISTENER = true;
-
-    @DataPoints
-    public static final ErrorType[] ERROR_TYPES = ErrorType.values();
 
     @DataPoint
     public static final Data SRC_FILE_WITHOUT_FILTER = group(withoutFilter().andSourceFile("file1").acceptAll());
