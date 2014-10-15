@@ -24,6 +24,6 @@ import fr.duminy.jbackup.core.Cancellable;
 
 public class TaskTestUtils {
     public static Cancellable getCancellable(Task task) {
-        return task.cancellable;
+        return ((AbstractTask) task).cancellable;
     }
 }

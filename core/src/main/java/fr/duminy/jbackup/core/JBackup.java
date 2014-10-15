@@ -24,6 +24,7 @@ import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
+import fr.duminy.jbackup.core.task.Task;
 import fr.duminy.jbackup.core.task.TaskListener;
 import fr.duminy.jbackup.core.util.DefaultFileDeleter;
 import fr.duminy.jbackup.core.util.FileDeleter;
@@ -54,18 +55,18 @@ public class JBackup {
     private final Map<String, JBackupTaskListener> listeners = new HashMap<>();
 
     public Future<Void> backup(final BackupConfiguration config) {
-        return submitNewTask(new TaskFactory<BackupTask>() {
+        return submitNewTask(new TaskFactory<Task>() {
             @Override
-            public BackupTask createTask(Cancellable cancellable) {
+            public Task createTask(Cancellable cancellable) {
                 return createBackupTask(config, getTaskListener(config.getName()), cancellable);
             }
         });
     }
 
     public Future<Void> restore(final BackupConfiguration config, final Path archive, final Path targetDirectory) {
-        return submitNewTask(new TaskFactory<RestoreTask>() {
+        return submitNewTask(new TaskFactory<Task>() {
             @Override
-            public RestoreTask createTask(Cancellable cancellable) {
+            public Task createTask(Cancellable cancellable) {
                 return createRestoreTask(config, archive, targetDirectory, getTaskListener(config.getName()), cancellable);
             }
         });
@@ -107,11 +108,11 @@ public class JBackup {
         void terminated();
     }
 
-    BackupTask createBackupTask(BackupConfiguration config, TaskListener taskListener, Cancellable cancellable) {
+    Task createBackupTask(BackupConfiguration config, TaskListener taskListener, Cancellable cancellable) {
         return new BackupTask(config, deleterSupplier, taskListener, cancellable);
     }
 
-    RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
+    Task createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
         return new RestoreTask(config, archive, targetDirectory, deleterSupplier, taskListener, cancellable);
     }
 

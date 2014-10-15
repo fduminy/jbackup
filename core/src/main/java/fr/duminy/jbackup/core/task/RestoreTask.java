@@ -29,7 +29,7 @@ import fr.duminy.jbackup.core.util.FileDeleter;
 
 import java.nio.file.Path;
 
-public class RestoreTask extends Task {
+public class RestoreTask extends AbstractTask {
     private final Path archive;
     private final Path targetDirectory;
     private final Supplier<FileDeleter> deleterSupplier;

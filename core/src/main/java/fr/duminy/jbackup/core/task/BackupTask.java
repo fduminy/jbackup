@@ -35,7 +35,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
 
-public class BackupTask extends Task {
+public class BackupTask extends AbstractTask {
     private final Supplier<FileDeleter> deleterSupplier;
 
     public BackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,

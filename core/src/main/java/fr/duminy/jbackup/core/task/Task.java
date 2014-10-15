@@ -20,50 +20,9 @@
  */
 package fr.duminy.jbackup.core.task;
 
-import fr.duminy.jbackup.core.BackupConfiguration;
-import fr.duminy.jbackup.core.Cancellable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.Callable;
 
-abstract class Task implements Callable<Void> {
-    private static Logger LOG = LoggerFactory.getLogger(Task.class);
-
-    protected final TaskListener listener;
-    protected final BackupConfiguration config;
-    protected final Cancellable cancellable;
-
-    Task(TaskListener listener, BackupConfiguration config, Cancellable cancellable) {
-        this.listener = listener;
-        this.config = config;
-        this.cancellable = cancellable;
-    }
-
+public interface Task extends Callable<Void> {
     @Override
-    public final Void call() throws Exception {
-        Throwable error = null;
-        try {
-            if (listener != null) {
-                listener.taskStarted();
-            }
-            execute();
-        } catch (Exception e) {
-            LOG.error("Error in " + Task.this.getClass().getSimpleName() + " for configuration '" + config.getName() + "'", e);
-            error = e;
-            throw e;
-        } finally {
-            if (listener != null) {
-                listener.taskFinished(error);
-            }
-        }
-
-        return null;
-    }
-
-    protected final boolean isCancelled() {
-        return (cancellable != null) && cancellable.isCancelled();
-    }
-
-    abstract protected void execute() throws Exception;
+    public Void call() throws Exception;
 }
