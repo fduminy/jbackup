@@ -20,6 +20,8 @@
  */
 package fr.duminy.jbackup.core;
 
+import com.google.common.base.Supplier;
+import fr.duminy.jbackup.core.util.FileDeleter;
 import fr.duminy.jbackup.core.util.PathUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.rules.TemporaryFolder;
@@ -28,6 +30,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+
+import static org.mockito.Mockito.mock;
 
 public class TestUtils {
     public static Path createFile(Path file, long size) throws IOException {
@@ -59,5 +63,14 @@ public class TestUtils {
         Path file = source.resolve("file");
         createFile(file, 10);
         return source;
+    }
+
+    public static Supplier<FileDeleter> newMockSupplier() {
+        return new Supplier<FileDeleter>() {
+            @Override
+            public FileDeleter get() {
+                return mock(FileDeleter.class);
+            }
+        };
     }
 }

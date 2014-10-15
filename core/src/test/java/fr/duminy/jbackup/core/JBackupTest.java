@@ -24,6 +24,7 @@ import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.task.*;
+import fr.duminy.jbackup.core.util.FileDeleter;
 import fr.duminy.jbackup.core.util.LogRule;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -152,12 +153,12 @@ public class JBackupTest {
         // prepare test
         final BackupConfiguration config = createConfiguration();
         final MutableBoolean taskStarted = new MutableBoolean(false);
-        final BackupTask mockBackupTask = createAlwaysWaitingTask(BackupTask.class, taskStarted);
+        final Task mockBackupTask = createAlwaysWaitingTask(Task.class, taskStarted);
         final MutableObject<Cancellable> actualCancellable = new MutableObject<>();
         final MutableObject<TaskListener> actualListener = new MutableObject<>();
         JBackup jBackup = spy(new JBackup() {
             @Override
-            BackupTask createBackupTask(BackupConfiguration config, TaskListener listener, Cancellable cancellable) {
+            Task createBackupTask(BackupConfiguration config, TaskListener listener, Cancellable cancellable) {
                 actualListener.setValue(listener);
                 actualCancellable.setValue(cancellable);
                 return mockBackupTask;
@@ -205,11 +206,11 @@ public class JBackupTest {
 
     private void testBackup(ProgressListener listener) throws Throwable {
         final BackupConfiguration config = createConfiguration();
-        final BackupTask mockBackupTask = mock(BackupTask.class);
+        final Task mockBackupTask = mock(Task.class);
         final MutableObject<TaskListener> actualTaskListener = new MutableObject<>();
         JBackup jBackup = spy(new JBackup() {
             @Override
-            BackupTask createBackupTask(BackupConfiguration config, TaskListener listener, Cancellable cancellable) {
+            Task createBackupTask(BackupConfiguration config, TaskListener listener, Cancellable cancellable) {
                 actualTaskListener.setValue(listener);
                 return mockBackupTask;
             }
@@ -257,12 +258,12 @@ public class JBackupTest {
         final Path targetDirectory = tempFolder.newFolder().toPath();
         final BackupConfiguration config = createConfiguration();
         final MutableBoolean taskStarted = new MutableBoolean(false);
-        final RestoreTask mockRestoreTask = createAlwaysWaitingTask(RestoreTask.class, taskStarted);
+        final Task mockRestoreTask = createAlwaysWaitingTask(Task.class, taskStarted);
         final MutableObject<Cancellable> actualCancellable = new MutableObject<>();
         final MutableObject<TaskListener> actualListener = new MutableObject<>();
         JBackup jBackup = spy(new JBackup() {
             @Override
-            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener listener, Cancellable cancellable) {
+            Task createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener listener, Cancellable cancellable) {
                 actualListener.setValue(listener);
                 actualCancellable.setValue(cancellable);
                 return mockRestoreTask;
@@ -312,11 +313,11 @@ public class JBackupTest {
         final Path archive = tempFolder.newFolder().toPath().resolve("archive.zip");
         final Path targetDirectory = tempFolder.newFolder().toPath();
         final BackupConfiguration config = createConfiguration();
-        final RestoreTask mockRestoreTask = mock(RestoreTask.class);
+        final Task mockRestoreTask = mock(Task.class);
         final MutableObject<TaskListener> actualTaskListener = new MutableObject<>();
         JBackup jBackup = spy(new JBackup() {
             @Override
-            RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
+            Task createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
                 actualTaskListener.setValue(taskListener);
                 return mockRestoreTask;
             }
@@ -564,9 +565,9 @@ public class JBackupTest {
         return new JBackup() {
             @Override
             RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, final TaskListener taskListener, Cancellable cancellable) {
-                return new RestoreTask(config, archive, targetDirectory, null, taskListener, cancellable) {
+                return new RestoreTask(config, archive, targetDirectory, TestUtils.newMockSupplier(), taskListener, cancellable) {
                     @Override
-                    protected void execute() throws Exception {
+                    protected void executeTask(FileDeleter deleter) throws Exception {
                         simulateTask(taskListener);
                     }
                 };
@@ -574,9 +575,9 @@ public class JBackupTest {
 
             @Override
             BackupTask createBackupTask(BackupConfiguration config, final TaskListener taskListener, Cancellable cancellable) {
-                return new BackupTask(config, null, taskListener, cancellable) {
+                return new BackupTask(config, TestUtils.newMockSupplier(), taskListener, cancellable) {
                     @Override
-                    protected void execute() throws Exception {
+                    protected void executeTask(FileDeleter deleter) throws Exception {
                         simulateTask(taskListener);
                     }
                 };

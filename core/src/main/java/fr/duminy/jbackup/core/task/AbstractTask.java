@@ -25,6 +25,8 @@ import fr.duminy.jbackup.core.Cancellable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
+
 abstract class AbstractTask implements Task {
     private static Logger LOG = LoggerFactory.getLogger(AbstractTask.class);
 
@@ -33,6 +35,7 @@ abstract class AbstractTask implements Task {
     protected final Cancellable cancellable;
 
     AbstractTask(TaskListener listener, BackupConfiguration config, Cancellable cancellable) {
+        Objects.requireNonNull(config, "config is null");
         this.listener = listener;
         this.config = config;
         this.cancellable = cancellable;
@@ -47,7 +50,7 @@ abstract class AbstractTask implements Task {
             }
             execute();
         } catch (Exception e) {
-            LOG.error("Error in " + AbstractTask.this.getClass().getSimpleName() + " for configuration '" + config.getName() + "'", e);
+            LOG.error("Error in " + getClass().getSimpleName() + " for configuration '" + config.getName() + "'", e);
             error = e;
             throw e;
         } finally {

@@ -25,6 +25,7 @@ import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
 import fr.duminy.jbackup.core.task.TaskListener;
+import fr.duminy.jbackup.core.util.FileDeleter;
 
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -50,9 +51,9 @@ public class LockableJBackup extends JBackup {
 
     @Override
     BackupTask createBackupTask(BackupConfiguration config, TaskListener taskListener, Cancellable cancellable) {
-        return new BackupTask(config, null, null, cancellable) {
+        return new BackupTask(config, TestUtils.newMockSupplier(), null, cancellable) {
             @Override
-            protected void execute() throws Exception {
+            protected void executeTask(FileDeleter deleter) throws Exception {
                 waitUnlocked(compressionLock);
             }
         };
@@ -70,9 +71,9 @@ public class LockableJBackup extends JBackup {
 
     @Override
     RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
-        return new RestoreTask(config, archive, targetDirectory, null, null, cancellable) {
+        return new RestoreTask(config, archive, targetDirectory, TestUtils.newMockSupplier(), null, cancellable) {
             @Override
-            protected void execute() throws Exception {
+            protected void executeTask(FileDeleter deleter) throws Exception {
                 waitUnlocked(decompressionLock);
             }
         };

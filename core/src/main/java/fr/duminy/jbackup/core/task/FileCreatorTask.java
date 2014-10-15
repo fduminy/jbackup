@@ -23,32 +23,33 @@ package fr.duminy.jbackup.core.task;
 import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
-import fr.duminy.jbackup.core.archive.ArchiveFactory;
-import fr.duminy.jbackup.core.archive.Decompressor;
 import fr.duminy.jbackup.core.util.FileDeleter;
 
-import java.nio.file.Path;
+import java.util.Objects;
 
-public class RestoreTask extends FileCreatorTask {
-    private final Path archive;
-    private final Path targetDirectory;
+public abstract class FileCreatorTask extends AbstractTask {
+    private final Supplier<FileDeleter> deleterSupplier;
 
-    public RestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
-                       Supplier<FileDeleter> deleterSupplier, TaskListener listener, Cancellable cancellable) {
-        super(config, deleterSupplier, listener, cancellable);
-        this.archive = archive;
-        this.targetDirectory = targetDirectory;
+    public FileCreatorTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,
+                           TaskListener listener, Cancellable cancellable) {
+        super(listener, config, cancellable);
+        Objects.requireNonNull(deleterSupplier, "deleterSupplier is null");
+        this.deleterSupplier = deleterSupplier;
     }
 
     @Override
-    protected void executeTask(FileDeleter deleter) throws Exception {
-        deleter.registerDirectory(targetDirectory);
-
-        ArchiveFactory factory = config.getArchiveFactory();
-        createDecompressor(factory).decompress(archive, targetDirectory, listener, cancellable);
+    protected final void execute() throws Exception {
+        FileDeleter deleter = deleterSupplier.get();
+        boolean taskComplete = false;
+        try {
+            executeTask(deleter);
+            taskComplete = !isCancelled();
+        } finally {
+            if (!taskComplete) {
+                deleter.deleteAll();
+            }
+        }
     }
 
-    Decompressor createDecompressor(ArchiveFactory factory) {
-        return new Decompressor(factory);
-    }
+    abstract protected void executeTask(FileDeleter deleter) throws Exception;
 }

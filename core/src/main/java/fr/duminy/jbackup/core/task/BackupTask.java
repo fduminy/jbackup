@@ -35,17 +35,14 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
 
-public class BackupTask extends AbstractTask {
-    private final Supplier<FileDeleter> deleterSupplier;
-
+public class BackupTask extends FileCreatorTask {
     public BackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,
                       TaskListener listener, Cancellable cancellable) {
-        super(listener, config, cancellable);
-        this.deleterSupplier = deleterSupplier;
+        super(config, deleterSupplier, listener, cancellable);
     }
 
     @Override
-    protected void execute() throws Exception {
+    protected void executeTask(FileDeleter deleter) throws Exception {
         ArchiveFactory factory = config.getArchiveFactory();
 
         Path target = Paths.get(config.getTargetDirectory());
@@ -63,20 +60,11 @@ public class BackupTask extends AbstractTask {
             archiveParameters.addSource(source, dirFilter, fileFilter);
         }
 
-        FileDeleter deleter = deleterSupplier.get();
-        boolean taskComplete = false;
-        try {
-            deleter.registerFile(archiveParameters.getArchive());
+        deleter.registerFile(archiveParameters.getArchive());
 
-            List<SourceWithPath> collectedFiles = new ArrayList<>();
-            createFileCollector().collectFiles(collectedFiles, archiveParameters, listener, cancellable);
-            compress(factory, archiveParameters, collectedFiles, cancellable);
-            taskComplete = !isCancelled();
-        } finally {
-            if (!taskComplete) {
-                deleter.deleteAll();
-            }
-        }
+        List<SourceWithPath> collectedFiles = new ArrayList<>();
+        createFileCollector().collectFiles(collectedFiles, archiveParameters, listener, cancellable);
+        compress(factory, archiveParameters, collectedFiles, cancellable);
     }
 
     protected void compress(ArchiveFactory factory, ArchiveParameters archiveParameters, List<SourceWithPath> collectedFiles, Cancellable cancellable) throws ArchiveException {
