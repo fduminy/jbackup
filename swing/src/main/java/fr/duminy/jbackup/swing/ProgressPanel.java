@@ -27,10 +27,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Future;
 
-import static fr.duminy.jbackup.swing.MathUtils.toInteger;
+import static fr.duminy.jbackup.swing.Utils.toInteger;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 
 /**
@@ -56,36 +55,27 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     public void setTask(final Future<?> task) {
         this.task = task;
         if ((task != null) && (cancelButton == null)) {
-            try {
-                final Runnable query = new Runnable() {
-                    @Override
-                    public void run() {
-                        ImageIcon icon = new ImageIcon(ProgressPanel.class.getResource("cancel.png"));
-                        cancelButton = new JButton(icon);
-                        cancelButton.setMargin(new Insets(0, 0, 0, 0));
-                        cancelButton.setToolTipText(Bundle.getBundle(Messages.class).cancelTaskTooltip());
-                        add(cancelButton, BorderLayout.EAST);
-                        revalidate();
-                        cancelButton.addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                if (task.cancel(false)) {
-                                    final Container parent = getParent();
-                                    parent.remove(ProgressPanel.this);
-                                    parent.revalidate();
-                                }
+            Utils.runInEventDispatchThread(new Runnable() {
+                @Override
+                public void run() {
+                    ImageIcon icon = new ImageIcon(ProgressPanel.class.getResource("cancel.png"));
+                    cancelButton = new JButton(icon);
+                    cancelButton.setMargin(new Insets(0, 0, 0, 0));
+                    cancelButton.setToolTipText(Bundle.getBundle(Messages.class).cancelTaskTooltip());
+                    add(cancelButton, BorderLayout.EAST);
+                    revalidate();
+                    cancelButton.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            if (task.cancel(false)) {
+                                final Container parent = getParent();
+                                parent.remove(ProgressPanel.this);
+                                parent.revalidate();
                             }
-                        });
-                    }
-                };
-                if (SwingUtilities.isEventDispatchThread()) {
-                    query.run();
-                } else {
-                    SwingUtilities.invokeAndWait(query);
+                        }
+                    });
                 }
-            } catch (InterruptedException | InvocationTargetException e) {
-                throw new RuntimeException(e);
-            }
+            });
         }
     }
 
@@ -142,7 +132,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
 
     private void setText(long totalReadBytes) {
         String message = String.format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(totalReadBytes),
-                byteCountToDisplaySize(totalSize), MathUtils.percent(totalReadBytes, totalSize));
+                byteCountToDisplaySize(totalSize), Utils.percent(totalReadBytes, totalSize));
         progressBar.setString(message);
     }
 

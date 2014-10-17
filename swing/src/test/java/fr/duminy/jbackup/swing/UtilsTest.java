@@ -28,9 +28,9 @@ import org.junit.rules.ExpectedException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for {@link MathUtils}.
+ * Tests for {@link Utils}.
  */
-public class MathUtilsTest {
+public class UtilsTest {
     @Rule
     public final LogRule logRule = new LogRule();
 
@@ -39,7 +39,7 @@ public class MathUtilsTest {
 
     @Test
     public void testMaxInteger() {
-        assertThat(MathUtils.MAX_INTEGER.intValue()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(Utils.MAX_INTEGER.intValue()).isEqualTo(Integer.MAX_VALUE);
     }
 
     @Test
@@ -47,7 +47,7 @@ public class MathUtilsTest {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("maxValue < 0");
 
-        MathUtils.toInteger(0, -1);
+        Utils.toInteger(0, -1);
     }
 
     @Test
@@ -55,7 +55,7 @@ public class MathUtilsTest {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("value < 0");
 
-        MathUtils.toInteger(-1, 100);
+        Utils.toInteger(-1, 100);
     }
 
     @Test
@@ -63,40 +63,40 @@ public class MathUtilsTest {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("value > maxValue");
 
-        MathUtils.toInteger(200, 100);
+        Utils.toInteger(200, 100);
     }
 
     @Test
     public void testToInteger_intValues() throws Exception {
-        int result = MathUtils.toInteger(100, 200);
+        int result = Utils.toInteger(100, 200);
 
         assertThat(result).isEqualTo(100);
     }
 
     @Test
     public void testToInteger_intValue_longMaxValue() throws Exception {
-        int result = MathUtils.toInteger(100, Integer.MAX_VALUE * 100L);
+        int result = Utils.toInteger(100, Integer.MAX_VALUE * 100L);
 
         assertThat(result).isEqualTo(1);
     }
 
     @Test
     public void testToInteger_longValue_longMaxValue() throws Exception {
-        int result = MathUtils.toInteger(Integer.MAX_VALUE + 1L, 1000L * (Integer.MAX_VALUE + 1L));
+        int result = Utils.toInteger(Integer.MAX_VALUE + 1L, 1000L * (Integer.MAX_VALUE + 1L));
 
         assertThat(result).isEqualTo(Integer.MAX_VALUE / 1000);
     }
 
     @Test
     public void testPercent_decimals() throws Exception {
-        double result = MathUtils.percent(1L, 200L);
+        double result = Utils.percent(1L, 200L);
 
         assertThat(result).isEqualTo(0.5d);
     }
 
     @Test
     public void testPercent_noDecimals() throws Exception {
-        double result = MathUtils.percent(10L, 1000L);
+        double result = Utils.percent(10L, 1000L);
 
         assertThat(result).isEqualTo(1d);
     }

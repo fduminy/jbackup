@@ -110,20 +110,16 @@ public class Application {
 
     private ApplicationPanel createApplicationPanel(final JBackup jBackup) throws Exception {
         final ApplicationPanel[] application = new ApplicationPanel[1];
-        if (SwingUtilities.isEventDispatchThread()) {
-            application[0] = new ApplicationPanel(jBackup);
-        } else {
-            SwingUtilities.invokeAndWait(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        application[0] = new ApplicationPanel(jBackup);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+        Utils.runInEventDispatchThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    application[0] = new ApplicationPanel(jBackup);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-            });
-        }
+            }
+        });
         return application[0];
     }
 

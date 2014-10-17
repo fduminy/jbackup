@@ -20,6 +20,8 @@
  */
 package fr.duminy.jbackup.swing;
 
+import javax.swing.*;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 
 import static java.math.BigInteger.valueOf;
@@ -27,13 +29,13 @@ import static java.math.BigInteger.valueOf;
 /**
  * Some Math utilities.
  */
-public class MathUtils {
+public class Utils {
     public static final BigInteger MAX_INTEGER = valueOf(Integer.MAX_VALUE);
 
     /**
      * Converts a <code>long</code> value to <code>int</code> value.
      * The value must be in the interval [0;<code>maxValue</code>].
-     * If the <code>maxValue</code> <= {@link Integer.MAX_VALUE}, the returned value is the same as <code>(int)value</code>.
+     * If the <code>maxValue</code> <= {@link Integer#MAX_VALUE}, the returned value is the same as <code>(int)value</code>.
      *
      * @param value    The <code>long</code> to convert.
      * @param maxValue The maximal possible value.
@@ -69,5 +71,18 @@ public class MathUtils {
      */
     public static double percent(long value, long maxValue) {
         return 100d * value / maxValue;
+    }
+
+    //TODO move this method to swing-components
+    public static void runInEventDispatchThread(Runnable runnable) {
+        try {
+            if (SwingUtilities.isEventDispatchThread()) {
+                runnable.run();
+            } else {
+                SwingUtilities.invokeAndWait(runnable);
+            }
+        } catch (InterruptedException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

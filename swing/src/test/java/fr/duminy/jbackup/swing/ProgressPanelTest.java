@@ -232,7 +232,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
                 int iValue;
                 int iMaxValue;
                 if (maxValue > Integer.MAX_VALUE) {
-                    iValue = MathUtils.toInteger(value, maxValue);
+                    iValue = Utils.toInteger(value, maxValue);
                     iMaxValue = Integer.MAX_VALUE;
                 } else {
                     iValue = value.intValue();
@@ -240,7 +240,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
                 }
 
                 expectedMessage = format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(value),
-                        byteCountToDisplaySize(maxValue), MathUtils.percent(value, maxValue));
+                        byteCountToDisplaySize(maxValue), Utils.percent(value, maxValue));
                 progressBar.requireDeterminate().requireValue(iValue).requireText(expectedMessage);
                 assertThat(progressBar.component().getMinimum()).isEqualTo(0);
                 assertThat(progressBar.component().getMaximum()).isEqualTo(iMaxValue);
