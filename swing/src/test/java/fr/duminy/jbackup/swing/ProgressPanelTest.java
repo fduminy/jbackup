@@ -23,6 +23,7 @@ package fr.duminy.jbackup.swing;
 import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.util.LogRule;
+import org.fest.swing.core.ComponentLookupScope;
 import org.fest.swing.edt.GuiActionRunner;
 import org.fest.swing.edt.GuiQuery;
 import org.fest.swing.edt.GuiTask;
@@ -206,7 +207,9 @@ public class ProgressPanelTest extends AbstractSwingTest {
         assertThatPanelHasTitle(panel, TITLE);
 
         JPanelFixture progressPanel = new JPanelFixture(robot(), panel);
+        robot().settings().componentLookupScope(ComponentLookupScope.ALL);
         JProgressBarFixture progressBar = progressPanel.progressBar();
+        robot().settings().componentLookupScope(ComponentLookupScope.SHOWING_ONLY);
         String expectedMessage;
         final boolean taskInProgress;
         switch (taskState) {
@@ -263,10 +266,13 @@ public class ProgressPanelTest extends AbstractSwingTest {
                 break;
         }
 
-        // checks progress panel is visible
-        Container parent = panel.getParent();
-        assertThat(parent).isNotNull();
-        assertThat(parent.getComponents()).contains(panel);
+        Container parent = null;
+        if (!TaskState.FINISHED.equals(taskState)) {
+            // checks progress panel is visible
+            parent = panel.getParent();
+            assertThat(parent).isNotNull();
+            assertThat(parent.getComponents()).contains(panel);
+        }
 
         if (taskInProgress) {
             assertThat(panel.isFinished()).isFalse();

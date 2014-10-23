@@ -22,6 +22,8 @@ package fr.duminy.jbackup.swing;
 
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.JBackup;
+import org.fest.swing.exception.ComponentLookupException;
+import org.fest.swing.fixture.JPanelFixture;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theory;
@@ -31,7 +33,9 @@ import java.nio.file.Path;
 
 import static fr.duminy.jbackup.core.ConfigurationManagerTest.createConfiguration;
 import static fr.duminy.jbackup.swing.ProgressPanelTest.assertThatPanelHasTitle;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.times;
 
 /**
  * Tests for class {@link TaskManagerPanel}.
@@ -49,6 +53,11 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
         return new TaskManagerPanel(jBackup);
     }
 
+    @Test
+    public void testInit() throws Exception {
+        verifyNoTaskAreRunning();
+    }
+
     @Theory
     public void testBackup(int nbConfigurations) throws Exception {
         final BackupConfiguration[] configs = new BackupConfiguration[nbConfigurations];
@@ -57,6 +66,8 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
             runBackup(configs[i]);
         }
 
+        int expectedComponentCount = (configs.length == 0) ? 1 : configs.length;
+        assertThat(panel.getComponentCount()).as("componentCount").isEqualTo(expectedComponentCount);
         for (int i = 0; i < configs.length; i++) {
             boolean lastConfig = (i == (configs.length - 1));
             verifyBackup(configs[i], lastConfig);
@@ -75,14 +86,12 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
 
     private void testBackup_afterTaskFinished(Exception error) throws Exception {
         BackupConfiguration config = createConfiguration();
+
         runBackup(config);
 
-        ProgressPanel pPanel = verifyBackup(config, true);
-        notifyTaskFinished(config, error, pPanel);
-
-        reset(getJBackup());
-        runBackup(config);
         verifyBackup(config, true);
+        notifyTaskFinished(config, error);
+        verifyNoTaskAreRunning();
     }
 
     @Theory
@@ -90,6 +99,7 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
         final Path[] archives = new Path[nbConfigurations];
         final Path[] targetDirectories = new Path[nbConfigurations];
         final BackupConfiguration[] configs = new BackupConfiguration[nbConfigurations];
+
         for (int i = 0; i < nbConfigurations; i++) {
             configs[i] = createConfiguration("name" + i);
             archives[i] = tempFolder.newFile().toPath();
@@ -97,6 +107,8 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
             runRestore(archives[i], targetDirectories[i], configs[i]);
         }
 
+        int expectedComponentCount = (configs.length == 0) ? 1 : configs.length;
+        assertThat(panel.getComponentCount()).as("componentCount").isEqualTo(expectedComponentCount);
         for (int i = 0; i < configs.length; i++) {
             boolean lastConfig = (i == (configs.length - 1));
             verifyRestore(archives[i], targetDirectories[i], configs[i], lastConfig);
@@ -117,14 +129,12 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
         Path archive = tempFolder.newFile().toPath();
         Path targetDirectory = tempFolder.newFolder().toPath();
         BackupConfiguration config = createConfiguration();
+
         runRestore(archive, targetDirectory, config);
 
-        ProgressPanel pPanel = verifyRestore(archive, targetDirectory, config, true);
-        notifyTaskFinished(config, error, pPanel);
-
-        reset(getJBackup());
-        runRestore(archive, targetDirectory, config);
         verifyRestore(archive, targetDirectory, config, true);
+        notifyTaskFinished(config, error);
+        verifyNoTaskAreRunning();
     }
 
     @Test
@@ -182,7 +192,6 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
 
     protected final ProgressPanel verifyBackup(BackupConfiguration config, boolean lastConfig) {
         ProgressPanel pPanel = findComponentFor(config);
-        assertThatPanelHasTitle(pPanel, config.getName());
 
         InOrder inOrder = inOrder(getJBackup());
         inOrder.verify(getJBackup(), times(1)).addProgressListener(config.getName(), pPanel);
@@ -195,6 +204,15 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
     }
 
     private ProgressPanel findComponentFor(BackupConfiguration config) {
-        return (ProgressPanel) window.panel(config.getName()).requireVisible().component();
+        try {
+            return (ProgressPanel) window.panel(config.getName()).component();
+        } catch (ComponentLookupException cle) {
+            return null;
+        }
+    }
+
+    private void verifyNoTaskAreRunning() {
+        assertThat(panel.getComponentCount()).as("componentCount").isEqualTo(1);
+        new JPanelFixture(robot(), panel).label().requireText("No task are running");
     }
 }

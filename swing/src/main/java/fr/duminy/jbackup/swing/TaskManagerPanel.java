@@ -48,19 +48,7 @@ public class TaskManagerPanel extends TaskManagerComponent<ProgressPanel> {
         if (getComponentCount() > 0) {
             layout.setRows(layout.getRows() + 1);
         }
-        add(pPanel);
-        revalidate();
 
         return pPanel;
-    }
-
-    @Override
-    protected boolean removeIfFinished(ProgressPanel progressListener, BackupConfiguration config) {
-        boolean finished = false;
-        if (progressListener.isFinished()) {
-            finished = true;
-            remove(progressListener);
-        }
-        return finished;
     }
 }

@@ -34,17 +34,19 @@ import org.junit.experimental.theories.Theories;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 
+import javax.swing.*;
 import java.nio.file.Path;
 
 import static fr.duminy.jbackup.core.ConfigurationManagerTest.createConfiguration;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests for class {@link fr.duminy.jbackup.swing.TaskManagerComponent}.
  */
 @RunWith(Theories.class)
-abstract public class TaskManagerComponentTest<T extends ProgressListener, C extends TaskManagerComponent<T>> extends AbstractSwingTest {
+abstract public class TaskManagerComponentTest<T extends JComponent & ProgressListener, C extends TaskManagerComponent<T>> extends AbstractSwingTest {
     @Rule
     public final LogRule logRule = new LogRule();
 
@@ -55,13 +57,16 @@ abstract public class TaskManagerComponentTest<T extends ProgressListener, C ext
     public final ExpectedException thrown = ExpectedException.none();
 
     private JBackup jBackup;
-    private C panel;
+    protected C panel;
+    private ArgumentCaptor<ProgressListener> actualListeners;
 
     @Override
     public final void onSetUp() {
         super.onSetUp();
 
         jBackup = mock(JBackup.class);
+        actualListeners = ArgumentCaptor.forClass(ProgressListener.class);
+        doNothing().when(jBackup).addProgressListener(anyString(), actualListeners.capture());
 
         try {
             panel = buildAndShowWindow(new Supplier<C>() {
@@ -112,10 +117,12 @@ abstract public class TaskManagerComponentTest<T extends ProgressListener, C ext
         }
     }
 
-    protected final void notifyTaskFinished(final BackupConfiguration config, final Exception error, final ProgressListener pPanel) {
+    protected final void notifyTaskFinished(final BackupConfiguration config, final Exception error) {
         GuiActionRunner.execute(new GuiTask() {
             protected void executeInEDT() throws DuplicateTaskException {
-                pPanel.taskFinished(config.getName(), error);
+                for (ProgressListener listener : actualListeners.getAllValues()) {
+                    listener.taskFinished(config.getName(), error);
+                }
             }
         });
     }

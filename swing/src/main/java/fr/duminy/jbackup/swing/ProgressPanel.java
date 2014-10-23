@@ -68,9 +68,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
                         @Override
                         public void actionPerformed(ActionEvent e) {
                             if (task.cancel(false)) {
-                                final Container parent = getParent();
-                                parent.remove(ProgressPanel.this);
-                                parent.revalidate();
+                                removeFromParent();
                             }
                         }
                     });
@@ -127,6 +125,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
             remove(cancelButton);
             revalidate();
         }
+        removeFromParent();
         finished = true;
     }
 
@@ -134,6 +133,12 @@ public class ProgressPanel extends JPanel implements ProgressListener {
         String message = String.format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(totalReadBytes),
                 byteCountToDisplaySize(totalSize), Utils.percent(totalReadBytes, totalSize));
         progressBar.setString(message);
+    }
+
+    private void removeFromParent() {
+        final Container parent = getParent();
+        parent.remove(this);
+        parent.revalidate();
     }
 
     public boolean isFinished() {
