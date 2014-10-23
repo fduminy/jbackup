@@ -24,8 +24,7 @@ import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.task.*;
-import fr.duminy.jbackup.core.util.FileDeleter;
-import fr.duminy.jbackup.core.util.LogRule;
+import fr.duminy.jbackup.core.util.*;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -345,12 +344,12 @@ public class JBackupTest {
 
     @Test
     public void testAddProgressListener_backup() throws Throwable {
-        testAddProgressListener(new BackupAction());
+        testAddProgressListener(new BackupAction(createConfiguration()));
     }
 
     @Test
     public void testAddProgressListener_restore() throws Throwable {
-        testAddProgressListener(new RestoreAction());
+        testAddProgressListener(new RestoreAction(createConfiguration(), null, null));
     }
 
     private void testAddProgressListener(JBackupAction action) throws Throwable {
@@ -380,7 +379,7 @@ public class JBackupTest {
     public void testAddProgressListener_restore_TwoListeners() throws Throwable {
         BackupConfiguration config1 = ConfigurationManagerTest.createConfiguration("config1");
         BackupConfiguration config2 = ConfigurationManagerTest.createConfiguration("config2");
-        testAddProgressListener_TwoListeners(new RestoreAction(config1), new RestoreAction(config2));
+        testAddProgressListener_TwoListeners(new RestoreAction(config1, null, null), new RestoreAction(config2, null, null));
     }
 
     private void testAddProgressListener_TwoListeners(JBackupAction action, JBackupAction action2) throws Throwable {
@@ -415,12 +414,12 @@ public class JBackupTest {
 
     @Test
     public void testRemoveProgressListener_backup() throws Throwable {
-        testRemoveProgressListener(new BackupAction());
+        testRemoveProgressListener(new BackupAction(createConfiguration()));
     }
 
     @Test
     public void testRemoveProgressListener_restore() throws Throwable {
-        testRemoveProgressListener(new RestoreAction());
+        testRemoveProgressListener(new RestoreAction(createConfiguration(), null, null));
     }
 
     private void testRemoveProgressListener(JBackupAction action) throws Throwable {
@@ -515,50 +514,6 @@ public class JBackupTest {
             }
         });
         return mockTask;
-    }
-
-    private abstract class JBackupAction {
-        protected final BackupConfiguration config;
-
-        private JBackupAction() throws IOException {
-            this(createConfiguration());
-        }
-
-        private JBackupAction(BackupConfiguration config) throws IOException {
-            this.config = config;
-        }
-
-        public abstract Future<Void> executeAction(JBackup jBackup) throws IOException;
-
-        public final BackupConfiguration getConfiguration() {
-            return config;
-        }
-    }
-
-    private class BackupAction extends JBackupAction {
-        private BackupAction() throws IOException {
-        }
-
-        private BackupAction(BackupConfiguration config) throws IOException {
-            super(config);
-        }
-
-        public Future<Void> executeAction(JBackup jBackup) throws IOException {
-            return jBackup.backup(config);
-        }
-    }
-
-    private class RestoreAction extends JBackupAction {
-        private RestoreAction() throws IOException {
-        }
-
-        private RestoreAction(BackupConfiguration config) throws IOException {
-            super(config);
-        }
-
-        public Future<Void> executeAction(JBackup jBackup) throws IOException {
-            return jBackup.restore(config, null, null);
-        }
     }
 
     private JBackup createMockJBackup() {
