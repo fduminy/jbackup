@@ -30,7 +30,7 @@ import fr.duminy.jbackup.core.util.FileDeleter;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class LockableJBackup extends JBackup {
+public class LockableJBackup extends JBackupImpl {
     private final ArchiveFactory archiveFactory;
     private AtomicBoolean compressionLock;
     private AtomicBoolean decompressionLock;

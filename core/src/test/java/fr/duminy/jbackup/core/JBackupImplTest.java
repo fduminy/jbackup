@@ -52,9 +52,9 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests for class {@link fr.duminy.jbackup.core.JBackup}.
+ * Tests for class {@link JBackupImpl}.
  */
-public class JBackupTest {
+public class JBackupImplTest {
     @Rule
     public final LogRule logRule = new LogRule();
 
@@ -136,7 +136,7 @@ public class JBackupTest {
 
     @Test
     public void testCreateBackupTask() throws Throwable {
-        JBackup jBackup = new JBackup();
+        JBackupImpl jBackup = new JBackupImpl();
         BackupConfiguration config = mock(BackupConfiguration.class);
         TaskListener taskListener = mock(TaskListener.class);
         Cancellable cancellable = mock(Cancellable.class);
@@ -155,7 +155,7 @@ public class JBackupTest {
         final Task mockBackupTask = createAlwaysWaitingTask(Task.class, taskStarted);
         final MutableObject<Cancellable> actualCancellable = new MutableObject<>();
         final MutableObject<TaskListener> actualListener = new MutableObject<>();
-        JBackup jBackup = spy(new JBackup() {
+        JBackupImpl jBackup = spy(new JBackupImpl() {
             @Override
             Task createBackupTask(BackupConfiguration config, TaskListener listener, Cancellable cancellable) {
                 actualListener.setValue(listener);
@@ -207,7 +207,7 @@ public class JBackupTest {
         final BackupConfiguration config = createConfiguration();
         final Task mockBackupTask = mock(Task.class);
         final MutableObject<TaskListener> actualTaskListener = new MutableObject<>();
-        JBackup jBackup = spy(new JBackup() {
+        JBackupImpl jBackup = spy(new JBackupImpl() {
             @Override
             Task createBackupTask(BackupConfiguration config, TaskListener listener, Cancellable cancellable) {
                 actualTaskListener.setValue(listener);
@@ -237,7 +237,7 @@ public class JBackupTest {
 
     @Test
     public void testCreateRestoreTask() throws Throwable {
-        JBackup jBackup = new JBackup();
+        JBackupImpl jBackup = new JBackupImpl();
         BackupConfiguration config = mock(BackupConfiguration.class);
         TaskListener taskListener = mock(TaskListener.class);
         Cancellable cancellable = mock(Cancellable.class);
@@ -260,7 +260,7 @@ public class JBackupTest {
         final Task mockRestoreTask = createAlwaysWaitingTask(Task.class, taskStarted);
         final MutableObject<Cancellable> actualCancellable = new MutableObject<>();
         final MutableObject<TaskListener> actualListener = new MutableObject<>();
-        JBackup jBackup = spy(new JBackup() {
+        JBackupImpl jBackup = spy(new JBackupImpl() {
             @Override
             Task createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener listener, Cancellable cancellable) {
                 actualListener.setValue(listener);
@@ -314,7 +314,7 @@ public class JBackupTest {
         final BackupConfiguration config = createConfiguration();
         final Task mockRestoreTask = mock(Task.class);
         final MutableObject<TaskListener> actualTaskListener = new MutableObject<>();
-        JBackup jBackup = spy(new JBackup() {
+        JBackupImpl jBackup = spy(new JBackupImpl() {
             @Override
             Task createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
                 actualTaskListener.setValue(taskListener);
@@ -517,7 +517,7 @@ public class JBackupTest {
     }
 
     private JBackup createMockJBackup() {
-        return new JBackup() {
+        return new JBackupImpl() {
             @Override
             RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, final TaskListener taskListener, Cancellable cancellable) {
                 return new RestoreTask(config, archive, targetDirectory, TestUtils.newMockSupplier(), taskListener, cancellable) {

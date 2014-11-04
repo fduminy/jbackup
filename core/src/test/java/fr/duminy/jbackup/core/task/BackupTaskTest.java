@@ -23,7 +23,7 @@ package fr.duminy.jbackup.core.task;
 import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
-import fr.duminy.jbackup.core.JBackupTest;
+import fr.duminy.jbackup.core.JBackupImplTest;
 import fr.duminy.jbackup.core.TestUtils;
 import fr.duminy.jbackup.core.archive.*;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
@@ -191,8 +191,8 @@ public class BackupTaskTest extends AbstractTaskTest {
     }
 
     protected static final String getName(IOFileFilter filter) {
-        if (filter instanceof JBackupTest.CustomNameFileFilter) {
-            return ((JBackupTest.CustomNameFileFilter) filter).getName();
+        if (filter instanceof JBackupImplTest.CustomNameFileFilter) {
+            return ((JBackupImplTest.CustomNameFileFilter) filter).getName();
         } else {
             return null;
         }

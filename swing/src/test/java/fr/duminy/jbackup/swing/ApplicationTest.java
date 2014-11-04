@@ -22,6 +22,7 @@ package fr.duminy.jbackup.swing;
 
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.JBackup;
+import fr.duminy.jbackup.core.JBackupImpl;
 import fr.duminy.jbackup.core.util.LogRule;
 import org.assertj.core.api.Assertions;
 import org.fest.assertions.ImageAssert;
@@ -41,6 +42,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+import static fr.duminy.jbackup.core.JBackup.TerminationListener;
 import static java.awt.image.BufferedImage.TYPE_INT_ARGB;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -100,12 +102,12 @@ public class ApplicationTest extends AbstractSwingTest {
             jBackup = Mockito.mock(JBackup.class);
             exit.none();
         } else {
-            jBackup = spy(new JBackup());
+            jBackup = spy(new JBackupImpl());
             exit.expectSystemExitWithStatus(0);
         }
         exit.checkAssertionAfterwards(new Assertion() {
             public void checkAssertion() throws InterruptedException {
-                ArgumentCaptor<JBackup.TerminationListener> argument = ArgumentCaptor.forClass(JBackup.TerminationListener.class);
+                ArgumentCaptor<TerminationListener> argument = ArgumentCaptor.forClass(TerminationListener.class);
                 verify(jBackup, times(1)).shutdown(argument.capture());
                 assertThat(argument.getValue()).as("TerminationListener").isNotNull();
 

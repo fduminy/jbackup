@@ -22,6 +22,7 @@ package fr.duminy.jbackup.swing;
 
 import fr.duminy.jbackup.core.ConfigurationManager;
 import fr.duminy.jbackup.core.JBackup;
+import fr.duminy.jbackup.core.JBackupImpl;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.Properties;
+
+import static fr.duminy.jbackup.core.JBackup.TerminationListener;
 
 /**
  * The main class of the application.
@@ -88,7 +91,7 @@ public class Application {
                     alreadyCalled = true;
                     LOGGER.info("The user has requested a shutdown. Waiting end of tasks ...");
                     try {
-                        jBackup.shutdown(new JBackup.TerminationListener() {
+                        jBackup.shutdown(new TerminationListener() {
                             @Override
                             public void terminated() {
                                 LOGGER.info("*** Application shutdown ***");
@@ -105,7 +108,7 @@ public class Application {
     }
 
     JBackup createJBackup() {
-        return new JBackup();
+        return new JBackupImpl();
     }
 
     private ApplicationPanel createApplicationPanel(final JBackup jBackup) throws Exception {
@@ -124,7 +127,6 @@ public class Application {
     }
 
     static class ApplicationPanel extends JPanel {
-        private final JBackup jBackup;
         private final ConfigurationManager manager;
 
         private final ConfigurationManagerPanel managerPanel;
@@ -133,7 +135,6 @@ public class Application {
         public ApplicationPanel(JBackup jBackup) throws Exception {
             super(new BorderLayout());
 
-            this.jBackup = jBackup;
             manager = new ConfigurationManager(Paths.get(System.getProperty("user.home"), ".jbackup"));
 
             taskManagerPanel = new TaskManagerPanel(jBackup);

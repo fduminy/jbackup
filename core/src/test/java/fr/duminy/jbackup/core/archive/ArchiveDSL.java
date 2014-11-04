@@ -20,7 +20,7 @@
  */
 package fr.duminy.jbackup.core.archive;
 
-import fr.duminy.jbackup.core.JBackupTest;
+import fr.duminy.jbackup.core.JBackupImplTest;
 import fr.duminy.jbackup.core.TestUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 
@@ -215,8 +215,8 @@ public class ArchiveDSL {
             Path source = this.source.create(baseDirectory);
 
             Filter filter = this.source.filter;
-            IOFileFilter dirFilter = (filter.dirFilter == null) ? trueFileFilter() : new JBackupTest.CustomNameFileFilter(filter.dirFilter);
-            IOFileFilter fileFilter = (filter.fileFilter == null) ? trueFileFilter() : new JBackupTest.CustomNameFileFilter(filter.fileFilter);
+            IOFileFilter dirFilter = (filter.dirFilter == null) ? trueFileFilter() : new JBackupImplTest.CustomNameFileFilter(filter.dirFilter);
+            IOFileFilter fileFilter = (filter.fileFilter == null) ? trueFileFilter() : new JBackupImplTest.CustomNameFileFilter(filter.fileFilter);
             archiveParameters.addSource(source, dirFilter, fileFilter);
 
             List<Path> acceptedFiles;
