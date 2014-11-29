@@ -94,10 +94,18 @@ abstract public class TaskManagerComponentTest<T extends JComponent & ProgressLi
     }
 
     protected final void runBackup(final BackupConfiguration config) throws DuplicateTaskException {
+        runBackup(panel, config);
+    }
+
+    protected final void runRestore(final Path archive, final Path targetDirectory, final BackupConfiguration config) throws DuplicateTaskException {
+        runRestore(panel, archive, targetDirectory, config);
+    }
+
+    public static void runBackup(final BackupConfigurationActions actions, final BackupConfiguration config) throws DuplicateTaskException {
         try {
             GuiActionRunner.execute(new GuiTask() {
                 protected void executeInEDT() throws DuplicateTaskException {
-                    panel.backup(config);
+                    actions.backup(config);
                 }
             });
         } catch (UnexpectedException e) {
@@ -105,11 +113,11 @@ abstract public class TaskManagerComponentTest<T extends JComponent & ProgressLi
         }
     }
 
-    protected final void runRestore(final Path archive, final Path targetDirectory, final BackupConfiguration config) throws DuplicateTaskException {
+    public static void runRestore(final BackupConfigurationActions actions, final Path archive, final Path targetDirectory, final BackupConfiguration config) throws DuplicateTaskException {
         try {
             GuiActionRunner.execute(new GuiTask() {
                 protected void executeInEDT() throws DuplicateTaskException {
-                    panel.restore(config, archive, targetDirectory);
+                    actions.restore(config, archive, targetDirectory);
                 }
             });
         } catch (UnexpectedException e) {

@@ -130,17 +130,17 @@ public class Application {
         private final ConfigurationManager manager;
 
         private final ConfigurationManagerPanel managerPanel;
-        private final TaskManagerPanel taskManagerPanel;
+        private final TaskManagerStatusBar taskManagerStatusBar;
 
         public ApplicationPanel(JBackup jBackup) throws Exception {
             super(new BorderLayout());
 
             manager = new ConfigurationManager(Paths.get(System.getProperty("user.home"), ".jbackup"));
 
-            taskManagerPanel = new TaskManagerPanel(jBackup);
-            add(taskManagerPanel, BorderLayout.SOUTH);
+            taskManagerStatusBar = new TaskManagerStatusBar(jBackup);
+            add(taskManagerStatusBar, BorderLayout.SOUTH);
 
-            managerPanel = new ConfigurationManagerPanel(manager, taskManagerPanel, this, ZipArchiveFactory.INSTANCE);
+            managerPanel = new ConfigurationManagerPanel(manager, taskManagerStatusBar, this, ZipArchiveFactory.INSTANCE);
             add(managerPanel, BorderLayout.CENTER);
         }
     }

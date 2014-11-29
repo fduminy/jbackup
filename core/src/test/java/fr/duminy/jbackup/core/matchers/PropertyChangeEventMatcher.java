@@ -20,22 +20,27 @@
  */
 package fr.duminy.jbackup.core.matchers;
 
-import fr.duminy.jbackup.core.archive.ArchiveParameters;
-import fr.duminy.jbackup.core.archive.SourceWithPath;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.core.IsEqual;
 
 import java.beans.PropertyChangeEvent;
-import java.nio.file.Path;
 
-public class Matchers extends org.mockito.Matchers {
-    public static SourceWithPath eq(Path value) {
-        return argThat(new SourceWithPathMatcher(value));
+class PropertyChangeEventMatcher<T> extends BaseMatcher<PropertyChangeEvent> {
+    private final IsEqual<T> equals;
+
+    PropertyChangeEventMatcher(T newValue) {
+        this.equals = new IsEqual<T>(newValue);
     }
 
-    public static ArchiveParameters eq(ArchiveParameters parameters, Path expectedArchive) {
-        return argThat(new ArchiveParametersMatcher(parameters, expectedArchive));
+    @Override
+    public boolean matches(Object o) {
+        return equals.matches(((PropertyChangeEvent) o).getNewValue());
     }
 
-    public static <T> PropertyChangeEvent propertyChangeEventWithNewValue(T value) {
-        return argThat(new PropertyChangeEventMatcher<T>(value));
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("PropertyChangeEvent with newValue=");
+        equals.describeTo(description);
     }
 }
