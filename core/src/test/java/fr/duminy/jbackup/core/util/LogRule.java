@@ -25,7 +25,7 @@ import org.junit.runner.Description;
 import org.slf4j.MDC;
 
 /**
- * A rule that allows to write logs in a dedicated file for each file.
+ * A rule that allows to write logs in a dedicated file for each test.
  * TODO : move this class to a library of utilities or to junit (or one of its extensions).
  */
 public class LogRule extends TestWatcher {
