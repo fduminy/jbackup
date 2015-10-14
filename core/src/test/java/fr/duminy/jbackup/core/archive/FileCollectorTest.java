@@ -108,10 +108,10 @@ public class FileCollectorTest {
 
         InOrder inOrder = inOrder(cancellable, actualFiles);
         inOrder.verify(cancellable).isCancelled();
-        inOrder.verify(actualFiles).add(eq(expectedFiles[1]));
+        inOrder.verify(actualFiles).add(eq(expectedFiles[0]));
         inOrder.verify(cancellable).isCancelled();
         if (!cancelAfterFirstFile) {
-            inOrder.verify(actualFiles).add(eq(expectedFiles[0]));
+            inOrder.verify(actualFiles).add(eq(expectedFiles[1]));
         }
         inOrder.verifyNoMoreInteractions();
     }
