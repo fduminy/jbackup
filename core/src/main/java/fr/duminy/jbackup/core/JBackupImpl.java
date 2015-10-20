@@ -29,13 +29,14 @@ import fr.duminy.jbackup.core.task.TaskListener;
 import fr.duminy.jbackup.core.util.DefaultFileDeleter;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.commons.lang3.event.EventListenerSupport;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -43,12 +44,15 @@ import java.util.concurrent.*;
  * Implementation of {@link fr.duminy.jbackup.core.JBackup}.
  */
 public class JBackupImpl implements JBackup {
+    private static final String ALL_CONFIGS = "ALL_CONFIGURATIONS";
+
     private final ExecutorService executor = Executors.newFixedThreadPool(8,
             new BasicThreadFactory.Builder().namingPattern("jbackup-thread-%d").daemon(false).priority(Thread.MAX_PRIORITY).build());
 
     private final Supplier<FileDeleter> deleterSupplier = createDeleterSupplier();
 
     private final Map<String, JBackupTaskListener> listeners = new HashMap<>();
+    private JBackupTaskListener globalListener;
 
     @Override
     public Future<Void> backup(final BackupConfiguration config) {
@@ -71,6 +75,11 @@ public class JBackupImpl implements JBackup {
     }
 
     @Override
+    public void addProgressListener(ProgressListener listener) {
+        getTaskListener(ALL_CONFIGS).addListener(listener);
+    }
+
+    @Override
     public void addProgressListener(String configurationName, ProgressListener listener) {
         getTaskListener(configurationName).addListener(listener);
     }
@@ -78,6 +87,11 @@ public class JBackupImpl implements JBackup {
     @Override
     public void removeProgressListener(String configurationName, ProgressListener listener) {
         getTaskListener(configurationName).removeProgressListener(listener);
+    }
+
+    @Override
+    public void removeProgressListener(ProgressListener listener) {
+        getTaskListener(ALL_CONFIGS).removeProgressListener(listener);
     }
 
     @Override
@@ -140,11 +154,23 @@ public class JBackupImpl implements JBackup {
     }
 
     private JBackupTaskListener getTaskListener(String configurationName) {
-        JBackupTaskListener taskListener = listeners.get(configurationName);
-        if (taskListener == null) {
-            taskListener = new JBackupTaskListener(configurationName);
-            listeners.put(configurationName, taskListener);
+        JBackupTaskListener taskListener;
+
+        if (globalListener == null) {
+            globalListener = new JBackupTaskListener(null, ALL_CONFIGS);
         }
+
+        //noinspection StringEquality
+        if (ALL_CONFIGS == configurationName) {
+            taskListener = globalListener;
+        } else {
+            taskListener = listeners.get(configurationName);
+            if (taskListener == null) {
+                taskListener = new JBackupTaskListener(globalListener, configurationName);
+                listeners.put(configurationName, taskListener);
+            }
+        }
+
         return taskListener;
     }
 
@@ -156,39 +182,56 @@ public class JBackupImpl implements JBackup {
     }
 
     private static class JBackupTaskListener implements TaskListener {
-        private final EventListenerSupport<ProgressListener> listeners = EventListenerSupport.create(ProgressListener.class);
+        private final List<ProgressListener> listeners = new ArrayList<>();
+        private final JBackupTaskListener globalListener;
         private final String configurationName;
 
-        private JBackupTaskListener(String configurationName) {
+        private JBackupTaskListener(JBackupTaskListener globalListener, String configurationName) {
+            this.globalListener = globalListener;
             this.configurationName = configurationName;
         }
 
         @Override
         public void taskStarted() {
-            listeners.fire().taskStarted(configurationName);
+            for (ProgressListener l : getListeners()) {
+                l.taskStarted(configurationName);
+            }
         }
 
         @Override
         public void totalSizeComputed(long totalSize) {
-            listeners.fire().totalSizeComputed(configurationName, totalSize);
+            for (ProgressListener l : getListeners()) {
+                l.totalSizeComputed(configurationName, totalSize);
+            }
         }
 
         @Override
         public void progress(long totalReadBytes) {
-            listeners.fire().progress(configurationName, totalReadBytes);
+            for (ProgressListener l : getListeners()) {
+                l.progress(configurationName, totalReadBytes);
+            }
         }
 
         @Override
         public void taskFinished(Throwable error) {
-            listeners.fire().taskFinished(configurationName, error);
+            for (ProgressListener l : getListeners()) {
+                l.taskFinished(configurationName, error);
+            }
         }
 
         public void addListener(ProgressListener listener) {
-            listeners.addListener(listener);
+            listeners.add(listener);
         }
 
         public void removeProgressListener(ProgressListener listener) {
-            listeners.removeListener(listener);
+            listeners.remove(listener);
+        }
+
+        private List<ProgressListener> getListeners() {
+            List<ProgressListener> result = new ArrayList<>(listeners.size() + globalListener.listeners.size());
+            result.addAll(listeners);
+            result.addAll(globalListener.listeners);
+            return result;
         }
     }
 }

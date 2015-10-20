@@ -369,28 +369,33 @@ public class JBackupImplTest {
     }
 
     @Test
-    public void testAddProgressListener_backup_TwoListeners() throws Throwable {
-        BackupConfiguration config1 = ConfigurationManagerTest.createConfiguration("config1");
-        BackupConfiguration config2 = ConfigurationManagerTest.createConfiguration("config2");
-        testAddProgressListener_TwoListeners(new BackupAction(config1), new BackupAction(config2));
+    public void testAddProgressListener_backup_globalListener() throws Throwable {
+        testAddProgressListener_backup_TwoListeners(true);
     }
 
     @Test
-    public void testAddProgressListener_restore_TwoListeners() throws Throwable {
-        BackupConfiguration config1 = ConfigurationManagerTest.createConfiguration("config1");
-        BackupConfiguration config2 = ConfigurationManagerTest.createConfiguration("config2");
-        testAddProgressListener_TwoListeners(new RestoreAction(config1, null, null), new RestoreAction(config2, null, null));
+    public void testAddProgressListener_restore_globalListener() throws Throwable {
+        testAddProgressListener_restore_TwoListeners(true);
     }
 
-    private void testAddProgressListener_TwoListeners(JBackupAction action, JBackupAction action2) throws Throwable {
+    @Test
+    public void testAddProgressListener_backup_TwoListeners() throws Throwable {
+        testAddProgressListener_backup_TwoListeners(false);
+    }
+
+    private void testAddProgressListener_TwoListeners(JBackupAction action, JBackupAction action2, boolean listenAll) throws Throwable {
         JBackup jBackup = createMockJBackup();
         ProgressListener listener = mock(ProgressListener.class);
         BackupConfiguration config = action.getConfiguration();
-        ProgressListener listener2 = mock(ProgressListener.class);
+        ProgressListener listener2 = listenAll ? listener : mock(ProgressListener.class);
         BackupConfiguration config2 = action2.getConfiguration();
 
-        jBackup.addProgressListener(config.getName(), listener);
-        jBackup.addProgressListener(config2.getName(), listener2);
+        if (listenAll) {
+            jBackup.addProgressListener(listener);
+        } else {
+            jBackup.addProgressListener(config.getName(), listener);
+            jBackup.addProgressListener(config2.getName(), listener2);
+        }
         try {
             Future<Void> future = action.executeAction(jBackup);
             Future<Void> future2 = action2.executeAction(jBackup);
@@ -400,41 +405,82 @@ public class JBackupImplTest {
             jBackup.shutdown(null);
         }
 
-        verifyListenerNotifiedOnlyForConfig(listener, config);
-        verifyListenerNotifiedOnlyForConfig(listener2, config2);
+        if (listenAll) {
+            verifyListenerNotifiedOnlyForConfig(listener, config, config2);
+        } else {
+            verifyListenerNotifiedOnlyForConfig(listener, config);
+            verifyListenerNotifiedOnlyForConfig(listener2, config2);
+        }
     }
 
-    private void verifyListenerNotifiedOnlyForConfig(ProgressListener listener, BackupConfiguration config) {
-        verify(listener, times(1)).taskStarted(eq(config.getName()));
-        verify(listener, times(1)).totalSizeComputed(eq(config.getName()), anyLong());
-        verify(listener, times(1)).progress(eq(config.getName()), anyLong());
-        verify(listener, times(1)).taskFinished(eq(config.getName()), any(Throwable.class));
+    private void testAddProgressListener_backup_TwoListeners(boolean listenAll) throws Throwable {
+        BackupConfiguration config1 = ConfigurationManagerTest.createConfiguration("config1");
+        BackupConfiguration config2 = ConfigurationManagerTest.createConfiguration("config2");
+        testAddProgressListener_TwoListeners(new BackupAction(config1), new BackupAction(config2), listenAll);
+    }
+
+    @Test
+    public void testAddProgressListener_restore_TwoListeners() throws Throwable {
+        testAddProgressListener_restore_TwoListeners(false);
+    }
+
+    private void testAddProgressListener_restore_TwoListeners(boolean listenAll) throws Throwable {
+        BackupConfiguration config1 = ConfigurationManagerTest.createConfiguration("config1");
+        BackupConfiguration config2 = ConfigurationManagerTest.createConfiguration("config2");
+        testAddProgressListener_TwoListeners(new RestoreAction(config1, null, null), new RestoreAction(config2, null, null), listenAll);
+    }
+
+    private void verifyListenerNotifiedOnlyForConfig(ProgressListener listener, BackupConfiguration... configs) {
+        for (BackupConfiguration config : configs) {
+            verify(listener, times(1)).taskStarted(eq(config.getName()));
+            verify(listener, times(1)).totalSizeComputed(eq(config.getName()), anyLong());
+            verify(listener, times(1)).progress(eq(config.getName()), anyLong());
+            verify(listener, times(1)).taskFinished(eq(config.getName()), any(Throwable.class));
+        }
         verifyNoMoreInteractions(listener);
     }
 
     @Test
     public void testRemoveProgressListener_backup() throws Throwable {
-        testRemoveProgressListener(new BackupAction(createConfiguration()));
+        testRemoveProgressListener(new BackupAction(createConfiguration()), false);
+    }
+
+    @Test
+    public void testRemoveProgressListener_backup_globalListener() throws Throwable {
+        testRemoveProgressListener(new BackupAction(createConfiguration()), true);
     }
 
     @Test
     public void testRemoveProgressListener_restore() throws Throwable {
-        testRemoveProgressListener(new RestoreAction(createConfiguration(), null, null));
+        testRemoveProgressListener(new RestoreAction(createConfiguration(), null, null), false);
     }
 
-    private void testRemoveProgressListener(JBackupAction action) throws Throwable {
+    @Test
+    public void testRemoveProgressListener_restore_globalListener() throws Throwable {
+        testRemoveProgressListener(new RestoreAction(createConfiguration(), null, null), true);
+    }
+
+    private void testRemoveProgressListener(JBackupAction action, final boolean listenAll) throws Throwable {
         final JBackup jBackup = createMockJBackup();
         final ProgressListener listener = mock(ProgressListener.class);
         final BackupConfiguration config = action.getConfiguration();
         doAnswer(new Answer() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                jBackup.removeProgressListener(config.getName(), listener);
+                if (listenAll) {
+                    jBackup.removeProgressListener(listener);
+                } else {
+                    jBackup.removeProgressListener(config.getName(), listener);
+                }
                 return null;
             }
         }).when(listener).taskStarted(anyString());
 
-        jBackup.addProgressListener(config.getName(), listener);
+        if (listenAll) {
+            jBackup.addProgressListener(listener);
+        } else {
+            jBackup.addProgressListener(config.getName(), listener);
+        }
         try {
             Future<Void> future = action.executeAction(jBackup);
             waitResult(future);

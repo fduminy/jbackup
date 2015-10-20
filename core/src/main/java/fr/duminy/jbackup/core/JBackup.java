@@ -34,8 +34,33 @@ public interface JBackup {
 
     Future<Void> restore(BackupConfiguration config, Path archive, Path targetDirectory);
 
+    /**
+     * Add a listener for all configurations.
+     *
+     * @param listener
+     */
+    void addProgressListener(ProgressListener listener);
+
+    /**
+     * Add a listener for a given configuration.
+     *
+     * @param configurationName Name of the configuration to listen.
+     * @param listener
+     */
     void addProgressListener(String configurationName, ProgressListener listener);
 
+    /**
+     * Remove a listener for all configurations.
+     *
+     * @param listener
+     */
+    void removeProgressListener(ProgressListener listener);
+
+    /**
+     * Remove a listener for a given configuration.
+     * @param configurationName Name of the configuration to stop listening.
+     * @param listener
+     */
     void removeProgressListener(String configurationName, ProgressListener listener);
 
     Timer shutdown(final TerminationListener listener) throws InterruptedException;

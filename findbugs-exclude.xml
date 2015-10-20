@@ -26,4 +26,10 @@
         <Method name="terminated"/>
         <Bug pattern="DM_EXIT"/>
     </Match>
+
+    <Match>
+        <Class name="fr.duminy.jbackup.core.JBackupImpl"/>
+        <Method name="getTaskListener"/>
+        <Bug pattern="ES_COMPARING_PARAMETER_STRING_WITH_EQ"/>
+    </Match>
 </FindBugsFilter>
