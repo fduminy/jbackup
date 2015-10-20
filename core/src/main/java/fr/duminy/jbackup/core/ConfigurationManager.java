@@ -80,7 +80,7 @@ public class ConfigurationManager {
         for (Path configFile : Files.newDirectoryStream(configurationDir, XML_FILE_FILTER)) {
             try {
                 BackupConfiguration config = loadBackupConfiguration(configFile);
-                String fileName = configFile.getFileName().toString();
+                String fileName = String.valueOf(configFile.getFileName());
                 fileName = fileName.substring(0, fileName.length() - FILE_EXTENSION.length());
                 if (fileName.equals(config.getName())) {
                     doAddBackupConfiguration(config);

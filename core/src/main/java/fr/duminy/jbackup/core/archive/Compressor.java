@@ -66,13 +66,14 @@ public class Compressor {
                     if (archiveParameters.isRelativeEntries()) {
                         Path source = file.getSource();
                         if (Files.isDirectory(source)) {
-                            if (source.getParent() == null) {
+                            final Path sourceParent = source.getParent();
+                            if (sourceParent == null) {
                                 path = source.relativize(file.getPath()).toString();
                             } else {
-                                path = source.getParent().relativize(file.getPath()).toString();
+                                path = sourceParent.relativize(file.getPath()).toString();
                             }
                         } else {
-                            path = file.getPath().getFileName().toString();
+                            path = String.valueOf(file.getPath().getFileName());
                         }
                     } else {
                         path = file.getPath().toString();

@@ -69,7 +69,10 @@ public class Decompressor {
                 InputStream entryStream = createCountingInputStream(listener, processedSize, entry.getInput());
                 try {
                     Path file = targetDirectory.resolve(entry.getName());
-                    Files.createDirectories(file.getParent());
+                    Path parent = file.getParent();
+                    if (parent != null) {
+                        Files.createDirectories(parent);
+                    }
                     Files.copy(entryStream, file);
                 } finally {
                     entry.close();
