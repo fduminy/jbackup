@@ -27,7 +27,10 @@ import org.apache.commons.io.testtools.FileBasedTestCase;
 import org.junit.Rule;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
+import static fr.duminy.jbackup.core.filter.MavenTargetRecognizer.MAVEN2_TARGET_DIR;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -72,8 +75,7 @@ public class JexlFileFilterTest extends FileBasedTestCase {
      * @throws Exception
      */
     public void assertFiltering(final IOFileFilter filter, final File file, final boolean expected) throws Exception {
-        // Note. This only tests the (File, String) version if the parent of
-        //       the File passed in is not null
+        // Note. This only tests the (File, String) version if the parent of the File passed in is not null
         assertThat(filter.accept(file)).
                 as("Source(File) " + filter.getClass().getName() + " not " + expected + " for " + file).isEqualTo(expected);
 
@@ -90,6 +92,26 @@ public class JexlFileFilterTest extends FileBasedTestCase {
         assertFiltering(filter, new File(".a.b"), true);
         assertFiltering(filter, new File("readme.txt"), false);
         assertFiltering(filter, new File("file."), false);
+    }
+
+    public void testMavenTarget() throws Exception {
+        testMavenTarget(false, false);
+        testMavenTarget(false, true);
+        testMavenTarget(true, false);
+        testMavenTarget(true, true);
+    }
+
+    private void testMavenTarget(boolean projectFile, boolean targetDir) throws Exception {
+        Path projectDir = Files.createTempDirectory("JBackupTest");
+        if (projectFile) {
+            Path template = MavenTargetRecognizerTest.MavenProjectFileTestCase.M2_NOMINAL.getProjectFile();
+            Files.copy(template, projectDir.resolve(template.getFileName()));
+        }
+        Path targetPath = projectDir.resolve(targetDir ? MAVEN2_TARGET_DIR : "notATargetDirectory");
+        Files.createDirectory(targetPath);
+
+        IOFileFilter filter = new JexlFileFilter("template", "mavenTarget()");
+        assertFiltering(filter, targetPath.toFile(), projectFile && targetDir);
     }
 
     public void testEqualOperator() throws Exception {

@@ -23,11 +23,15 @@ package fr.duminy.jbackup.core.filter;
 import org.apache.commons.jexl2.JexlContext;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * Functions that can be used by {@link JexlFileFilter}.
  */
 public class FileFunctions {
+    private static final MavenTargetRecognizer RECOGNIZER = new MavenTargetRecognizer();
+
     public static final String FILE = "file";
 
     private final JexlContext context;
@@ -38,6 +42,11 @@ public class FileFunctions {
 
     public boolean namePrefix(String prefix) {
         return getFile().getName().startsWith(prefix);
+    }
+
+    public boolean mavenTarget() throws IOException {
+        Path path = getFile().toPath();
+        return RECOGNIZER.couldBeMavenTargetDirectory(path) && (RECOGNIZER.getMavenProjectFile(path.getParent()) != null);
     }
 
     private File getFile() {

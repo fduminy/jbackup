@@ -1,0 +1,10 @@
+<!-- a multiline header
+line1
+line2
+-->
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>test.group</groupId>
+    <artifactId>test-artifact</artifactId>
+    <version>1.0</version>
+</project>
