@@ -23,8 +23,6 @@ package fr.duminy.jbackup.core.archive;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.task.TaskListener;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,7 +36,6 @@ import static fr.duminy.jbackup.core.archive.NotifyingInputStream.createCounting
  * A high level class that can decompress files in a format managed by the provided {@link fr.duminy.jbackup.core.archive.ArchiveFactory}.
  */
 public class Decompressor {
-    private static final Logger LOG = LoggerFactory.getLogger(Decompressor.class);
 
     private final ArchiveFactory factory;
 
@@ -80,8 +77,6 @@ public class Decompressor {
 
                 entry = getNextEntryIfNotCancelled(input, cancellable);
             }
-        } catch (IOException e) {
-            throw new ArchiveException(e);
         } catch (Exception e) {
             throw new ArchiveException(e);
         }

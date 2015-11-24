@@ -27,7 +27,6 @@ import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -83,8 +82,6 @@ public class Compressor {
                 }
             }
             LOG.info("Backup '{}': archive {} created ({})", new Object[]{name, archiveParameters.getArchive(), FileUtils.byteCountToDisplaySize(Files.size(archiveParameters.getArchive()))});
-        } catch (IOException e) {
-            throw new ArchiveException(e);
         } catch (Exception e) {
             throw new ArchiveException(e);
         }
