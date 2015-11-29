@@ -32,4 +32,16 @@
         <Method name="getTaskListener"/>
         <Bug pattern="ES_COMPARING_PARAMETER_STRING_WITH_EQ"/>
     </Match>
+
+    <!-- TODO Fix following cases giving false failures with java 7 -->
+    <Match>
+        <Class name="fr.duminy.jbackup.core.archive.Compressor"/>
+        <Method name="compress"/>
+        <Bug pattern="REC_CATCH_EXCEPTION"/>
+    </Match>
+    <Match>
+        <Class name="fr.duminy.jbackup.core.archive.Decompressor"/>
+        <Method name="decompress"/>
+        <Bug pattern="REC_CATCH_EXCEPTION"/>
+    </Match>
 </FindBugsFilter>
