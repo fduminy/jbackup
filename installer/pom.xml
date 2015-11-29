@@ -107,7 +107,8 @@
                                     <condition>
                                         import java.io.File;
 
-                                        String jarFile = "${basedir}/target/${artifactId}-${project.version}.jar";
+                                        String jarFile =
+                                        "${basedir}/target/${project.artifactId}-${project.version}.jar";
                                         print("set executable for jar " + jarFile);
                                         new File(jarFile).setExecutable(true,false);
 
