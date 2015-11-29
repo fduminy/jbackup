@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.archive;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class SourceWithPath {
@@ -27,6 +28,9 @@ public final class SourceWithPath {
     private final Path path;
 
     public SourceWithPath(Path source, Path path) {
+        if (!source.isAbsolute()) {
+            throw new RuntimeException("source parameter must be absolute");
+        }
         this.source = source;
         this.path = path;
     }
@@ -37,5 +41,25 @@ public final class SourceWithPath {
 
     public final Path getPath() {
         return path;
+    }
+
+    public final String getRelativePath() {
+        String path;
+        Path source = getSource();
+        if (Files.isDirectory(source)) {
+            final Path sourceParent = source.getParent();
+            if (sourceParent == null) {
+                path = source.relativize(getPath()).toString();
+            } else {
+                path = sourceParent.relativize(getPath()).toString();
+            }
+        } else {
+            path = String.valueOf(getPath().getFileName());
+        }
+        return path;
+    }
+
+    public String getAbsolutePath() {
+        return getPath().toString();
     }
 }

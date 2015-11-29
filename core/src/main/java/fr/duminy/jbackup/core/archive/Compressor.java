@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import static fr.duminy.jbackup.core.archive.NotifyingInputStream.createCountingInputStream;
@@ -61,22 +60,7 @@ public class Compressor {
 
                 LOG.info("Backup '{}': compressing file {}", name, file.getPath().toAbsolutePath());
                 try (InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file.getPath()))) {
-                    final String path;
-                    if (archiveParameters.isRelativeEntries()) {
-                        Path source = file.getSource();
-                        if (Files.isDirectory(source)) {
-                            final Path sourceParent = source.getParent();
-                            if (sourceParent == null) {
-                                path = source.relativize(file.getPath()).toString();
-                            } else {
-                                path = sourceParent.relativize(file.getPath()).toString();
-                            }
-                        } else {
-                            path = String.valueOf(file.getPath().getFileName());
-                        }
-                    } else {
-                        path = file.getPath().toString();
-                    }
+                    final String path = archiveParameters.isRelativeEntries() ? file.getRelativePath() : file.getAbsolutePath();
                     LOG.info("Backup '{}': adding entry {}", new Object[]{name, path});
                     output.addEntry(path, input);
                 }
