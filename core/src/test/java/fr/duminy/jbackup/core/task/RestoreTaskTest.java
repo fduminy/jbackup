@@ -65,17 +65,17 @@ public class RestoreTaskTest extends AbstractTaskTest {
     }
 
     @Theory
-    public void testCall(TaskListener listener) throws Throwable {
-        testCall(null, listener, null);
+    public void testCall(TaskListenerEnum listenerEnum) throws Throwable {
+        testCall(null, listenerEnum.createTaskListener(), null);
     }
 
     @Theory
-    public void testCall_deleteFilesOnError(TaskListener listener) throws Throwable {
+    public void testCall_deleteFilesOnError(TaskListenerEnum listenerEnum) throws Throwable {
         final IOException exception = new IOException("An unexpected error");
         thrown.expect(exception.getClass());
         thrown.expectMessage(exception.getMessage());
 
-        testCall(exception, listener, null);
+        testCall(exception, listenerEnum.createTaskListener(), null);
     }
 
     @Test

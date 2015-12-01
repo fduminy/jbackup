@@ -45,7 +45,8 @@ import static org.mockito.Mockito.*;
 
 public class BackupTaskTest extends AbstractTaskTest {
     @Theory
-    public void testCall(TaskListener listener) throws Throwable {
+    public void testCall(TaskListenerEnum listenerEnum) throws Throwable {
+        TaskListener listener = listenerEnum.createTaskListener();
         final ArchiveParameters archiveParameters = createArchiveParameters();
 
         testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, null, null);
@@ -88,8 +89,9 @@ public class BackupTaskTest extends AbstractTaskTest {
     }
 
     @Theory
-    public void testCall_NullArchiveFactory(TaskListener listener) throws Throwable {
+    public void testCall_NullArchiveFactory(TaskListenerEnum listenerEnum) throws Throwable {
         // prepare test
+        TaskListener listener = listenerEnum.createTaskListener();
         thrown.expect(NullPointerException.class);
         thrown.expectMessage("ArchiveFactory is null");
         Path archive = tempFolder.newFolder().toPath().resolve("archive.mock");
@@ -106,7 +108,8 @@ public class BackupTaskTest extends AbstractTaskTest {
     }
 
     @Theory
-    public void testCall_deleteArchiveOnError(TaskListener listener) throws Throwable {
+    public void testCall_deleteArchiveOnError(TaskListenerEnum listenerEnum) throws Throwable {
+        TaskListener listener = listenerEnum.createTaskListener();
         final IOException exception = new IOException("An unexpected error");
         thrown.expect(exception.getClass());
         thrown.expectMessage(exception.getMessage());

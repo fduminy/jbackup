@@ -22,7 +22,6 @@ package fr.duminy.jbackup.core.task;
 
 import fr.duminy.jbackup.core.util.LogRule;
 import org.junit.Rule;
-import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
@@ -32,11 +31,22 @@ import static org.mockito.Mockito.mock;
 
 @RunWith(Theories.class)
 abstract public class AbstractTaskTest {
-    @DataPoint
-    public static final TaskListener WITH_LISTENER = mock(TaskListener.class);
+    public enum TaskListenerEnum {
+        WITH_LISTENER {
+            @Override
+            TaskListener createTaskListener() {
+                return mock(TaskListener.class);
+            }
+        },
+        WITHOUT_LISTENER {
+            @Override
+            TaskListener createTaskListener() {
+                return null;
+            }
+        };
 
-    @DataPoint
-    public static final TaskListener WITHOUT_LISTENER = null;
+        abstract TaskListener createTaskListener();
+    }
 
     @Rule
     public final LogRule logRule = new LogRule();
