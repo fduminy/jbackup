@@ -177,7 +177,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
                 labels.add(label.getName());
             }
         }
-        assertThat(labels).containsExactly("archiveFactory", "name", "relativeEntries", "sources", "targetDirectory");
+        assertThat(labels).containsExactly("archiveFactory", "name", "relativeEntries", "sources", "targetDirectory", "verify");
     }
 
     @Theory

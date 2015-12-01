@@ -27,16 +27,23 @@ import fr.duminy.jbackup.core.JBackupImplTest;
 import fr.duminy.jbackup.core.TestUtils;
 import fr.duminy.jbackup.core.archive.*;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
+import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import fr.duminy.jbackup.core.util.FileDeleter;
+import fr.duminy.jbackup.core.util.InputStreamComparator;
 import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.junit.Test;
 import org.junit.experimental.theories.Theory;
 import org.mockito.InOrder;
 import org.mockito.Matchers;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import static fr.duminy.jbackup.core.matchers.Matchers.eq;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,12 +51,49 @@ import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.*;
 
 public class BackupTaskTest extends AbstractTaskTest {
+
+    @SuppressWarnings("unchecked")
     @Theory
-    public void testCall(TaskListenerEnum listenerEnum) throws Throwable {
+    public void testCreateVerifier(boolean verify) throws Exception {
+        // prepare test
+        FileDeleter mockDeleter = mock(FileDeleter.class);
+        final ArchiveParameters archiveParameters = createArchiveParameters();
+        final BackupConfiguration config = toBackupConfiguration(ZipArchiveFactory.INSTANCE, archiveParameters);
+        config.setVerify(verify);
+        Files.copy(ZipArchiveFactoryTest.getArchive(), archiveParameters.getArchive());
+        final MutableBoolean createVerifierCalled = new MutableBoolean(false);
+        final MutableObject<ArchiveVerifier> verifier = new MutableObject<>(null);
+        final ArchiveVerifier verifierMock = mock(ArchiveVerifier.class);
+        when(verifierMock.verify(any(ArchiveFactory.class), any(InputStream.class), any(List.class))).thenReturn(true);
+        TestableBackupTask task = new TestableBackupTask(config, createDeleterSupplier(mockDeleter), null, null) {
+            @Override
+            ArchiveVerifier createVerifier(InputStreamComparator comparator) {
+                createVerifierCalled.setValue(true);
+                verifier.setValue(super.createVerifier(comparator));
+                return verifierMock;
+            }
+        };
+        task.setMockFileCollector(mock(FileCollector.class));
+        task.setMockCompressor(mock(Compressor.class));
+
+        // test
+        task.call();
+
+        // assertions
+        assertThat(createVerifierCalled.getValue()).as("createVerifierCalled").isEqualTo(verify);
+        if (verify) {
+            assertThat(verifier.getValue()).as("createVerifier result").isNotNull();
+            verify(verifierMock, times(1)).verify(any(ArchiveFactory.class), any(InputStream.class), any(List.class));
+            verifyNoMoreInteractions(verifierMock);
+        }
+    }
+
+    @Theory
+    public void testCall(TaskListenerEnum listenerEnum, boolean verify) throws Throwable {
         TaskListener listener = listenerEnum.createTaskListener();
         final ArchiveParameters archiveParameters = createArchiveParameters();
 
-        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, null, null);
+        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, null, null, verify);
 
         if (listener != null) {
             InOrder inOrder = inOrder(listener);
@@ -108,15 +152,20 @@ public class BackupTaskTest extends AbstractTaskTest {
     }
 
     @Theory
-    public void testCall_deleteArchiveOnError(TaskListenerEnum listenerEnum) throws Throwable {
+    public void testCall_deleteArchiveOnError(TaskListenerEnum listenerEnum, boolean verify) throws Throwable {
         TaskListener listener = listenerEnum.createTaskListener();
-        final IOException exception = new IOException("An unexpected error");
+        final Exception exception;
+        if (verify) {
+            exception = new BackupTask.VerificationFailedException("Archive verification failed");
+        } else {
+            exception = new IOException("An unexpected error");
+        }
         thrown.expect(exception.getClass());
         thrown.expectMessage(exception.getMessage());
 
         final ArchiveParameters archiveParameters = createArchiveParameters();
 
-        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, exception, null);
+        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, listener, exception, null, verify);
 
         verify(listener).taskStarted();
         verify(listener).taskFinished(eq(exception));
@@ -129,27 +178,38 @@ public class BackupTaskTest extends AbstractTaskTest {
         when(cancellable.isCancelled()).thenReturn(true);
         ArchiveParameters archiveParameters = createArchiveParameters();
 
-        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, null, null, cancellable);
+        testCall(ZipArchiveFactory.INSTANCE, archiveParameters, null, null, cancellable, false);
     }
 
+    @SuppressWarnings("unchecked")
     private void testCall(ArchiveFactory mockFactory, ArchiveParameters archiveParameters, TaskListener listener,
-                          Exception exception, Cancellable cancellable) throws Throwable {
+                          Exception exception, Cancellable cancellable, boolean verify) throws Throwable {
         // prepare test
         final FileDeleter mockDeleter = mock(FileDeleter.class);
         final BackupConfiguration config = toBackupConfiguration(mockFactory, archiveParameters);
+        config.setVerify(verify);
         final Compressor mockCompressor = mock(Compressor.class);
         final FileCollector mockFileCollector = mock(FileCollector.class);
+        final ArchiveVerifier mockVerifier = mock(ArchiveVerifier.class);
 
         TestableBackupTask task = new TestableBackupTask(config, createDeleterSupplier(mockDeleter), listener, cancellable);
         task.setMockCompressor(mockCompressor);
         task.setMockFileCollector(mockFileCollector);
+        task.setMockVerifier(mockVerifier);
         Path expectedArchive = getExpectedArchive(config, task);
+        Files.copy(ZipArchiveFactoryTest.getArchive(), expectedArchive);
 
+        boolean mockVerifierResult = true;
         if (exception != null) {
-            doThrow(new ArchiveException(exception)).when(mockCompressor).
-                    compress(eq(archiveParameters, expectedArchive), anyListOf(SourceWithPath.class), eq(listener),
-                            isNull(Cancellable.class));
+            if (exception instanceof BackupTask.VerificationFailedException) {
+                mockVerifierResult = false;
+            } else {
+                doThrow(new ArchiveException(exception)).when(mockCompressor).
+                        compress(eq(archiveParameters, expectedArchive), anyListOf(SourceWithPath.class), eq(listener),
+                                isNull(Cancellable.class));
+            }
         }
+        when(mockVerifier.verify(eq(mockFactory), any(InputStream.class), any(List.class))).thenReturn(mockVerifierResult);
 
         // test
         try {
@@ -158,9 +218,10 @@ public class BackupTaskTest extends AbstractTaskTest {
             throw e.getCause();
         } finally {
             // assertions
-            InOrder inOrder = inOrder(mockDeleter, mockCompressor, mockFileCollector);
+            InOrder inOrder = inOrder(mockDeleter, mockCompressor, mockFileCollector, mockVerifier);
             if ((cancellable != null) || (exception != null)) {
                 inOrder.verify(mockDeleter, times(1)).registerFile(org.mockito.Matchers.eq(expectedArchive));
+                inOrder.verify(mockVerifier, times(config.isVerify() ? 1 : 0)).verify(eq(mockFactory), any(InputStream.class), any(List.class));
                 inOrder.verify(mockDeleter, times(1)).deleteAll();
             } else {
                 inOrder.verify(mockDeleter, times(1)).registerFile(org.mockito.Matchers.eq(expectedArchive));
@@ -168,6 +229,7 @@ public class BackupTaskTest extends AbstractTaskTest {
                         eq(archiveParameters, expectedArchive), eq(listener), isNull(Cancellable.class));
                 inOrder.verify(mockCompressor, times(1)).compress(eq(archiveParameters, expectedArchive),
                         anyListOf(SourceWithPath.class), eq(listener), isNull(Cancellable.class));
+                inOrder.verify(mockVerifier, times(config.isVerify() ? 1 : 0)).verify(eq(mockFactory), any(InputStream.class), any(List.class));
             }
             inOrder.verifyNoMoreInteractions();
         }
@@ -226,6 +288,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         private final String generatedName = "archive.mock";
         private FileCollector mockFileCollector;
         private Compressor mockCompressor;
+        private ArchiveVerifier mockVerifier;
 
         public TestableBackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,
                                   TaskListener listener, Cancellable cancellable) {
@@ -249,6 +312,14 @@ public class BackupTaskTest extends AbstractTaskTest {
         }
 
         @Override
+        ArchiveVerifier createVerifier(InputStreamComparator comparator) {
+            if (mockVerifier == null) {
+                return super.createVerifier(comparator);
+            }
+            return mockVerifier;
+        }
+
+        @Override
         protected String generateName(String configName, ArchiveFactory factory) {
             return generatedName;
         }
@@ -259,6 +330,10 @@ public class BackupTaskTest extends AbstractTaskTest {
 
         public void setMockCompressor(Compressor mockCompressor) {
             this.mockCompressor = mockCompressor;
+        }
+
+        public void setMockVerifier(ArchiveVerifier mockVerifier) {
+            this.mockVerifier = mockVerifier;
         }
 
         public String getGeneratedName() {

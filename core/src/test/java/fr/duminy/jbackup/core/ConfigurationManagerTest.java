@@ -67,6 +67,7 @@ public class ConfigurationManagerTest {
             generateSourceXml("        ", "anotherDirFilter", "anotherFileFilter", "anotherSource") +
             "    </sources>\n" +
             "    <targetDirectory>" + TARGET_DIRECTORY + "</targetDirectory>\n" +
+            "    <verify>false</verify>\n" +
             "</backupConfiguration>\n";
     private static final String CONFIG_XML2 = CONFIG_XML.replace("<name>" + CONFIG1 + "</name>", "<name>" + CONFIG2 + "</name>");
 

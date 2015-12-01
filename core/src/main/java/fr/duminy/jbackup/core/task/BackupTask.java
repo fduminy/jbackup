@@ -25,8 +25,10 @@ import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.*;
 import fr.duminy.jbackup.core.util.FileDeleter;
+import fr.duminy.jbackup.core.util.InputStreamComparator;
 import org.apache.commons.io.filefilter.IOFileFilter;
 
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,6 +38,12 @@ import java.util.List;
 import java.util.Objects;
 
 public class BackupTask extends FileCreatorTask {
+    public static class VerificationFailedException extends Exception {
+        public VerificationFailedException(String message) {
+            super(message);
+        }
+    }
+
     public BackupTask(BackupConfiguration config, Supplier<FileDeleter> deleterSupplier,
                       TaskListener listener, Cancellable cancellable) {
         super(config, deleterSupplier, listener, cancellable);
@@ -65,6 +73,14 @@ public class BackupTask extends FileCreatorTask {
         List<SourceWithPath> collectedFiles = new ArrayList<>();
         createFileCollector().collectFiles(collectedFiles, archiveParameters, listener, cancellable);
         compress(factory, archiveParameters, collectedFiles, cancellable);
+        if (config.isVerify()) {
+            ArchiveVerifier verifier = createVerifier(new InputStreamComparator());
+            try (InputStream archiveInputStream = Files.newInputStream(archive)) {
+                if (!verifier.verify(factory, archiveInputStream, collectedFiles)) {
+                    throw new VerificationFailedException("Archive verification failed");
+                }
+            }
+        }
     }
 
     protected void compress(ArchiveFactory factory, ArchiveParameters archiveParameters, List<SourceWithPath> collectedFiles, Cancellable cancellable) throws ArchiveException {
@@ -79,6 +95,9 @@ public class BackupTask extends FileCreatorTask {
         return new Compressor(factory);
     }
 
+    ArchiveVerifier createVerifier(InputStreamComparator comparator) {
+        return new ArchiveVerifier(comparator);
+    }
 
     protected String generateName(String configName, ArchiveFactory factory) {
         Objects.requireNonNull(factory, "ArchiveFactory is null");

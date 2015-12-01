@@ -56,6 +56,8 @@ public class BackupConfiguration {
 
     private boolean relativeEntries = true;
 
+    private boolean verify = false;
+
     public void addSource(Path sourceDirectory) {
         addSource(sourceDirectory, null, null);
     }
@@ -105,6 +107,14 @@ public class BackupConfiguration {
         this.xmlVersion = xmlVersion;
     }
 
+    public boolean isVerify() {
+        return verify;
+    }
+
+    public void setVerify(boolean verify) {
+        this.verify = verify;
+    }
+
     @XmlElementWrapper(name = "sources")
     @XmlElement(name = "source")
     public List<Source> getSources() {
@@ -139,11 +149,13 @@ public class BackupConfiguration {
     @Override
     public String toString() {
         return "BackupConfiguration{" +
-                "name='" + name + '\'' +
+                "xmlVersion=" + xmlVersion +
+                ", name='" + name + '\'' +
                 ", sources=" + sources +
                 ", targetDirectory='" + targetDirectory + '\'' +
                 ", archiveFactory=" + archiveFactory +
-                ", xmlVersion=" + xmlVersion +
+                ", relativeEntries=" + relativeEntries +
+                ", verify=" + verify +
                 '}';
     }
 
