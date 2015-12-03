@@ -58,10 +58,8 @@ public class Compressor {
                     break;
                 }
 
-                LOG.info("Backup '{}': compressing file {}", name, file.getPath().toAbsolutePath());
                 try (InputStream input = createCountingInputStream(listener, processedSize, Files.newInputStream(file.getPath()))) {
                     final String path = archiveParameters.isRelativeEntries() ? file.getRelativePath() : file.getAbsolutePath();
-                    LOG.info("Backup '{}': adding entry {}", new Object[]{name, path});
                     output.addEntry(path, input);
                 }
             }
