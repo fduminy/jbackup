@@ -27,6 +27,8 @@ import fr.duminy.jbackup.core.archive.*;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import fr.duminy.jbackup.core.util.InputStreamComparator;
 import org.apache.commons.io.filefilter.IOFileFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -38,6 +40,8 @@ import java.util.List;
 import java.util.Objects;
 
 public class BackupTask extends FileCreatorTask {
+    private static final Logger LOG = LoggerFactory.getLogger(BackupTask.class);
+
     public static class VerificationFailedException extends Exception {
         public VerificationFailedException(String message) {
             super(message);
@@ -74,9 +78,16 @@ public class BackupTask extends FileCreatorTask {
         createFileCollector().collectFiles(collectedFiles, archiveParameters, listener, cancellable);
         compress(factory, archiveParameters, collectedFiles, cancellable);
         if (config.isVerify()) {
+            LOG.info("Verifing archive {}", archiveParameters.getArchive());
             ArchiveVerifier verifier = createVerifier(new InputStreamComparator());
             try (InputStream archiveInputStream = Files.newInputStream(archive)) {
-                if (!verifier.verify(factory, archiveInputStream, collectedFiles)) {
+                final boolean valid = verifier.verify(factory, archiveInputStream, collectedFiles);
+                if (valid) {
+                    LOG.info("Archive {} valid", archiveParameters.getArchive());
+                } else {
+                    LOG.error("Archive {} corrupted", archiveParameters.getArchive());
+                }
+                if (!valid) {
                     throw new VerificationFailedException("Archive verification failed");
                 }
             }
