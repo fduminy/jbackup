@@ -34,9 +34,13 @@ import org.mockito.InOrder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 import static fr.duminy.jbackup.core.matchers.Matchers.eq;
+import static java.util.Collections.sort;
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -102,18 +106,26 @@ public class FileCollectorTest {
     private void testCollect_withCancellableTask(boolean cancelAfterFirstFile) throws Exception {
         Cancellable cancellable = mock(Cancellable.class);
         when(cancellable.isCancelled()).thenReturn(false, cancelAfterFirstFile);
-        List<SourceWithPath> actualFiles = mock(List.class);
+        List<SourceWithPath> actualFiles = new ArrayList<>(expectedFiles.length);
+        List<SourceWithPath> spiedActualFiles = spy(actualFiles);
 
-        collectFiles(actualFiles, null, null, cancellable);
+        collectFiles(spiedActualFiles, null, null, cancellable);
 
-        InOrder inOrder = inOrder(cancellable, actualFiles);
+        InOrder inOrder = inOrder(cancellable, spiedActualFiles);
         inOrder.verify(cancellable).isCancelled();
-        inOrder.verify(actualFiles).add(eq(expectedFiles[0]));
+        inOrder.verify(spiedActualFiles).add(eq(anyFileIn(actualFiles, 0)));
         inOrder.verify(cancellable).isCancelled();
         if (!cancelAfterFirstFile) {
-            inOrder.verify(actualFiles).add(eq(expectedFiles[1]));
+            inOrder.verify(spiedActualFiles).add(eq(anyFileIn(actualFiles, 1)));
         }
         inOrder.verifyNoMoreInteractions();
+    }
+
+    private Path anyFileIn(List<SourceWithPath> actualFiles, int index) {
+        if ((index >= actualFiles.size()) || (actualFiles.get(index).getAbsolutePath().equals(expectedFiles[index].toAbsolutePath().toString()))) {
+            index = (index == 0) ? 1 : 0;
+        }
+        return expectedFiles[index];
     }
 
     @Test
@@ -138,7 +150,7 @@ public class FileCollectorTest {
     }
 
     private Path[] toSortedPaths(List<SourceWithPath> collectedFiles) {
-        Collections.sort(collectedFiles, new Comparator<SourceWithPath>() {
+        sort(collectedFiles, new Comparator<SourceWithPath>() {
             @Override
             public int compare(SourceWithPath o1, SourceWithPath o2) {
                 int comp = o1.getSource().compareTo(o2.getSource());
