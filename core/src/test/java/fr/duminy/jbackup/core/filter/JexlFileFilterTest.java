@@ -21,10 +21,10 @@
 package fr.duminy.jbackup.core.filter;
 
 import fr.duminy.jbackup.core.util.LogRule;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.io.testtools.FileBasedTestCase;
 import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -33,37 +33,13 @@ import java.nio.file.Path;
 import static fr.duminy.jbackup.core.filter.MavenTargetRecognizer.MAVEN2_TARGET_DIR;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * .
- */
-public class JexlFileFilterTest extends FileBasedTestCase {
+public class JexlFileFilterTest {
 
     @Rule
     public final LogRule logRule = new LogRule();
 
-    public JexlFileFilterTest(String name) {
-        super(name);
-    }
-
-    /**
-     * Method copied from {@link org.apache.commons.io.filefilter.RegexFileFilterTestCase#setUp()}.
-     * TODO check potential license issue.
-     */
-    @Override
-    public void setUp() {
-        getTestDirectory().mkdirs();
-    }
-
-    /**
-     * Method copied from {@link org.apache.commons.io.filefilter.RegexFileFilterTestCase#tearDown()}.
-     * TODO check potential license issue.
-     *
-     * @throws Exception
-     */
-    @Override
-    public void tearDown() throws Exception {
-        FileUtils.deleteDirectory(getTestDirectory());
-    }
+    @Rule
+    public final TemporaryFolder tempFolder = new TemporaryFolder();
 
     /**
      * Method copied from {@link org.apache.commons.io.filefilter.RegexFileFilterTestCase#assertFiltering(org.apache.commons.io.filefilter.IOFileFilter, java.io.File, boolean)}.
@@ -85,6 +61,7 @@ public class JexlFileFilterTest extends FileBasedTestCase {
         }
     }
 
+    @Test
     public void testNamePrefix() throws Exception {
         IOFileFilter filter = new JexlFileFilter("template", "namePrefix('.')");
         assertFiltering(filter, new File("."), true);
@@ -94,6 +71,7 @@ public class JexlFileFilterTest extends FileBasedTestCase {
         assertFiltering(filter, new File("file."), false);
     }
 
+    @Test
     public void testMavenTarget() throws Exception {
         testMavenTarget(false, false);
         testMavenTarget(false, true);
@@ -102,7 +80,7 @@ public class JexlFileFilterTest extends FileBasedTestCase {
     }
 
     private void testMavenTarget(boolean projectFile, boolean targetDir) throws Exception {
-        Path projectDir = Files.createTempDirectory("JBackupTest");
+        Path projectDir = tempFolder.newFolder(Boolean.toString(projectFile) + Boolean.toString(targetDir)).toPath();
         if (projectFile) {
             Path template = MavenTargetRecognizerTest.MavenProjectFileTestCase.M2_NOMINAL.getProjectFile();
             Files.copy(template, projectDir.resolve(template.getFileName()));
@@ -114,6 +92,7 @@ public class JexlFileFilterTest extends FileBasedTestCase {
         assertFiltering(filter, targetPath.toFile(), projectFile && targetDir);
     }
 
+    @Test
     public void testEqualOperator() throws Exception {
         IOFileFilter filter = new JexlFileFilter("template", "file.name=='Abc'");
         assertFiltering(filter, new File("z"), false);
