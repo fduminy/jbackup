@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core;
 
-import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import fr.duminy.jbackup.core.util.PathUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.mockito.Mockito.mock;
 

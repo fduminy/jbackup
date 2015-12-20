@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core.task;
 
-import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.*;
@@ -38,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public class BackupTask extends FileCreatorTask {
     private static final Logger LOG = LoggerFactory.getLogger(BackupTask.class);

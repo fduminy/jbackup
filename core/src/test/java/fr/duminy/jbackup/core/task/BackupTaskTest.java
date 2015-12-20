@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core.task;
 
-import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.JBackupImplTest;
@@ -44,6 +43,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static fr.duminy.jbackup.core.matchers.Matchers.eq;
 import static org.assertj.core.api.Assertions.assertThat;

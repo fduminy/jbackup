@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core;
 
-import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.archive.ProgressListener;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
@@ -37,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.function.Supplier;
 
 /**
  * Implementation of {@link fr.duminy.jbackup.core.JBackup}.

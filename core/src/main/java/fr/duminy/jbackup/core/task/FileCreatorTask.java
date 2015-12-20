@@ -20,12 +20,12 @@
  */
 package fr.duminy.jbackup.core.task;
 
-import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.util.FileDeleter;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public abstract class FileCreatorTask extends AbstractTask {
     private final Supplier<FileDeleter> deleterSupplier;

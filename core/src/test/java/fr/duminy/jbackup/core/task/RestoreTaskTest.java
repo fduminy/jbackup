@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core.task;
 
-import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.ArchiveException;
@@ -33,6 +32,7 @@ import org.junit.experimental.theories.Theory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.function.Supplier;
 
 import static fr.duminy.jbackup.core.task.BackupTaskTest.createDeleterSupplier;
 import static org.assertj.core.api.Assertions.assertThat;

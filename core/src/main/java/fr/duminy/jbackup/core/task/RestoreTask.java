@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.core.task;
 
-import com.google.common.base.Supplier;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
@@ -28,6 +27,7 @@ import fr.duminy.jbackup.core.archive.Decompressor;
 import fr.duminy.jbackup.core.util.FileDeleter;
 
 import java.nio.file.Path;
+import java.util.function.Supplier;
 
 public class RestoreTask extends FileCreatorTask {
     private final Path archive;
