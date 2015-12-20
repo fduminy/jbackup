@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.swing;
 
-import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.JBackup;
@@ -69,12 +68,7 @@ abstract public class TaskManagerComponentTest<T extends JComponent & ProgressLi
         doNothing().when(jBackup).addProgressListener(anyString(), actualListeners.capture());
 
         try {
-            panel = buildAndShowWindow(new Supplier<C>() {
-                @Override
-                public C get() {
-                    return createComponent(jBackup);
-                }
-            });
+            panel = buildAndShowWindow(() -> createComponent(jBackup));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

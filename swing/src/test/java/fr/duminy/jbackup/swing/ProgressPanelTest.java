@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.swing;
 
-import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.util.LogRule;
 import org.fest.swing.core.ComponentLookupScope;
@@ -62,12 +61,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
         super.onSetUp();
 
         try {
-            panel = buildAndShowWindow(new Supplier<ProgressPanel>() {
-                @Override
-                public ProgressPanel get() {
-                    return new ProgressPanel(TITLE);
-                }
-            });
+            panel = buildAndShowWindow(() -> new ProgressPanel(TITLE));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

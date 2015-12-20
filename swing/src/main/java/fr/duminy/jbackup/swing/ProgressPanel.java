@@ -25,8 +25,6 @@ import fr.duminy.jbackup.core.archive.ProgressListener;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.concurrent.Future;
 
 import static fr.duminy.jbackup.swing.Utils.toInteger;
@@ -55,24 +53,18 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     public void setTask(final Future<?> task) {
         this.task = task;
         if ((task != null) && (cancelButton == null)) {
-            Utils.runInEventDispatchThread(new Runnable() {
-                @Override
-                public void run() {
-                    ImageIcon icon = new ImageIcon(ProgressPanel.class.getResource("cancel.png"));
-                    cancelButton = new JButton(icon);
-                    cancelButton.setMargin(new Insets(0, 0, 0, 0));
-                    cancelButton.setToolTipText(Bundle.getBundle(Messages.class).cancelTaskTooltip());
-                    add(cancelButton, BorderLayout.EAST);
-                    revalidate();
-                    cancelButton.addActionListener(new ActionListener() {
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            if (task.cancel(false)) {
-                                removeFromParent();
-                            }
-                        }
-                    });
-                }
+            Utils.runInEventDispatchThread(() -> {
+                ImageIcon icon = new ImageIcon(ProgressPanel.class.getResource("cancel.png"));
+                cancelButton = new JButton(icon);
+                cancelButton.setMargin(new Insets(0, 0, 0, 0));
+                cancelButton.setToolTipText(Bundle.getBundle(Messages.class).cancelTaskTooltip());
+                add(cancelButton, BorderLayout.EAST);
+                revalidate();
+                cancelButton.addActionListener(e -> {
+                    if (task.cancel(false)) {
+                        removeFromParent();
+                    }
+                });
             });
         }
     }

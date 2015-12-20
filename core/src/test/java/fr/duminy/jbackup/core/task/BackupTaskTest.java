@@ -269,12 +269,7 @@ public class BackupTaskTest extends AbstractTaskTest {
     }
 
     static Supplier<FileDeleter> createDeleterSupplier(final FileDeleter mockDeleter) {
-        return new Supplier<FileDeleter>() {
-            @Override
-            public FileDeleter get() {
-                return mockDeleter;
-            }
-        };
+        return () -> mockDeleter;
     }
 
     private ArchiveParameters createArchiveParameters() throws IOException {

@@ -28,8 +28,6 @@ import org.junit.experimental.theories.Theory;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -112,13 +110,10 @@ public class CompressorTest extends AbstractArchivingTest {
         ErrorType errorType = ErrorType.NO_ERROR;
         ArchiveOutputStream mockOutput = mock(ArchiveOutputStream.class);
         ArgumentCaptor<String> pathArgument = ArgumentCaptor.forClass(String.class);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                InputStream input = (InputStream) invocation.getArguments()[1];
-                IOUtils.copy(input, new ByteArrayOutputStream());
-                return null;
-            }
+        doAnswer(invocation -> {
+            InputStream input = (InputStream) invocation.getArguments()[1];
+            IOUtils.copy(input, new ByteArrayOutputStream());
+            return null;
         }).when(mockOutput).addEntry(pathArgument.capture(), any(InputStream.class));
 
         ArchiveFactory mockFactory = createMockArchiveFactory(mockOutput);

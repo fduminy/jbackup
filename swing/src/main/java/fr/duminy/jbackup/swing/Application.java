@@ -36,8 +36,6 @@ import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.Properties;
 
-import static fr.duminy.jbackup.core.JBackup.TerminationListener;
-
 /**
  * The main class of the application.
  */
@@ -91,12 +89,9 @@ public class Application {
                     alreadyCalled = true;
                     LOGGER.info("The user has requested a shutdown. Waiting end of tasks ...");
                     try {
-                        jBackup.shutdown(new TerminationListener() {
-                            @Override
-                            public void terminated() {
-                                LOGGER.info("*** Application shutdown ***");
-                                System.exit(0);
-                            }
+                        jBackup.shutdown(() -> {
+                            LOGGER.info("*** Application shutdown ***");
+                            System.exit(0);
                         });
                     } catch (InterruptedException e1) {
                         throw new RuntimeException(e1);
@@ -113,14 +108,11 @@ public class Application {
 
     private ApplicationPanel createApplicationPanel(final JBackup jBackup) throws Exception {
         final ApplicationPanel[] application = new ApplicationPanel[1];
-        Utils.runInEventDispatchThread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    application[0] = new ApplicationPanel(jBackup);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+        Utils.runInEventDispatchThread(() -> {
+            try {
+                application[0] = new ApplicationPanel(jBackup);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         });
         return application[0];

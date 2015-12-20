@@ -33,7 +33,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.InOrder;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.swing.*;
@@ -464,16 +463,13 @@ public class JBackupImplTest {
         final JBackup jBackup = createMockJBackup();
         final ProgressListener listener = mock(ProgressListener.class);
         final BackupConfiguration config = action.getConfiguration();
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                if (listenAll) {
-                    jBackup.removeProgressListener(listener);
-                } else {
-                    jBackup.removeProgressListener(config.getName(), listener);
-                }
-                return null;
+        doAnswer(invocation -> {
+            if (listenAll) {
+                jBackup.removeProgressListener(listener);
+            } else {
+                jBackup.removeProgressListener(config.getName(), listener);
             }
+            return null;
         }).when(listener).taskStarted(anyString());
 
         if (listenAll) {
@@ -550,13 +546,10 @@ public class JBackupImplTest {
 
     private <T extends Callable<Void>> T createAlwaysWaitingTask(final Class<T> taskClass, final MutableBoolean taskStarted) throws Exception {
         final T mockTask = mock(taskClass);
-        when(mockTask.call()).then(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                taskStarted.setValue(true);
-                while (true) {
-                    Thread.sleep(100);
-                }
+        when(mockTask.call()).then((Answer<Object>) invocation -> {
+            taskStarted.setValue(true);
+            while (true) {
+                Thread.sleep(100);
             }
         });
         return mockTask;

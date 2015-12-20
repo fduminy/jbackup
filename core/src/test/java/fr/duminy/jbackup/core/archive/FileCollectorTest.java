@@ -36,7 +36,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 import static fr.duminy.jbackup.core.matchers.Matchers.eq;
@@ -150,16 +149,13 @@ public class FileCollectorTest {
     }
 
     private Path[] toSortedPaths(List<SourceWithPath> collectedFiles) {
-        sort(collectedFiles, new Comparator<SourceWithPath>() {
-            @Override
-            public int compare(SourceWithPath o1, SourceWithPath o2) {
-                int comp = o1.getSource().compareTo(o2.getSource());
-                if (comp != 0) {
-                    return comp;
-                }
-
-                return o1.getPath().compareTo(o2.getPath());
+        sort(collectedFiles, (o1, o2) -> {
+            int comp = o1.getSource().compareTo(o2.getSource());
+            if (comp != 0) {
+                return comp;
             }
+
+            return o1.getPath().compareTo(o2.getPath());
         });
         Path[] actualFiles = new Path[collectedFiles.size()];
         int i = 0;

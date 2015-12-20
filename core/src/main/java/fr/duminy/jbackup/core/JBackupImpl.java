@@ -31,8 +31,6 @@ import fr.duminy.jbackup.core.util.FileDeleter;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,22 +54,12 @@ public class JBackupImpl implements JBackup {
 
     @Override
     public Future<Void> backup(final BackupConfiguration config) {
-        return submitNewTask(new TaskFactory<Task>() {
-            @Override
-            public Task createTask(Cancellable cancellable) {
-                return createBackupTask(config, getTaskListener(config.getName()), cancellable);
-            }
-        });
+        return submitNewTask(cancellable -> createBackupTask(config, getTaskListener(config.getName()), cancellable));
     }
 
     @Override
     public Future<Void> restore(final BackupConfiguration config, final Path archive, final Path targetDirectory) {
-        return submitNewTask(new TaskFactory<Task>() {
-            @Override
-            public Task createTask(Cancellable cancellable) {
-                return createRestoreTask(config, archive, targetDirectory, getTaskListener(config.getName()), cancellable);
-            }
-        });
+        return submitNewTask(cancellable -> createRestoreTask(config, archive, targetDirectory, getTaskListener(config.getName()), cancellable));
     }
 
     @Override
@@ -103,13 +91,10 @@ public class JBackupImpl implements JBackup {
             timer = new Timer(0, null);
             timer.setDelay((int) TimeUnit.SECONDS.toMillis(1));
             final Timer finalTimer = timer;
-            timer.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (executor.isTerminated()) {
-                        listener.terminated();
-                        finalTimer.stop();
-                    }
+            timer.addActionListener(e -> {
+                if (executor.isTerminated()) {
+                    listener.terminated();
+                    finalTimer.stop();
                 }
             });
             timer.setRepeats(true);
@@ -128,12 +113,7 @@ public class JBackupImpl implements JBackup {
     }
 
     Supplier<FileDeleter> createDeleterSupplier() {
-        return new Supplier<FileDeleter>() {
-            @Override
-            public FileDeleter get() {
-                return new DefaultFileDeleter();
-            }
-        };
+        return DefaultFileDeleter::new;
     }
 
     private static class JBackupCancellable implements Cancellable {

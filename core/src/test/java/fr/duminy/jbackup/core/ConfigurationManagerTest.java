@@ -29,8 +29,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -285,20 +283,17 @@ public class ConfigurationManagerTest {
         ConfigurationManager mock = spy(manager);
         doCallRealMethod().when(mock).loadAllConfigurations();
         final List<Exception> errors = new ArrayList<>();
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                Path file = (Path) invocation.getArguments()[0];
-                if (file.equals(wrongXmlConfigFile)) {
-                    try {
-                        return invocation.callRealMethod();
-                    } catch (Exception e) {
-                        errors.add(e);
-                        throw e;
-                    }
-                } else {
+        doAnswer(invocation -> {
+            Path file = (Path) invocation.getArguments()[0];
+            if (file.equals(wrongXmlConfigFile)) {
+                try {
                     return invocation.callRealMethod();
+                } catch (Exception e) {
+                    errors.add(e);
+                    throw e;
                 }
+            } else {
+                return invocation.callRealMethod();
             }
         }).when(mock).loadBackupConfiguration(any(Path.class));
 

@@ -31,7 +31,6 @@ import org.fest.swing.edt.GuiTask;
 import org.fest.swing.fixture.FrameFixture;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.Assertion;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -105,14 +104,12 @@ public class ApplicationTest extends AbstractSwingTest {
             jBackup = spy(new JBackupImpl());
             exit.expectSystemExitWithStatus(0);
         }
-        exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() throws InterruptedException {
-                ArgumentCaptor<TerminationListener> argument = ArgumentCaptor.forClass(TerminationListener.class);
-                verify(jBackup, times(1)).shutdown(argument.capture());
-                assertThat(argument.getValue()).as("TerminationListener").isNotNull();
+        exit.checkAssertionAfterwards(() -> {
+            ArgumentCaptor<TerminationListener> argument = ArgumentCaptor.forClass(TerminationListener.class);
+            verify(jBackup, times(1)).shutdown(argument.capture());
+            assertThat(argument.getValue()).as("TerminationListener").isNotNull();
 
-                window.requireNotVisible();
-            }
+            window.requireNotVisible();
         });
 
         startApplication(jBackup);

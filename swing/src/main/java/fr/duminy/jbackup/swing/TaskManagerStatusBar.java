@@ -95,20 +95,17 @@ public class TaskManagerStatusBar extends JPanel implements BackupConfigurationA
     }
 
     private void updateLabel(final int nbRunningTasks) {
-        Utils.runInEventDispatchThread(new Runnable() {
-            @Override
-            public void run() {
-                final String text;
-                if (nbRunningTasks == 0) {
-                    text = "No task are running";
-                } else if (nbRunningTasks == 1) {
-                    text = "1 task is running";
-                } else {
-                    text = nbRunningTasks + " tasks are running";
-                }
-                LOG.info("updateLabel: setText(\"{}\")", text);
-                label.setText(text);
+        Utils.runInEventDispatchThread(() -> {
+            final String text;
+            if (nbRunningTasks == 0) {
+                text = "No task are running";
+            } else if (nbRunningTasks == 1) {
+                text = "1 task is running";
+            } else {
+                text = nbRunningTasks + " tasks are running";
             }
+            LOG.info("updateLabel: setText(\"{}\")", text);
+            label.setText(text);
         });
     }
 

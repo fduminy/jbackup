@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.swing;
 
-import com.google.common.base.Supplier;
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.JBackup;
@@ -28,7 +27,6 @@ import fr.duminy.jbackup.core.TestUtils;
 import org.fest.swing.fixture.JButtonFixture;
 import org.junit.Test;
 import org.mockito.InOrder;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.swing.*;
@@ -55,12 +53,9 @@ public class TaskManagerStatusBarTest extends AbstractSwingTest {
         super.onSetUp();
 
         try {
-            statusBar = buildAndShowWindow(new Supplier<TaskManagerStatusBar>() {
-                @Override
-                public TaskManagerStatusBar get() {
-                    jBackup = mock(JBackup.class);
-                    return new TaskManagerStatusBar(jBackup);
-                }
+            statusBar = buildAndShowWindow(() -> {
+                jBackup = mock(JBackup.class);
+                return new TaskManagerStatusBar(jBackup);
             });
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -125,21 +120,18 @@ public class TaskManagerStatusBarTest extends AbstractSwingTest {
     }
 
     private Answer<Object> simulateTaskInNewThread(final BackupConfiguration backupConfig, final CountDownLatch beginCount, final CountDownLatch endCount) {
-        return new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                new Thread() {
-                    @Override
-                    public void run() {
-                        beginCount.countDown();
-                        statusBar.taskStarted(backupConfig.getName());
-                        TestUtils.sleep(100);
-                        statusBar.taskFinished(backupConfig.getName(), null);
-                        endCount.countDown();
-                    }
-                }.start();
-                return null;
-            }
+        return invocation -> {
+            new Thread() {
+                @Override
+                public void run() {
+                    beginCount.countDown();
+                    statusBar.taskStarted(backupConfig.getName());
+                    TestUtils.sleep(100);
+                    statusBar.taskFinished(backupConfig.getName(), null);
+                    endCount.countDown();
+                }
+            }.start();
+            return null;
         };
     }
 

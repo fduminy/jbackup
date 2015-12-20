@@ -20,7 +20,6 @@
  */
 package fr.duminy.jbackup.swing;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.components.swing.form.JFormPaneFixture;
@@ -368,16 +367,13 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
             configActions = mock(BackupConfigurationActions.class);
 
             final ConfigurationManager mgr = manager;
-            panel = buildAndShowWindow(new Supplier<ConfigurationManagerPanel>() {
-                @Override
-                public ConfigurationManagerPanel get() {
-                    try {
-                        final ConfigurationManagerPanel panel = new ConfigurationManagerPanel(mgr, configActions, (JComponent) getFrame().getContentPane(), ARCHIVE_FACTORIES);
-                        panel.setName(CONFIG_MANAGER_PANEL_NAME);
-                        return panel;
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+            panel = buildAndShowWindow(() -> {
+                try {
+                    final ConfigurationManagerPanel panel1 = new ConfigurationManagerPanel(mgr, configActions, (JComponent) getFrame().getContentPane(), ARCHIVE_FACTORIES);
+                    panel1.setName(CONFIG_MANAGER_PANEL_NAME);
+                    return panel1;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
             });
 

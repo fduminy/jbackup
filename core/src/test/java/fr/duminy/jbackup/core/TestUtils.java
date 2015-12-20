@@ -66,12 +66,7 @@ public class TestUtils {
     }
 
     public static Supplier<FileDeleter> newMockSupplier() {
-        return new Supplier<FileDeleter>() {
-            @Override
-            public FileDeleter get() {
-                return mock(FileDeleter.class);
-            }
-        };
+        return () -> mock(FileDeleter.class);
     }
 
     public static void sleep(long delay) {
