@@ -35,14 +35,14 @@ import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
 import fr.duminy.jbackup.core.util.LogRule;
-import org.fest.assertions.Assertions;
-import org.fest.swing.core.Robot;
-import org.fest.swing.core.matcher.JLabelMatcher;
-import org.fest.swing.edt.GuiActionRunner;
-import org.fest.swing.edt.GuiTask;
-import org.fest.swing.fixture.JButtonFixture;
-import org.fest.swing.fixture.JComboBoxFixture;
-import org.fest.swing.fixture.JListFixture;
+import org.assertj.core.api.Assertions;
+import org.assertj.swing.core.Robot;
+import org.assertj.swing.core.matcher.JLabelMatcher;
+import org.assertj.swing.edt.GuiActionRunner;
+import org.assertj.swing.edt.GuiTask;
+import org.assertj.swing.fixture.JButtonFixture;
+import org.assertj.swing.fixture.JComboBoxFixture;
+import org.assertj.swing.fixture.JListFixture;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
@@ -128,15 +128,15 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     @Override
     protected void onSetUp() {
         super.onSetUp();
-        robot().settings().delayBetweenEvents(100);
-        robot().settings().timeoutToBeVisible(60000);
+        getRobot().settings().delayBetweenEvents(100);
+        getRobot().settings().timeoutToBeVisible(60000);
     }
 
     @Theory
     public void testInit(int nbConfigurations) {
         List<BackupConfiguration> expectedConfigs = init(nbConfigurations);
         assertFormValues(expectedConfigs);
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.requireOnlyFeatures(EDITING);
     }
 
@@ -144,11 +144,11 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     public void testUpdate() throws Exception {
         BackupConfiguration oldConfig = init(1).get(0);
 
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.list().selectItem(0);
         configurationList.updateButton().click();
 
-        JFormPaneFixture form = new JFormPaneFixture(robot(), BackupConfiguration.class);
+        JFormPaneFixture form = new JFormPaneFixture(getRobot(), BackupConfiguration.class);
         String newConfigName = "New config name";
         form.textBox("name").setText(newConfigName);
         form.okButton().click();
@@ -163,15 +163,15 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     public void assertXmlVersionFieldNotDisplayed() throws Exception {
         // prepare test
         init(1);
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
 
         // test
         configurationList.addButton().click();
 
         //assertions
-        JPanel form = new JFormPaneFixture(robot(), BackupConfiguration.class).component();
+        JPanel form = new JFormPaneFixture(getRobot(), BackupConfiguration.class).target();
         TreeSet<String> labels = new TreeSet<>();
-        for (JLabel label : robot().finder().findAll(form, JLabelMatcher.any())) {
+        for (JLabel label : getRobot().finder().findAll(form, JLabelMatcher.any())) {
             if (!"List.cellRenderer".equals(label.getName())) {
                 labels.add(label.getName());
             }
@@ -188,11 +188,11 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         config.setName(DEFAULT_CONFIG_NAME);
         expectedConfigs.add(config);
 
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.addButton().click();
         assertConfigurationFormValues(DEFAULT_CONFIG_NAME, NO_SOURCE, null, null);
 
-        new JFormPaneFixture(robot(), BackupConfiguration.class).okButton().click();
+        new JFormPaneFixture(getRobot(), BackupConfiguration.class).okButton().click();
 
         assertFormValues(expectedConfigs);
         assertThat(manager.getBackupConfigurations()).usingElementComparator(COMPARATOR).containsOnlyOnce(Iterables.toArray(expectedConfigs, BackupConfiguration.class));
@@ -207,15 +207,15 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
 
         List<BackupConfiguration> expectedConfigs = init(nbConfigurations);
 
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.addButton().click();
 
-        robot().waitForIdle();
+        getRobot().waitForIdle();
         final BackupConfiguration expectedConfig = fillConfigurationForm();
         expectedConfigs.add(expectedConfig);
 
         assertConfigurationFormValues(expectedConfig);
-        new JFormPaneFixture(robot(), BackupConfiguration.class).okButton().click();
+        new JFormPaneFixture(getRobot(), BackupConfiguration.class).okButton().click();
 
         assertFormValues(expectedConfigs);
         assertThat(manager.getBackupConfigurations()).usingElementComparator(COMPARATOR).containsOnlyOnce(Iterables.toArray(expectedConfigs, BackupConfiguration.class));
@@ -234,7 +234,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
             }
         }
 
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.list().selectItem(config.getName());
         configurationList.removeButton().click();
 
@@ -248,11 +248,11 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         List<BackupConfiguration> configs = init(nbConfigurations);
 
         BackupConfiguration expectedConfig = configs.get(nbConfigurations - 1);
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.list().selectItem(expectedConfig.getName());
-        robot().waitForIdle();
+        getRobot().waitForIdle();
         configurationList.userButton(BACKUP_BUTTON_NAME).requireToolTip(Messages.BACKUP_MESSAGE).click();
-        robot().waitForIdle();
+        getRobot().waitForIdle();
 
         ArgumentCaptor<BackupConfiguration> actualConfig = ArgumentCaptor.forClass(BackupConfiguration.class);
         verify(configActions, times(1)).backup(actualConfig.capture());
@@ -265,7 +265,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     public void testBackup_noSelection() throws Exception {
         init(1);
 
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.list().selectItem(0).clearSelection();
         configurationList.userButton(BACKUP_BUTTON_NAME).requireDisabled();
     }
@@ -274,7 +274,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     public void testBackup_multipleSelection() throws Exception {
         init(3);
 
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.list().selectItems(0, 2);
         configurationList.userButton(BACKUP_BUTTON_NAME).requireEnabled();
     }
@@ -296,11 +296,11 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         BackupConfiguration expectedConfig = configs.get(nbConfigurations - 1);
         Path expectedArchive = createArchive(expectedConfig);
         final Path expectedTargetDirectory = tempFolder.newFile("targetDir").toPath();
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.list().selectItem(expectedConfig.getName());
         configurationList.userButton(RESTORE_BUTTON_NAME).requireToolTip(Messages.RESTORE_MESSAGE).click();
 
-        JFormPaneFixture fixture = new JFormPaneFixture(robot(), RestoreAction.RestoreParameters.class);
+        JFormPaneFixture fixture = new JFormPaneFixture(getRobot(), RestoreAction.RestoreParameters.class);
         fixture.requireInDialog(true).requireModeCreate();
 //TODO        fixture.requireQuestionMessage();
 //TODO        fixture.requireTitle("Restore backup '" + expectedConfig.getName() + "'");
@@ -334,7 +334,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     public void testRestore_noSelection() throws Exception {
         init(1);
 
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.list().selectItem(0).clearSelection();
         configurationList.userButton(RESTORE_BUTTON_NAME).requireDisabled();
     }
@@ -343,7 +343,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     public void testRestore_multipleSelection() throws Exception {
         init(3);
 
-        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(robot(), CONFIG_MANAGER_PANEL_NAME);
+        ListPanelFixture<BackupConfiguration, JList> configurationList = new ListPanelFixture<>(getRobot(), CONFIG_MANAGER_PANEL_NAME);
         configurationList.list().selectItems(0, 2);
         configurationList.userButton(RESTORE_BUTTON_NAME).requireDisabled();
     }
@@ -400,7 +400,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     }
 
     private BackupConfiguration fillConfigurationForm() {
-        return fillConfigurationForm(robot());
+        return fillConfigurationForm(getRobot());
     }
 
     public static BackupConfiguration fillConfigurationForm(Robot robot) {
@@ -448,7 +448,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
 
         JComboBoxFixture combo = configForm.comboBox("archiveFactory");
         combo.selectItem("zip");
-        assertThat(combo.component().getSelectedItem()).isSameAs(ZipArchiveFactory.INSTANCE);
+        assertThat(combo.target().getSelectedItem()).isSameAs(ZipArchiveFactory.INSTANCE);
 
         return expectedConfig;
     }
@@ -472,7 +472,7 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
     }
 
     private void assertConfigurationFormValues(String name, List<BackupConfiguration.Source> sources, Path targetDirectory, ArchiveFactory selectedArchiveFactory) {
-        JFormPaneFixture formPane = new JFormPaneFixture(robot(), BackupConfiguration.class);
+        JFormPaneFixture formPane = new JFormPaneFixture(getRobot(), BackupConfiguration.class);
         formPane.textBox("name").requireVisible().requireEnabled().requireEditable().requireText(name);
 
         ListPanelFixture<BackupConfiguration.Source, JList<BackupConfiguration.Source>> sourceList = formPane.listPanel();

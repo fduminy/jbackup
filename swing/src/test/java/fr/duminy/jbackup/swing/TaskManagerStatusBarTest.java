@@ -24,7 +24,7 @@ import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.JBackup;
 import fr.duminy.jbackup.core.TestUtils;
-import org.fest.swing.fixture.JButtonFixture;
+import org.assertj.swing.fixture.JButtonFixture;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.stubbing.Answer;
@@ -96,7 +96,7 @@ public class TaskManagerStatusBarTest extends AbstractSwingTest {
                 simulateTaskInNewThread(restoreConfig, beginCount, endCount));
 
         PropertyChangeListener listener = mock(PropertyChangeListener.class);
-        window.label().component().addPropertyChangeListener("text", listener);
+        window.label().target().addPropertyChangeListener("text", listener);
 
         // test
         if (backup) {
@@ -107,7 +107,7 @@ public class TaskManagerStatusBarTest extends AbstractSwingTest {
         }
         beginCount.await();
         endCount.await();
-        robot().waitForIdle();
+        getRobot().waitForIdle();
 
         // verify
         InOrder inOrder = inOrder(listener);
@@ -141,7 +141,7 @@ public class TaskManagerStatusBarTest extends AbstractSwingTest {
         final JButtonFixture button = window.button("showPopup");
         button.click();
 
-        JPopupMenu component = robot().findActivePopupMenu();
+        JPopupMenu component = getRobot().findActivePopupMenu();
         assertThat(component).as("popup after first click").isNotNull();
         assertThat(component.getComponentCount()).as("expectedComponentCount").isEqualTo(1);
         assertThat(component.getComponent(0)).isInstanceOf(TaskManagerPanel.class);
@@ -150,7 +150,7 @@ public class TaskManagerStatusBarTest extends AbstractSwingTest {
         // hide popup
         window.click(); // click outside of the popup
 
-        JPopupMenu popupMenu = robot().findActivePopupMenu();
+        JPopupMenu popupMenu = getRobot().findActivePopupMenu();
         final boolean noPopup = popupMenu == null;
         final boolean showing = noPopup ? false : popupMenu.isShowing();
         assertThat(noPopup || !showing).as("popup after second click (popup=" + !noPopup + ", showing=" + showing + ')').isTrue();
@@ -161,15 +161,15 @@ public class TaskManagerStatusBarTest extends AbstractSwingTest {
         // show popup
         final JButtonFixture button = window.button("showPopup");
         button.click();
-        assertThat(robot().findActivePopupMenu()).isNotNull();
+        assertThat(getRobot().findActivePopupMenu()).isNotNull();
 
         // click outside
         window.click();
-        assertThat(robot().findActivePopupMenu()).isNull();
+        assertThat(getRobot().findActivePopupMenu()).isNull();
 
         // show popup again
         button.click();
-        assertThat(robot().findActivePopupMenu()).isNotNull();
+        assertThat(getRobot().findActivePopupMenu()).isNotNull();
     }
 
     private Dimension sizeMinusInsets(JPopupMenu component) {

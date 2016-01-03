@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import static fr.duminy.jbackup.core.archive.ArchiveDSL.Entries;
 import static fr.duminy.jbackup.core.archive.ArchiveDSL.withoutFilter;
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ArchiveDSLTest {
     @Rule
@@ -62,6 +62,6 @@ public class ArchiveDSLTest {
 
     private void assertEntry(ArchiveInputStream.Entry entry, Object[] expectedEntries, int index) {
         assertThat(entry.getName()).isEqualTo((String) expectedEntries[index]);
-        assertThat(entry.getCompressedSize()).isEqualTo((Integer) expectedEntries[index + 1]);
+        assertThat(entry.getCompressedSize()).isEqualTo(((Integer) expectedEntries[index + 1]).longValue());
     }
 }

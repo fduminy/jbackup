@@ -22,8 +22,8 @@ package fr.duminy.jbackup.swing;
 
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.JBackup;
-import org.fest.swing.exception.ComponentLookupException;
-import org.fest.swing.fixture.JPanelFixture;
+import org.assertj.swing.exception.ComponentLookupException;
+import org.assertj.swing.fixture.JPanelFixture;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theory;
@@ -205,7 +205,7 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
 
     private ProgressPanel findComponentFor(BackupConfiguration config) {
         try {
-            return (ProgressPanel) window.panel(config.getName()).component();
+            return (ProgressPanel) window.panel(config.getName()).target();
         } catch (ComponentLookupException cle) {
             return null;
         }
@@ -213,6 +213,6 @@ public class TaskManagerPanelTest extends TaskManagerComponentTest<ProgressPanel
 
     private void verifyNoTaskAreRunning() {
         assertThat(panel.getComponentCount()).as("componentCount").isEqualTo(1);
-        new JPanelFixture(robot(), panel).label().requireText("No task are running");
+        new JPanelFixture(getRobot(), panel).label().requireText("No task are running");
     }
 }

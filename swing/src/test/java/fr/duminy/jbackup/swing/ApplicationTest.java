@@ -24,26 +24,27 @@ import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.JBackup;
 import fr.duminy.jbackup.core.JBackupImpl;
 import fr.duminy.jbackup.core.util.LogRule;
-import org.assertj.core.api.Assertions;
-import org.fest.assertions.ImageAssert;
-import org.fest.swing.edt.GuiActionRunner;
-import org.fest.swing.edt.GuiTask;
-import org.fest.swing.fixture.FrameFixture;
+import org.assertj.swing.edt.GuiActionRunner;
+import org.assertj.swing.edt.GuiTask;
+import org.assertj.swing.fixture.FrameFixture;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import static fr.duminy.jbackup.core.JBackup.TerminationListener;
 import static java.awt.image.BufferedImage.TYPE_INT_ARGB;
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.swing.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 public class ApplicationTest extends AbstractSwingTest {
@@ -56,11 +57,11 @@ public class ApplicationTest extends AbstractSwingTest {
     @Test
     public void testGetBackupIcon() throws IOException, URISyntaxException {
         String path = Application.class.getResource("backup.png").toURI().getPath();
-        BufferedImage expectedImage = ImageAssert.read(path);
+        BufferedImage expectedImage = ImageIO.read(Files.newInputStream(Paths.get(path)));
 
         ImageIcon actualImageIcon = Application.getBackupIcon();
 
-        Assertions.assertThat(actualImageIcon).as("backupIcon").isNotNull();
+        assertThat(actualImageIcon).as("backupIcon").isNotNull();
         assertThat(toBufferedImage(actualImageIcon)).as("backupIcon").isEqualTo(expectedImage);
     }
 
@@ -75,14 +76,14 @@ public class ApplicationTest extends AbstractSwingTest {
     public void testApplicationIcon() {
         startApplication(null);
 
-        assertThatImageAreEquals("imageIcon", window.component().getIconImage(), Application.getBackupIcon());
+        assertThatImageAreEquals("imageIcon", window.target().getIconImage(), Application.getBackupIcon());
     }
 
     @Test
     public void testApplicationTitle() {
         startApplication(null);
 
-        assertThat(window.component().getTitle()).as("application title").isEqualTo("JBackup " + Application.getVersion());
+        assertThat(window.target().getTitle()).as("application title").isEqualTo("JBackup " + Application.getVersion());
     }
 
     @Test
@@ -115,7 +116,7 @@ public class ApplicationTest extends AbstractSwingTest {
         startApplication(jBackup);
         window.requireVisible();
 
-        JFrame frame = (JFrame) window.component();
+        JFrame frame = (JFrame) window.target();
         assertThat(frame.getDefaultCloseOperation()).isEqualTo(JFrame.DO_NOTHING_ON_CLOSE);
         window.close();
     }
@@ -138,21 +139,21 @@ public class ApplicationTest extends AbstractSwingTest {
 
             }
         });
-        window = new FrameFixture(robot(), "jbackup");
+        window = new FrameFixture(getRobot(), "jbackup");
     }
 
-    //TODO move this to assert fest-assert/assertj
+    //TODO move this to assert assertj
     private static void assertThatImageAreEquals(String description, Image actualImage, ImageIcon expectedImage) {
         assertThat(actualImage).as(description).isNotNull();
         assertThat(toBufferedImage(actualImage)).as(description).isEqualTo(toBufferedImage(expectedImage));
     }
 
-    //TODO move this to assert fest-assert/assertj
+    //TODO move this to assert assertj
     private static BufferedImage toBufferedImage(ImageIcon imageIcon) {
         return toBufferedImage(imageIcon.getImage());
     }
 
-    //TODO move this to assert fest-assert/assertj
+    //TODO move this to assert assertj
     private static BufferedImage toBufferedImage(Image image) {
         BufferedImage bufferedImage = new BufferedImage(image.getWidth(null), image.getHeight(null), TYPE_INT_ARGB);
         Graphics2D g = bufferedImage.createGraphics();

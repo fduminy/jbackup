@@ -64,6 +64,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-swing-junit-4.5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <classifier>tests</classifier>
@@ -75,8 +80,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.easytesting</groupId>
-            <artifactId>fest-swing</artifactId>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-swing</artifactId>
             <scope>test</scope>
         </dependency>
 

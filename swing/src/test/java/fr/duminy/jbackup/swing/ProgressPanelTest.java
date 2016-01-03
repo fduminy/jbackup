@@ -22,14 +22,14 @@ package fr.duminy.jbackup.swing;
 
 import fr.duminy.components.swing.AbstractSwingTest;
 import fr.duminy.jbackup.core.util.LogRule;
-import org.fest.swing.core.ComponentLookupScope;
-import org.fest.swing.edt.GuiActionRunner;
-import org.fest.swing.edt.GuiQuery;
-import org.fest.swing.edt.GuiTask;
-import org.fest.swing.exception.ComponentLookupException;
-import org.fest.swing.fixture.JButtonFixture;
-import org.fest.swing.fixture.JPanelFixture;
-import org.fest.swing.fixture.JProgressBarFixture;
+import org.assertj.swing.core.ComponentLookupScope;
+import org.assertj.swing.edt.GuiActionRunner;
+import org.assertj.swing.edt.GuiQuery;
+import org.assertj.swing.edt.GuiTask;
+import org.assertj.swing.exception.ComponentLookupException;
+import org.assertj.swing.fixture.JButtonFixture;
+import org.assertj.swing.fixture.JPanelFixture;
+import org.assertj.swing.fixture.JProgressBarFixture;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -200,10 +200,10 @@ public class ProgressPanelTest extends AbstractSwingTest {
         assertThat(panel.getBorder()).isExactlyInstanceOf(TitledBorder.class);
         assertThatPanelHasTitle(panel, TITLE);
 
-        JPanelFixture progressPanel = new JPanelFixture(robot(), panel);
-        robot().settings().componentLookupScope(ComponentLookupScope.ALL);
+        JPanelFixture progressPanel = new JPanelFixture(getRobot(), panel);
+        getRobot().settings().componentLookupScope(ComponentLookupScope.ALL);
         JProgressBarFixture progressBar = progressPanel.progressBar();
-        robot().settings().componentLookupScope(ComponentLookupScope.SHOWING_ONLY);
+        getRobot().settings().componentLookupScope(ComponentLookupScope.SHOWING_ONLY);
         String expectedMessage;
         final boolean taskInProgress;
         switch (taskState) {
@@ -239,8 +239,8 @@ public class ProgressPanelTest extends AbstractSwingTest {
                 expectedMessage = format("%s/%s written (%1.2f %%)", byteCountToDisplaySize(value),
                         byteCountToDisplaySize(maxValue), Utils.percent(value, maxValue));
                 progressBar.requireDeterminate().requireValue(iValue).requireText(expectedMessage);
-                assertThat(progressBar.component().getMinimum()).isEqualTo(0);
-                assertThat(progressBar.component().getMaximum()).isEqualTo(iMaxValue);
+                assertThat(progressBar.target().getMinimum()).isEqualTo(0);
+                assertThat(progressBar.target().getMaximum()).isEqualTo(iMaxValue);
                 assertThat(panel.isFinished()).as("isFinished").isFalse();
                 break;
 
@@ -275,7 +275,7 @@ public class ProgressPanelTest extends AbstractSwingTest {
             // cancel the task
             JButtonFixture cancelButton = progressPanel.button();
             cancelButton.requireText("").requireToolTip("Cancel the task");
-            assertThat(cancelButton.component().getIcon()).isNotNull();
+            assertThat(cancelButton.target().getIcon()).isNotNull();
             cancelButton.click();
 
             // checks progress panel is not visible
