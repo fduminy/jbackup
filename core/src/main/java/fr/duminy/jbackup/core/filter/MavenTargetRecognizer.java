@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.file.Path;
+import java.util.Optional;
 
 import static java.nio.charset.Charset.defaultCharset;
 import static java.nio.file.Files.*;
@@ -41,19 +42,19 @@ class MavenTargetRecognizer {
         return (directory != null) && exists(directory) && isDirectory(directory) && directory.endsWith(MAVEN2_TARGET_DIR);
     }
 
-    public Path getMavenProjectFile(Path directory) throws IOException {
+    public Optional<Path> getMavenProjectFile(Path directory) throws IOException {
         if (directory == null) {
-            return null;
+            return Optional.empty();
         }
         if (!exists(directory)) {
-            return null;
+            return Optional.empty();
         }
         if (!isDirectory(directory)) {
-            return null;
+            return Optional.empty();
         }
         Path projectPath = directory.resolve(MAVEN2_PROJECT_FILE);
         if (!exists(projectPath)) {
-            return null;
+            return Optional.empty();
         }
 
         CharBuffer charBuffer = ByteBuffer.allocate(2048).asCharBuffer();
@@ -61,7 +62,7 @@ class MavenTargetRecognizer {
             reader.read(charBuffer);
         }
 
-        return isMavenProjectContent(charBuffer.rewind().toString()) ? projectPath : null;
+        return isMavenProjectContent(charBuffer.rewind().toString()) ? Optional.of(projectPath) : Optional.empty();
     }
 
     // TODO replacement of following (not working) regular expression : buffer.matches("(.*)<project (.*)<modelVersion>(.*)")

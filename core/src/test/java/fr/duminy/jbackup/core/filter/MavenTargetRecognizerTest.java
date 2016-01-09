@@ -32,6 +32,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 
 import static fr.duminy.jbackup.core.filter.MavenTargetRecognizer.MAVEN2_PROJECT_FILE;
 import static fr.duminy.jbackup.core.filter.MavenTargetRecognizer.MAVEN2_TARGET_DIR;
@@ -96,9 +97,14 @@ public class MavenTargetRecognizerTest {
 
     @Theory
     public void testGetMavenProjectFile(MavenProjectFileTestCase tc) throws IOException {
-        Path actualPath = recognizer.getMavenProjectFile(tc.directory);
+        Optional<Path> actualPath = recognizer.getMavenProjectFile(tc.directory);
 
-        assertThat(actualPath).isEqualTo(tc.projectFile);
+        assertThat(actualPath).isNotNull();
+        final boolean expectedNotNull = tc.projectFile != null;
+        assertThat(actualPath.isPresent()).isEqualTo(expectedNotNull);
+        if (expectedNotNull) {
+            assertThat(actualPath.get()).isEqualTo(tc.projectFile);
+        }
     }
 
     @Theory

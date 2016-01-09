@@ -46,7 +46,7 @@ public class FileFunctions {
 
     public boolean mavenTarget() throws IOException {
         Path path = getFile().toPath();
-        return RECOGNIZER.couldBeMavenTargetDirectory(path) && (RECOGNIZER.getMavenProjectFile(path.getParent()) != null);
+        return RECOGNIZER.couldBeMavenTargetDirectory(path) && RECOGNIZER.getMavenProjectFile(path.getParent()).isPresent();
     }
 
     private File getFile() {
