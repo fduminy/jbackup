@@ -50,7 +50,7 @@ public class DecompressorTest extends AbstractArchivingTest {
         when(mockEntry.getCompressedSize()).thenReturn(1L);
         when(mockEntry.getInput()).thenReturn(new ByteArrayInputStream(new byte[1]));
         ArchiveInputStream mockInput = mock(ArchiveInputStream.class);
-        when(mockInput.getNextEntry()).thenReturn(mockEntry, null);
+        when(mockInput.getNextEntry()).thenReturn(mockEntry, (ArchiveInputStream.Entry) null);
         when(mockFactory.create(any(InputStream.class))).thenReturn(mockInput);
 
         Path archive = createArchivePath();
