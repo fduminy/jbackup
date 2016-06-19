@@ -21,12 +21,11 @@
 package fr.duminy.jbackup.core.matchers;
 
 import fr.duminy.jbackup.core.archive.SourceWithPath;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
+import org.mockito.ArgumentMatcher;
 
 import java.nio.file.Path;
 
-class SourceWithPathMatcher extends BaseMatcher<SourceWithPath> {
+class SourceWithPathMatcher implements ArgumentMatcher<SourceWithPath> {
     private final Path path;
 
     SourceWithPathMatcher(Path path) {
@@ -37,9 +36,5 @@ class SourceWithPathMatcher extends BaseMatcher<SourceWithPath> {
     public boolean matches(Object o) {
         SourceWithPath swp = (SourceWithPath) o;
         return swp.getPath().equals(path);
-    }
-
-    @Override
-    public void describeTo(Description description) {
     }
 }

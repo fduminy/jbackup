@@ -20,13 +20,12 @@
  */
 package fr.duminy.jbackup.core.matchers;
 
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
 import org.hamcrest.core.IsEqual;
+import org.mockito.ArgumentMatcher;
 
 import java.beans.PropertyChangeEvent;
 
-class PropertyChangeEventMatcher<T> extends BaseMatcher<PropertyChangeEvent> {
+class PropertyChangeEventMatcher<T> implements ArgumentMatcher<PropertyChangeEvent> {
     private final IsEqual<T> equals;
 
     PropertyChangeEventMatcher(T newValue) {
@@ -36,11 +35,5 @@ class PropertyChangeEventMatcher<T> extends BaseMatcher<PropertyChangeEvent> {
     @Override
     public boolean matches(Object o) {
         return equals.matches(((PropertyChangeEvent) o).getNewValue());
-    }
-
-    @Override
-    public void describeTo(Description description) {
-        description.appendText("PropertyChangeEvent with newValue=");
-        equals.describeTo(description);
     }
 }

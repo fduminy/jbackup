@@ -21,14 +21,13 @@
 package fr.duminy.jbackup.core.matchers;
 
 import fr.duminy.jbackup.core.archive.ArchiveParameters;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
+import org.mockito.ArgumentMatcher;
 
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Iterator;
 
-class ArchiveParametersMatcher extends BaseMatcher<ArchiveParameters> {
+class ArchiveParametersMatcher implements ArgumentMatcher<ArchiveParameters> {
     private final ArchiveParameters parameters;
     private final Path expectedArchive;
 
@@ -66,9 +65,5 @@ class ArchiveParametersMatcher extends BaseMatcher<ArchiveParameters> {
         }
 
         return true;
-    }
-
-    @Override
-    public void describeTo(Description description) {
     }
 }
