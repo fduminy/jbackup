@@ -56,6 +56,10 @@
             <groupId>fr.duminy.components</groupId>
             <artifactId>swing-components</artifactId>
         </dependency>
+        <dependency>
+            <groupId>fr.duminy.components</groupId>
+            <artifactId>chain</artifactId>
+        </dependency>
 
         <!-- libraries for tests -->
         <dependency>

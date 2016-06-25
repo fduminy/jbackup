@@ -33,6 +33,12 @@
         <Bug pattern="ES_COMPARING_PARAMETER_STRING_WITH_EQ"/>
     </Match>
 
+    <Match>
+        <Class name="fr.duminy.jbackup.core.command.VerifyArchiveCommand"/>
+        <Method name="execute"/>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+    </Match>
+
     <!-- TODO Fix following cases giving false failures with java 7 -->
     <Match>
         <Class name="fr.duminy.jbackup.core.archive.Compressor"/>

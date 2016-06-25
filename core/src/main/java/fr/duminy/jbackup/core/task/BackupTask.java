@@ -20,29 +20,30 @@
  */
 package fr.duminy.jbackup.core.task;
 
+import fr.duminy.components.chain.Command;
+import fr.duminy.components.chain.CommandException;
+import fr.duminy.components.chain.CommandListener;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.archive.*;
+import fr.duminy.jbackup.core.command.*;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import fr.duminy.jbackup.core.util.InputStreamComparator;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
 public class BackupTask extends FileCreatorTask {
     private static final Logger LOG = LoggerFactory.getLogger(BackupTask.class);
 
-    public static class VerificationFailedException extends Exception {
+    public static class VerificationFailedException extends CommandException {
         public VerificationFailedException(String message) {
             super(message);
         }
@@ -55,8 +56,6 @@ public class BackupTask extends FileCreatorTask {
 
     @Override
     protected void executeTask(FileDeleter deleter) throws Exception {
-        ArchiveFactory factory = config.getArchiveFactory();
-
         Path target = Paths.get(config.getTargetDirectory());
         Files.createDirectories(target);
 
@@ -72,42 +71,57 @@ public class BackupTask extends FileCreatorTask {
             archiveParameters.addSource(source, dirFilter, fileFilter);
         }
 
-        deleter.registerFile(archiveParameters.getArchive());
+        MutableJBackupContext context = new MutableJBackupContext();
+        context.setFileDeleter(deleter);
+        context.setArchiveParameters(archiveParameters);
+        context.setFactory(config.getArchiveFactory());
+        context.setListener(listener);
+        context.setCancellable(cancellable);
+        context.setArchivePath(archiveParameters.getArchive());
 
-        List<SourceWithPath> collectedFiles = new ArrayList<>();
-        createFileCollector().collectFiles(collectedFiles, archiveParameters, listener, cancellable);
-        compress(factory, archiveParameters, collectedFiles, cancellable);
+        JBackupCommand[] commands;
         if (config.isVerify()) {
-            LOG.info("Verifing archive {}", archiveParameters.getArchive());
-            ArchiveVerifier verifier = createVerifier(new InputStreamComparator());
-            try (InputStream archiveInputStream = Files.newInputStream(archive)) {
-                final boolean valid = verifier.verify(factory, archiveInputStream, collectedFiles);
-                if (valid) {
-                    LOG.info("Archive {} valid", archiveParameters.getArchive());
-                } else {
-                    LOG.error("Archive {} corrupted", archiveParameters.getArchive());
-                }
-                if (!valid) {
-                    throw new VerificationFailedException("Archive verification failed");
-                }
-            }
+            commands = new JBackupCommand[] {
+                createCollectFilesCommand(),
+                createCompressCommand(context.getFactory()),
+                createVerifyArchiveCommand(),
+            };
+        } else {
+            commands = new JBackupCommand[] {
+                createCollectFilesCommand(),
+                createCompressCommand(context.getFactory())
+            };
         }
+        CommandListener<JBackupContext> listener = new CommandListener<JBackupContext>() {
+            @Override
+            public void commandStarted(Command command, JBackupContext jBackupContext) {
+                LOG.info("Started command {}", command.getClass().getSimpleName());
+            }
+
+            @Override
+            public void commandFinished(Command command, JBackupContext jBackupContext, Exception e) {
+                LOG.info("Finished command {} {}", command.getClass().getSimpleName(), e);
+            }
+        };
+        JBackupChain chain = new JBackupChain(listener, commands);
+        chain.execute(context);
     }
 
-    protected void compress(ArchiveFactory factory, ArchiveParameters archiveParameters, List<SourceWithPath> collectedFiles, Cancellable cancellable) throws ArchiveException {
-        createCompressor(factory).compress(archiveParameters, collectedFiles, listener, cancellable);
+    CollectFilesCommand createCollectFilesCommand() {
+        return new CollectFilesCommand(new FileCollector());
     }
 
-    FileCollector createFileCollector() {
-        return new FileCollector();
+    CompressCommand createCompressCommand(ArchiveFactory factory) {
+        return new CompressCommand() {
+            @Override
+            protected Compressor createCompressor(ArchiveFactory factory) {
+                return new Compressor(factory);
+            }
+        };
     }
 
-    Compressor createCompressor(ArchiveFactory factory) {
-        return new Compressor(factory);
-    }
-
-    ArchiveVerifier createVerifier(InputStreamComparator comparator) {
-        return new ArchiveVerifier(comparator);
+    VerifyArchiveCommand createVerifyArchiveCommand() {
+        return new VerifyArchiveCommand(new ArchiveVerifier(new InputStreamComparator()));
     }
 
     protected String generateName(String configName, ArchiveFactory factory) {

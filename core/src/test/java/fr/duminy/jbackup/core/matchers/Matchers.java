@@ -25,6 +25,7 @@ import fr.duminy.jbackup.core.archive.SourceWithPath;
 
 import java.beans.PropertyChangeEvent;
 import java.nio.file.Path;
+import java.util.Comparator;
 
 public class Matchers extends org.mockito.Matchers {
     public static SourceWithPath eq(Path value) {
@@ -37,5 +38,14 @@ public class Matchers extends org.mockito.Matchers {
 
     public static <T> PropertyChangeEvent propertyChangeEventWithNewValue(T value) {
         return argThat(new PropertyChangeEventMatcher<T>(value));
+    }
+
+    public static Comparator<? super ArchiveParameters> parametersComparator(Path expectedArchive) {
+        return new Comparator<ArchiveParameters>() {
+            @Override public int compare(ArchiveParameters o1, ArchiveParameters o2) {
+                ArchiveParametersMatcher matcher = new ArchiveParametersMatcher(o1, expectedArchive);
+                return matcher.matches(o2) ? 0 : -1;
+            }
+        };
     }
 }

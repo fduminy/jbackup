@@ -20,15 +20,20 @@
  */
 package fr.duminy.jbackup.core.task;
 
+import fr.duminy.components.chain.CommandException;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
+import fr.duminy.jbackup.core.SoftAssertions;
 import fr.duminy.jbackup.core.archive.ArchiveException;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
-import fr.duminy.jbackup.core.archive.Decompressor;
+import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
+import fr.duminy.jbackup.core.command.DecompressCommand;
+import fr.duminy.jbackup.core.command.JBackupContext;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import org.junit.Test;
 import org.junit.experimental.theories.Theory;
+import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -36,6 +41,7 @@ import java.util.function.Supplier;
 
 import static fr.duminy.jbackup.core.task.BackupTaskTest.createDeleterSupplier;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -47,20 +53,17 @@ public class RestoreTaskTest extends AbstractTaskTest {
         Path targetDirectory = tempFolder.newFolder("targetDirectory").toPath();
         FileDeleter mockDeleter = mock(FileDeleter.class);
         Cancellable mockCancellable = mock(Cancellable.class);
-        final Decompressor mockDecompressor = mock(Decompressor.class);
-        BackupConfiguration config = createConfiguration(targetDirectory);
+        BackupConfiguration config = createConfiguration(null, targetDirectory);
 
         TestableRestoreTask task = new TestableRestoreTask(config, archive, targetDirectory,
                 createDeleterSupplier(mockDeleter), null, mockCancellable);
-        task.setMockDecompressor(mockDecompressor);
 
         // test
         task.call();
 
         // assertions
-        verify(mockDecompressor, times(1)).decompress(eq(archive), eq(targetDirectory),
-                isNull(TaskListener.class), eq(mockCancellable));
-        verifyNoMoreInteractions(mockDecompressor);
+        verify(task.mockDecompressCommand, times(1)).execute(any(JBackupContext.class));
+        verifyNoMoreInteractions(task.mockDecompressCommand);
         assertThat(TaskTestUtils.getCancellable(task)).isSameAs(mockCancellable);
     }
 
@@ -72,7 +75,8 @@ public class RestoreTaskTest extends AbstractTaskTest {
     @Theory
     public void testCall_deleteFilesOnError(TaskListenerEnum listenerEnum) throws Throwable {
         final IOException exception = new IOException("An unexpected error");
-        thrown.expect(exception.getClass());
+        thrown.expect(CommandException.class);
+        thrown.expectCause(equalTo(exception));
         thrown.expectMessage(exception.getMessage());
 
         testCall(exception, listenerEnum.createTaskListener(), null);
@@ -91,16 +95,14 @@ public class RestoreTaskTest extends AbstractTaskTest {
         Path archive = ZipArchiveFactoryTest.createArchive(tempFolder.newFolder().toPath());
         Path targetDirectory = tempFolder.newFolder("targetDirectory").toPath();
         FileDeleter mockDeleter = mock(FileDeleter.class);
-        final Decompressor mockDecompressor = mock(Decompressor.class);
-        if (exception != null) {
-            doThrow(new ArchiveException(exception)).when(mockDecompressor).
-                    decompress(eq(archive), eq(targetDirectory), eq(listener), isNull(Cancellable.class));
-        }
-        BackupConfiguration config = createConfiguration(targetDirectory);
-
+        ArchiveFactory factory = ZipArchiveFactory.INSTANCE;
+        BackupConfiguration config = createConfiguration(factory, targetDirectory);
         TestableRestoreTask task = new TestableRestoreTask(config, archive, targetDirectory,
-                createDeleterSupplier(mockDeleter), listener, cancellable);
-        task.setMockDecompressor(mockDecompressor);
+                                                           createDeleterSupplier(mockDeleter), listener, cancellable);
+        if (exception != null) {
+            doThrow(new CommandException(exception)).when(task.mockDecompressCommand)
+                                                    .execute(any(JBackupContext.class));
+        }
 
         // test
         try {
@@ -113,21 +115,41 @@ public class RestoreTaskTest extends AbstractTaskTest {
             if ((cancellable != null) || (exception != null)) {
                 verify(mockDeleter, times(1)).deleteAll();
             }
-            verify(mockDecompressor).decompress(eq(archive), eq(targetDirectory), eq(listener), eq(cancellable));
-            verifyNoMoreInteractions(mockDeleter, mockDecompressor);
+            ArgumentCaptor<JBackupContext> context = ArgumentCaptor.forClass(JBackupContext.class);
+            verify(task.mockDecompressCommand).execute(context.capture());
+            verifyNoMoreInteractions(mockDeleter, task.mockDecompressCommand);
+            task.verifyRealCommands();
+            verifyContext(factory, listener, archive, cancellable, mockDeleter, targetDirectory, context.getValue());
         }
     }
 
-    private BackupConfiguration createConfiguration(Path targetDirectory) {
+    private void verifyContext(ArchiveFactory mockFactory, TaskListener listener, Path archivePath,
+                               Cancellable cancellable, FileDeleter mockDeleter, Path targetDirectory,
+                               JBackupContext context) {
+        SoftAssertions soft = new SoftAssertions();
+        soft.assertThat(context.getCancellable()).as("context.cancellable").isSameAs(cancellable);
+        soft.assertThat(context.getFactory()).as("context.factory").isSameAs(mockFactory);
+        soft.assertThat(context.getFileDeleter()).as("context.fileDeleter").isSameAs(mockDeleter);
+        soft.assertThat(context.getListener()).as("context.listener").isSameAs(listener);
+        soft.assertAll();
+
+        org.assertj.core.api.SoftAssertions soft2 = new org.assertj.core.api.SoftAssertions();
+        soft2.assertThat(context.getTargetDirectory()).as("context.targetDirectory").isEqualTo(targetDirectory);
+        soft2.assertThat(context.getArchivePath()).as("context.archivePath").isEqualTo(archivePath);
+        soft2.assertAll();
+    }
+
+    private BackupConfiguration createConfiguration(ArchiveFactory mockFactory, Path targetDirectory) {
         BackupConfiguration config = new BackupConfiguration();
         config.setName("testRestoreTask");
         config.setTargetDirectory(targetDirectory.toString());
-        config.setArchiveFactory(null);
+        config.setArchiveFactory(mockFactory);
         return config;
     }
 
     private static class TestableRestoreTask extends RestoreTask {
-        private Decompressor mockDecompressor;
+        private final DecompressCommand mockDecompressCommand = mock(DecompressCommand.class);
+        private DecompressCommand realDecompressCommand;
 
         public TestableRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory,
                                    Supplier<FileDeleter> deleterSupplier, TaskListener listener,
@@ -136,12 +158,13 @@ public class RestoreTaskTest extends AbstractTaskTest {
         }
 
         @Override
-        Decompressor createDecompressor(ArchiveFactory factory) {
-            return mockDecompressor;
+        DecompressCommand createDecompressCommand() {
+            realDecompressCommand = super.createDecompressCommand();
+            return mockDecompressCommand;
         }
 
-        public void setMockDecompressor(Decompressor mockDecompressor) {
-            this.mockDecompressor = mockDecompressor;
+        public void verifyRealCommands() {
+            assertThat(realDecompressCommand).as("realDecompressCommand").isNotNull();
         }
     }
 }

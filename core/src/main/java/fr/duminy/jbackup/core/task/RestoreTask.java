@@ -22,8 +22,8 @@ package fr.duminy.jbackup.core.task;
 
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
-import fr.duminy.jbackup.core.archive.ArchiveFactory;
-import fr.duminy.jbackup.core.archive.Decompressor;
+import fr.duminy.jbackup.core.command.DecompressCommand;
+import fr.duminy.jbackup.core.command.MutableJBackupContext;
 import fr.duminy.jbackup.core.util.FileDeleter;
 
 import java.nio.file.Path;
@@ -44,11 +44,19 @@ public class RestoreTask extends FileCreatorTask {
     protected void executeTask(FileDeleter deleter) throws Exception {
         deleter.registerDirectory(targetDirectory);
 
-        ArchiveFactory factory = config.getArchiveFactory();
-        createDecompressor(factory).decompress(archive, targetDirectory, listener, cancellable);
+        MutableJBackupContext context = new MutableJBackupContext();
+        context.setFactory(config.getArchiveFactory());
+        context.setFileDeleter(deleter);
+        context.setListener(listener);
+        context.setTargetDirectory(targetDirectory);
+        context.setArchivePath(archive);
+        context.setCancellable(cancellable);
+
+        createDecompressCommand().execute(context);
+        //        createDecompressor(factory).decompress(archive, targetDirectory, listener, cancellable);
     }
 
-    Decompressor createDecompressor(ArchiveFactory factory) {
-        return new Decompressor(factory);
+    DecompressCommand createDecompressCommand() {
+        return new DecompressCommand();
     }
 }
