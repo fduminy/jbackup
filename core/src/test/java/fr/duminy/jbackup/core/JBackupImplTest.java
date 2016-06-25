@@ -561,7 +561,7 @@ public class JBackupImplTest {
             RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, final TaskListener taskListener, Cancellable cancellable) {
                 return new RestoreTask(config, archive, targetDirectory, TestUtils.newMockSupplier(), taskListener, cancellable) {
                     @Override
-                    protected void executeTask(FileDeleter deleter) throws Exception {
+                    protected void executeTask(FileDeleter deleter) throws TaskException {
                         simulateTask(taskListener);
                     }
                 };
@@ -571,7 +571,7 @@ public class JBackupImplTest {
             BackupTask createBackupTask(BackupConfiguration config, final TaskListener taskListener, Cancellable cancellable) {
                 return new BackupTask(config, TestUtils.newMockSupplier(), taskListener, cancellable) {
                     @Override
-                    protected void executeTask(FileDeleter deleter) throws Exception {
+                    protected void executeTask(FileDeleter deleter) throws TaskException {
                         simulateTask(taskListener);
                     }
                 };

@@ -38,7 +38,7 @@ import java.util.concurrent.Future;
  * Abstract component displaying the current state of the task manager.
  */
 abstract class TaskManagerComponent<T extends JComponent & ProgressListener> extends JPanel implements BackupConfigurationActions {
-    private final JBackup jBackup;
+    private final transient JBackup jBackup;
     private final Map<String, T> taskPanels = new HashMap<>();
     private final JLabel emptyLabel = new JLabel("No task are running");
 
@@ -58,9 +58,9 @@ abstract class TaskManagerComponent<T extends JComponent & ProgressListener> ext
         executeAction(new RestoreAction(config, archive, targetDirectory), config);
     }
 
-    abstract protected void associate(T progressListener, Future<Void> task);
+    protected abstract void associate(T progressListener, Future<Void> task);
 
-    abstract protected T createProgressListener(BackupConfiguration config);
+    protected abstract T createProgressListener(BackupConfiguration config);
 
     private void executeAction(JBackupAction action, BackupConfiguration config) throws DuplicateTaskException {
         if (taskPanels.containsKey(config.getName())) {
@@ -77,14 +77,17 @@ abstract class TaskManagerComponent<T extends JComponent & ProgressListener> ext
         jBackup.addProgressListener(config.getName(), new ProgressListener() {
             @Override
             public void taskStarted(String configurationName) {
+                // nothing to do
             }
 
             @Override
             public void totalSizeComputed(String configurationName, long totalSize) {
+                // nothing to do
             }
 
             @Override
             public void progress(String configurationName, long totalReadBytes) {
+                // nothing to do
             }
 
             @Override

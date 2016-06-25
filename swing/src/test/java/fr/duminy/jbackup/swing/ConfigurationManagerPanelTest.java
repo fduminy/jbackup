@@ -95,12 +95,12 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
         }
 
         @Override
-        public ArchiveInputStream create(InputStream input) throws IOException {
+        public ArchiveInputStream create(InputStream input) {
             return null;
         }
 
         @Override
-        public ArchiveOutputStream create(OutputStream output) throws IOException {
+        public ArchiveOutputStream create(OutputStream output) {
             return null;
         }
     };

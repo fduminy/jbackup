@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.archive.zip;
 
+import fr.duminy.jbackup.core.archive.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 
@@ -28,10 +29,14 @@ import java.io.InputStream;
 import java.util.zip.ZipEntry;
 
 class ZipArchiveInputStream implements fr.duminy.jbackup.core.archive.ArchiveInputStream {
-    final private ArchiveInputStream input;
+    private final ArchiveInputStream input;
 
-    ZipArchiveInputStream(InputStream input) throws Exception {
-        this.input = new ArchiveStreamFactory().createArchiveInputStream(ArchiveStreamFactory.ZIP, input);
+    ZipArchiveInputStream(InputStream input) throws ArchiveException {
+        try {
+            this.input = new ArchiveStreamFactory().createArchiveInputStream(ArchiveStreamFactory.ZIP, input);
+        } catch (org.apache.commons.compress.archivers.ArchiveException e) {
+            throw new ArchiveException(e);
+        }
     }
 
     private static class ZipBackupEntry extends Entry {

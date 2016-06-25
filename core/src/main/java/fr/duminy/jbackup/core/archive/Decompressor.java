@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static fr.duminy.jbackup.core.archive.NotifyingInputStream.createCountingInputStream;
 
@@ -52,8 +51,7 @@ public class Decompressor {
             }
         }
 
-        targetDirectory = (targetDirectory == null) ? Paths.get(".") : targetDirectory;
-        if (!Files.exists(targetDirectory)) {
+        if ((targetDirectory == null) || !Files.exists(targetDirectory)) {
             throw new IllegalArgumentException(String.format("The target directory '%s' doesn't exist.", targetDirectory));
         }
 
@@ -63,22 +61,26 @@ public class Decompressor {
              ArchiveInputStream input = factory.create(archiveStream)) {
             ArchiveInputStream.Entry entry = getNextEntryIfNotCancelled(input, cancellable);
             while (entry != null) {
-                InputStream entryStream = createCountingInputStream(listener, processedSize, entry.getInput());
-                try {
-                    Path file = targetDirectory.resolve(entry.getName());
-                    Path parent = file.getParent();
-                    if (parent != null) {
-                        Files.createDirectories(parent);
-                    }
-                    Files.copy(entryStream, file);
-                } finally {
-                    entry.close();
-                }
-
+                decompressEntry(targetDirectory, listener, processedSize, entry);
                 entry = getNextEntryIfNotCancelled(input, cancellable);
             }
         } catch (Exception e) {
             throw new ArchiveException(e);
+        }
+    }
+
+    private void decompressEntry(Path targetDirectory, TaskListener listener, MutableLong processedSize,
+                                 ArchiveInputStream.Entry entry) throws IOException {
+        InputStream entryStream = createCountingInputStream(listener, processedSize, entry.getInput());
+        try {
+            Path file = targetDirectory.resolve(entry.getName());
+            Path parent = file.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.copy(entryStream, file);
+        } finally {
+            entry.close();
         }
     }
 

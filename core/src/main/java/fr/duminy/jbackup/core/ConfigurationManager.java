@@ -23,11 +23,12 @@ package fr.duminy.jbackup.core;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.naming.InvalidNameException;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -67,7 +68,7 @@ public class ConfigurationManager {
         this.configurationDir = configurationDir;
     }
 
-    public List<BackupConfiguration> getBackupConfigurations() throws Exception {
+    public List<BackupConfiguration> getBackupConfigurations() throws ConfigurationException {
         if (configurations.isEmpty()) {
             loadAllConfigurations();
         }
@@ -75,69 +76,90 @@ public class ConfigurationManager {
         return Collections.unmodifiableList(configurations);
     }
 
-    void loadAllConfigurations() throws Exception {
+    void loadAllConfigurations() throws ConfigurationException {
         configurations.clear();
-        for (Path configFile : Files.newDirectoryStream(configurationDir, XML_FILE_FILTER)) {
-            try {
-                BackupConfiguration config = loadBackupConfiguration(configFile);
-                String fileName = String.valueOf(configFile.getFileName());
-                fileName = fileName.substring(0, fileName.length() - FILE_EXTENSION.length());
-                if (fileName.equals(config.getName())) {
-                    doAddBackupConfiguration(config);
-                }
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
+        try (DirectoryStream<Path> configFiles = Files.newDirectoryStream(configurationDir, XML_FILE_FILTER)) {
+            for (Path configFile : configFiles) {
+                loadConfiguration(configFile);
             }
+        } catch (IOException e) {
+            throw new ConfigurationException(e);
+        }
+    }
+
+    private void loadConfiguration(Path configFile) {
+        try {
+            BackupConfiguration config = loadBackupConfiguration(configFile);
+            doAddBackupConfiguration(configFile, config);
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        }
+    }
+
+    private void doAddBackupConfiguration(Path configFile, BackupConfiguration config) throws ConfigurationException {
+        String fileName = String.valueOf(configFile.getFileName());
+        fileName = fileName.substring(0, fileName.length() - FILE_EXTENSION.length());
+        if (fileName.equals(config.getName())) {
+            doAddBackupConfiguration(config);
         }
     }
 
     public static Path getLatestArchive(BackupConfiguration configuration) throws IOException {
         Path result = null;
-        for (Path path : Files.newDirectoryStream(Paths.get(configuration.getTargetDirectory()))) {
-            if (result == null) {
-                result = path;
-            } else if (path.toFile().lastModified() > result.toFile().lastModified()) {
-                result = path;
+        try (DirectoryStream<Path> paths = Files.newDirectoryStream(Paths.get(configuration.getTargetDirectory()))) {
+            for (Path path : paths) {
+                if ((result == null) || (path.toFile().lastModified() > result.toFile().lastModified())) {
+                    result = path;
+                }
             }
         }
         return result;
     }
 
-    BackupConfiguration loadBackupConfiguration(Path input) throws Exception {
-        JAXBContext jaxbContext = JAXBContext.newInstance(BackupConfiguration.class);
+    BackupConfiguration loadBackupConfiguration(Path input) throws ConfigurationException {
+        try {
+            JAXBContext jaxbContext = JAXBContext.newInstance(BackupConfiguration.class);
 
-        Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-        return (BackupConfiguration) jaxbUnmarshaller.unmarshal(Files.newInputStream(input));
+            Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+            return (BackupConfiguration) jaxbUnmarshaller.unmarshal(Files.newInputStream(input));
+        } catch (IOException | JAXBException e) {
+            throw new ConfigurationException(e);
+        }
     }
 
-    public Path saveBackupConfiguration(BackupConfiguration config) throws Exception {
+    public Path saveBackupConfiguration(BackupConfiguration config) throws ConfigurationException {
         Path output = configFileFor(config);
 
-        JAXBContext jaxbContext = JAXBContext.newInstance(BackupConfiguration.class);
-        Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
+        try {
+            JAXBContext jaxbContext = JAXBContext.newInstance(BackupConfiguration.class);
+            Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
 
-        // output pretty printed
-        jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            // output pretty printed
+            jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 
-        jaxbMarshaller.marshal(config, Files.newOutputStream(output));
+            jaxbMarshaller.marshal(config, Files.newOutputStream(output));
+        } catch (IOException | JAXBException e) {
+            throw new ConfigurationException(e);
+        }
 
         return output;
     }
 
-    public void addBackupConfiguration(BackupConfiguration config) throws Exception {
+    public void addBackupConfiguration(BackupConfiguration config) throws ConfigurationException {
         doAddBackupConfiguration(config);
 
         saveBackupConfiguration(config);
     }
 
-    public BackupConfiguration setBackupConfiguration(int index, BackupConfiguration backupConfiguration) throws Exception {
+    public BackupConfiguration setBackupConfiguration(int index, BackupConfiguration backupConfiguration)
+        throws ConfigurationException {
         final BackupConfiguration oldConfig = configurations.set(index, backupConfiguration);
         deleteConfigFileFor(oldConfig);
         saveBackupConfiguration(backupConfiguration);
         return oldConfig;
     }
 
-    public void removeBackupConfiguration(BackupConfiguration config) throws IOException {
+    public void removeBackupConfiguration(BackupConfiguration config) throws ConfigurationException {
         int index = indexOf(config);
         if (index >= 0) {
             configurations.remove(index);
@@ -145,8 +167,12 @@ public class ConfigurationManager {
         }
     }
 
-    private void deleteConfigFileFor(BackupConfiguration config) throws IOException {
-        Files.delete(configFileFor(config));
+    private void deleteConfigFileFor(BackupConfiguration config) throws ConfigurationException {
+        try {
+            Files.delete(configFileFor(config));
+        } catch (IOException e) {
+            throw new ConfigurationException(e);
+        }
     }
 
     Path configFileFor(BackupConfiguration config) {
@@ -169,16 +195,16 @@ public class ConfigurationManager {
         return configurationDir.resolve(configName + FILE_EXTENSION);
     }
 
-    private void doAddBackupConfiguration(BackupConfiguration config) throws Exception {
+    private void doAddBackupConfiguration(BackupConfiguration config) throws ConfigurationException {
         if (config.getName() == null) {
-            throw new InvalidNameException("configuration has a null name");
+            throw new ConfigurationException("configuration has a null name");
         }
         if (config.getName().isEmpty()) {
-            throw new InvalidNameException("configuration has an empty name");
+            throw new ConfigurationException("configuration has an empty name");
         }
         for (int i = 0; i < config.getName().length(); i++) {
             if (!Character.isJavaIdentifierPart(config.getName().charAt(i))) {
-                throw new InvalidNameException("configuration has an invalid name : '" + config.getName() + "'");
+                throw new ConfigurationException("configuration has an invalid name : '" + config.getName() + "'");
             }
         }
 
@@ -189,8 +215,13 @@ public class ConfigurationManager {
         configurations.add(config);
     }
 
-    public Path saveRenamedBackupConfiguration(String oldName, BackupConfiguration config) throws Exception {
-        Files.delete(configFileFor(oldName));
+    public Path saveRenamedBackupConfiguration(String oldName, BackupConfiguration config)
+        throws ConfigurationException {
+        try {
+            Files.delete(configFileFor(oldName));
+        } catch (IOException e) {
+            throw new ConfigurationException(e);
+        }
         return saveBackupConfiguration(config);
     }
 }

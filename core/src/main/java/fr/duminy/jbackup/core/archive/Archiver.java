@@ -32,6 +32,9 @@ import java.util.List;
  * A very basic command line tool for the zip format {(thanks to {@link ZipArchiveFactory}.
  */
 public class Archiver {
+    private Archiver() {
+    }
+
     public static void main(String[] args) throws IOException, ArchiveException {
         final String operation = args[0];
         final Path archive = Paths.get(args[1]);
@@ -39,25 +42,33 @@ public class Archiver {
 
         switch (operation) {
             case "-c":
-                final ArchiveParameters archiveParameters = new ArchiveParameters(archive, true);
-                for (int i = 2; i < args.length; i++) {
-                    archiveParameters.addSource(Paths.get(args[i]));
-                }
-                List<SourceWithPath> collectedFiles = new ArrayList<>();
-                new FileCollector().collectFiles(collectedFiles, archiveParameters, null, null);
-                new Compressor(factory).compress(archiveParameters, collectedFiles, null, null);
+                compress(args, archive, factory);
                 break;
             case "-d":
-                Path directory = null;
-
-                if (args.length > 2) {
-                    directory = Paths.get(args[2]);
-                }
-
-                new Decompressor(factory).decompress(archive, directory, null, null);
+                decompress(args, archive, factory);
                 break;
             default:
                 throw new IOException("unsupported operation: " + operation);
         }
+    }
+
+    private static void decompress(String[] args, Path archive, ZipArchiveFactory factory) throws ArchiveException {
+        Path directory = null;
+
+        if (args.length > 2) {
+            directory = Paths.get(args[2]);
+        }
+
+        new Decompressor(factory).decompress(archive, directory, null, null);
+    }
+
+    private static void compress(String[] args, Path archive, ZipArchiveFactory factory) throws ArchiveException {
+        final ArchiveParameters archiveParameters = new ArchiveParameters(archive, true);
+        for (int i = 2; i < args.length; i++) {
+            archiveParameters.addSource(Paths.get(args[i]));
+        }
+        List<SourceWithPath> collectedFiles = new ArrayList<>();
+        new FileCollector().collectFiles(collectedFiles, archiveParameters, null, null);
+        new Compressor(factory).compress(archiveParameters, collectedFiles, null, null);
     }
 }

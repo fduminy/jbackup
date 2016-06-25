@@ -60,7 +60,7 @@ public class FileCollector {
         totalSize.setValue(0L);
 
         for (ArchiveParameters.Source source : sources) {
-            Path sourcePath = source.getSource();
+            Path sourcePath = source.getPath();
             if (!sourcePath.isAbsolute()) {
                 throw new IllegalArgumentException(String.format("The file '%s' is relative.", sourcePath));
             }
@@ -80,40 +80,60 @@ public class FileCollector {
 
     private long collect(final List<SourceWithPath> collectedFiles, final Path source, final IOFileFilter directoryFilter,
                          final IOFileFilter fileFilter, final Cancellable cancellable) throws IOException {
-        final long[] totalSize = {0L};
-
-        SimpleFileVisitor<Path> visitor = new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                super.preVisitDirectory(dir, attrs);
-                if ((directoryFilter == null) || source.equals(dir) || directoryFilter.accept(dir.toFile())) {
-                    return CONTINUE;
-                } else {
-                    return SKIP_SUBTREE;
-                }
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if ((cancellable != null) && cancellable.isCancelled()) {
-                    return TERMINATE;
-                }
-
-                super.visitFile(file, attrs);
-
-                if (!Files.isSymbolicLink(file)) {
-                    if ((fileFilter == null) || fileFilter.accept(file.toFile())) {
-                        LOG.trace("visitFile {}", file.toAbsolutePath());
-                        collectedFiles.add(new SourceWithPath(source, file));
-                        totalSize[0] += Files.size(file);
-                    }
-                }
-
-                return CONTINUE;
-            }
-        };
+        FileVisitor visitor = new FileVisitor(collectedFiles, source, directoryFilter, fileFilter, cancellable);
         Files.walkFileTree(source, visitor);
+        return visitor.getTotalSize();
+    }
 
-        return totalSize[0];
+    private static class FileVisitor extends SimpleFileVisitor<Path> {
+        private final List<SourceWithPath> collectedFiles;
+        private final Path source;
+        private final IOFileFilter directoryFilter;
+        private final IOFileFilter fileFilter;
+        private final Cancellable cancellable;
+        private long totalSize = 0L;
+
+        private FileVisitor(List<SourceWithPath> collectedFiles, Path source, IOFileFilter directoryFilter,
+                            IOFileFilter fileFilter, Cancellable cancellable) {
+            this.collectedFiles = collectedFiles;
+            this.source = source;
+            this.directoryFilter = directoryFilter;
+            this.fileFilter = fileFilter;
+            this.cancellable = cancellable;
+        }
+
+        @Override
+        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+            super.preVisitDirectory(dir, attrs);
+            if ((directoryFilter == null) || source.equals(dir) || directoryFilter.accept(dir.toFile())) {
+                return CONTINUE;
+            } else {
+                return SKIP_SUBTREE;
+            }
+        }
+
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+            if ((cancellable != null) && cancellable.isCancelled()) {
+                return TERMINATE;
+            }
+
+            super.visitFile(file, attrs);
+            updateTotalSize(file);
+
+            return CONTINUE;
+        }
+
+        private void updateTotalSize(Path file) throws IOException {
+            if (!Files.isSymbolicLink(file) && ((fileFilter == null) || fileFilter.accept(file.toFile()))) {
+                LOG.trace("visitFile {}", file.toAbsolutePath());
+                collectedFiles.add(new SourceWithPath(source, file));
+                totalSize += Files.size(file);
+            }
+        }
+
+        public long getTotalSize() {
+            return totalSize;
+        }
     }
 }

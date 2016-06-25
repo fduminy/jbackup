@@ -29,6 +29,7 @@ import fr.duminy.components.swing.listpanel.SimpleItemManager;
 import fr.duminy.components.swing.path.JPath;
 import fr.duminy.components.swing.path.JPathBuilder;
 import fr.duminy.jbackup.core.BackupConfiguration;
+import fr.duminy.jbackup.core.ConfigurationException;
 import fr.duminy.jbackup.core.ConfigurationManager;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import org.apache.commons.beanutils.BeanComparator;
@@ -37,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import java.io.IOException;
 import java.util.Comparator;
 
 import static fr.duminy.components.swing.listpanel.SimpleItemManager.ContainerType.DIALOG;
@@ -104,7 +104,7 @@ public class ConfigurationManagerPanel extends ListPanel<BackupConfiguration, JL
             try {
                 manager.removeBackupConfiguration(config);
                 fireIntervalRemoved(this, i, i);
-            } catch (IOException e) {
+            } catch (ConfigurationException e) {
                 config = null;
                 LOG.error(e.getMessage(), e);
             }

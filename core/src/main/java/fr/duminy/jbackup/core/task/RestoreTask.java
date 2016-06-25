@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.task;
 
+import fr.duminy.components.chain.CommandException;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.command.DecompressCommand;
@@ -41,7 +42,7 @@ public class RestoreTask extends FileCreatorTask {
     }
 
     @Override
-    protected void executeTask(FileDeleter deleter) throws Exception {
+    protected void executeTask(FileDeleter deleter) throws TaskException {
         deleter.registerDirectory(targetDirectory);
 
         MutableJBackupContext context = new MutableJBackupContext();
@@ -52,8 +53,11 @@ public class RestoreTask extends FileCreatorTask {
         context.setArchivePath(archive);
         context.setCancellable(cancellable);
 
-        createDecompressCommand().execute(context);
-        //        createDecompressor(factory).decompress(archive, targetDirectory, listener, cancellable);
+        try {
+            createDecompressCommand().execute(context);
+        } catch (CommandException e) {
+            throw new TaskException(e);
+        }
     }
 
     DecompressCommand createDecompressCommand() {

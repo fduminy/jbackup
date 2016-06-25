@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 
 abstract class AbstractTask implements Task {
-    private static Logger LOG = LoggerFactory.getLogger(AbstractTask.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractTask.class);
 
     protected final TaskListener listener;
     protected final BackupConfiguration config;
@@ -42,14 +42,14 @@ abstract class AbstractTask implements Task {
     }
 
     @Override
-    public final Void call() throws Exception {
+    public final Void call() throws TaskException {
         Throwable error = null;
         try {
             if (listener != null) {
                 listener.taskStarted();
             }
             execute();
-        } catch (Exception e) {
+        } catch (TaskException e) {
             LOG.error("Error in " + getClass().getSimpleName() + " for configuration '" + config.getName() + "'", e);
             error = e;
             throw e;
@@ -66,5 +66,5 @@ abstract class AbstractTask implements Task {
         return (cancellable != null) && cancellable.isCancelled();
     }
 
-    abstract protected void execute() throws Exception;
+    protected abstract void execute() throws TaskException;
 }

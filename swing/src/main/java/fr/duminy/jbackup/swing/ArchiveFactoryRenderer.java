@@ -36,7 +36,10 @@ public class ArchiveFactoryRenderer extends DefaultListCellRenderer {
 
     @Override
     public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-        value = (value instanceof ArchiveFactory) ? ((ArchiveFactory) value).getExtension() : "";
-        return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+        return super.getListCellRendererComponent(list,
+                                                  (value instanceof ArchiveFactory) ?
+                                                      ((ArchiveFactory) value).getExtension() :
+                                                      "",
+                                                  index, isSelected, cellHasFocus);
     }
 }

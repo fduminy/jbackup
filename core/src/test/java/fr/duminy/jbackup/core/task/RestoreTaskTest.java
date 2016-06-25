@@ -24,7 +24,6 @@ import fr.duminy.components.chain.CommandException;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
 import fr.duminy.jbackup.core.SoftAssertions;
-import fr.duminy.jbackup.core.archive.ArchiveException;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactoryTest;
@@ -107,7 +106,7 @@ public class RestoreTaskTest extends AbstractTaskTest {
         // test
         try {
             task.call();
-        } catch (ArchiveException e) {
+        } catch (TaskException e) {
             throw e.getCause();
         } finally {
             // assertions

@@ -37,11 +37,8 @@ public class RestoreAction extends AbstractUserItemAction<BackupConfiguration, M
     private static final Logger LOG = LoggerFactory.getLogger(RestoreAction.class);
 
     private final JComponent parent;
-    private final BackupConfigurationActions configActions;
+    private final transient BackupConfigurationActions configActions;
 
-    /**
-     * @param configActions
-     */
     public RestoreAction(JComponent parent, BackupConfigurationActions configActions) {
         super(KeyEvent.VK_CONTROL + KeyEvent.VK_R, "restore.png", Messages.class);
         this.parent = parent;

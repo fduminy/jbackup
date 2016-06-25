@@ -23,7 +23,7 @@ package fr.duminy.jbackup.core;
 /**
  * Exception thrown while a duplicate configuration is being added.
  */
-public class DuplicateNameException extends Exception {
+public class DuplicateNameException extends ConfigurationException {
     public DuplicateNameException(String message) {
         super(message);
     }

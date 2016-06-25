@@ -68,18 +68,18 @@ public class ArchiveParameters {
     }
 
     public static final class Source {
-        private final Path source;
+        private final Path path;
         private final IOFileFilter dirFilter;
         private final IOFileFilter fileFilter;
 
-        private Source(Path source, IOFileFilter dirFilter, IOFileFilter fileFilter) {
-            this.source = source;
+        private Source(Path path, IOFileFilter dirFilter, IOFileFilter fileFilter) {
+            this.path = path;
             this.dirFilter = (dirFilter == null) ? trueFileFilter() : dirFilter;
             this.fileFilter = (fileFilter == null) ? trueFileFilter() : fileFilter;
         }
 
-        public Path getSource() {
-            return source;
+        public Path getPath() {
+            return path;
         }
 
         public IOFileFilter getDirFilter() {
@@ -93,10 +93,10 @@ public class ArchiveParameters {
         @Override
         public String toString() {
             return "Source{" +
-                    "source=" + source +
-                    ", dirFilter=" + dirFilter +
-                    ", fileFilter=" + fileFilter +
-                    '}';
+                   "path=" + path +
+                   ", dirFilter=" + dirFilter +
+                   ", fileFilter=" + fileFilter +
+                   '}';
         }
     }
 }

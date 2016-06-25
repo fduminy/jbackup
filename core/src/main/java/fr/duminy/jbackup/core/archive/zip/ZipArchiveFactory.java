@@ -20,6 +20,7 @@
  */
 package fr.duminy.jbackup.core.archive.zip;
 
+import fr.duminy.jbackup.core.archive.ArchiveException;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ArchiveInputStream;
 import fr.duminy.jbackup.core.archive.ArchiveOutputStream;
@@ -34,12 +35,12 @@ public class ZipArchiveFactory implements ArchiveFactory {
     }
 
     @Override
-    public ArchiveInputStream create(InputStream input) throws Exception {
+    public ArchiveInputStream create(InputStream input) throws ArchiveException {
         return new ZipArchiveInputStream(input);
     }
 
     @Override
-    public ArchiveOutputStream create(OutputStream output) throws Exception {
+    public ArchiveOutputStream create(OutputStream output) throws ArchiveException {
         return new ZipArchiveOutputStream(output);
     }
 

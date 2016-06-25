@@ -20,11 +20,10 @@
  */
 package fr.duminy.jbackup.core;
 
-import java.util.concurrent.CancellationException;
-
 /**
  * Interface used to represent a task that can be cancelled.
  */
+@FunctionalInterface
 public interface Cancellable {
-    boolean isCancelled() throws CancellationException;
+    boolean isCancelled();
 }

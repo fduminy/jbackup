@@ -80,23 +80,13 @@ public class DefaultFileDeleter implements FileDeleter {
     private void deleteFiles(FileDeleteStrategy deleteStrategy, List<Path> paths, boolean expectFiles) {
         if (paths != null) {
             for (Path path : paths) {
-                boolean deleted = false;
+                boolean deleted;
 
                 try {
                     PathUtils.setReadable(path, true);
-
-                    if (expectFiles && Files.isRegularFile(path)) {
-                        deleted = deleteStrategy.deleteQuietly(path.toFile());
-                    } else if (!expectFiles && Files.isDirectory(path)) {
-                        deleted = deleteStrategy.deleteQuietly(path.toFile());
-                    } else {
-                        LOG.error("Wrong path type. Expected: {} Actual: {} {}",
-                                new Object[]{(expectFiles ? "file" : "directory"),
-                                        (Files.isRegularFile(path) ? "file" : ""),
-                                        (Files.isDirectory(path) ? "directory" : "")});
-                        deleted = false;
-                    }
+                    deleted = deleteFile(deleteStrategy, expectFiles, path);
                 } catch (IOException e) {
+                    LOG.error(e.getMessage(), e);
                     deleted = false;
                 }
 
@@ -107,6 +97,20 @@ public class DefaultFileDeleter implements FileDeleter {
                 }
             }
         }
+    }
+
+    private boolean deleteFile(FileDeleteStrategy deleteStrategy, boolean expectFiles, Path path) {
+        boolean deleted;
+        if ((expectFiles && Files.isRegularFile(path)) || (!expectFiles && Files.isDirectory(path))) {
+            deleted = deleteStrategy.deleteQuietly(path.toFile());
+        } else {
+            LOG.error("Wrong path type. Expected: {} Actual: {} {}",
+                      new Object[] { expectFiles ? "file" : "directory",
+                          Files.isRegularFile(path) ? "file" : "",
+                          Files.isDirectory(path) ? "directory" : "" });
+            deleted = false;
+        }
+        return deleted;
     }
 
     List<Path> getRegisteredFiles() {

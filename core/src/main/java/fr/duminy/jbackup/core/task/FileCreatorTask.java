@@ -38,7 +38,7 @@ public abstract class FileCreatorTask extends AbstractTask {
     }
 
     @Override
-    protected final void execute() throws Exception {
+    protected final void execute() throws TaskException {
         FileDeleter deleter = deleterSupplier.get();
         boolean taskComplete = false;
         try {
@@ -51,5 +51,5 @@ public abstract class FileCreatorTask extends AbstractTask {
         }
     }
 
-    abstract protected void executeTask(FileDeleter deleter) throws Exception;
+    protected abstract void executeTask(FileDeleter deleter) throws TaskException;
 }

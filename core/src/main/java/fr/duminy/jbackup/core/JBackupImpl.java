@@ -120,7 +120,7 @@ public class JBackupImpl implements JBackup {
         private Future<Void> future;
 
         @Override
-        public boolean isCancelled() throws CancellationException {
+        public boolean isCancelled() {
             return (future != null) && future.isCancelled();
         }
 
@@ -129,7 +129,8 @@ public class JBackupImpl implements JBackup {
         }
     }
 
-    private static interface TaskFactory<T extends Callable<Void>> {
+    @FunctionalInterface
+    private interface TaskFactory<T extends Callable<Void>> {
         T createTask(Cancellable cancellable);
     }
 

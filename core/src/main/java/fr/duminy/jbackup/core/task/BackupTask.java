@@ -33,6 +33,7 @@ import org.apache.commons.io.filefilter.IOFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -55,9 +56,13 @@ public class BackupTask extends FileCreatorTask {
     }
 
     @Override
-    protected void executeTask(FileDeleter deleter) throws Exception {
+    protected void executeTask(FileDeleter deleter) throws TaskException {
         Path target = Paths.get(config.getTargetDirectory());
-        Files.createDirectories(target);
+        try {
+            Files.createDirectories(target);
+        } catch (IOException e) {
+            throw new TaskException(e);
+        }
 
         String archiveName = generateName(config.getName(), config.getArchiveFactory());
 
@@ -83,13 +88,13 @@ public class BackupTask extends FileCreatorTask {
         if (config.isVerify()) {
             commands = new JBackupCommand[] {
                 createCollectFilesCommand(),
-                createCompressCommand(context.getFactory()),
+                createCompressCommand(),
                 createVerifyArchiveCommand(),
             };
         } else {
             commands = new JBackupCommand[] {
                 createCollectFilesCommand(),
-                createCompressCommand(context.getFactory())
+                createCompressCommand()
             };
         }
         CommandListener<JBackupContext> listener = new CommandListener<JBackupContext>() {
@@ -104,14 +109,18 @@ public class BackupTask extends FileCreatorTask {
             }
         };
         JBackupChain chain = new JBackupChain(listener, commands);
-        chain.execute(context);
+        try {
+            chain.execute(context);
+        } catch (CommandException e) {
+            throw new TaskException(e);
+        }
     }
 
     CollectFilesCommand createCollectFilesCommand() {
         return new CollectFilesCommand(new FileCollector());
     }
 
-    CompressCommand createCompressCommand(ArchiveFactory factory) {
+    CompressCommand createCompressCommand() {
         return new CompressCommand() {
             @Override
             protected Compressor createCompressor(ArchiveFactory factory) {

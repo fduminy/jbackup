@@ -32,7 +32,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.naming.InvalidNameException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -227,7 +226,7 @@ public class ConfigurationManagerTest {
             try {
                 manager.addBackupConfiguration(createConfiguration(name));
                 failingNames.add(name);
-            } catch (InvalidNameException ine) {
+            } catch (ConfigurationException ce) {
                 // ok
             }
         }

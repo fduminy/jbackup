@@ -22,7 +22,6 @@ package fr.duminy.jbackup.core.task;
 
 import fr.duminy.components.chain.CommandException;
 import fr.duminy.jbackup.core.*;
-import fr.duminy.jbackup.core.archive.ArchiveException;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.ArchiveParameters;
 import fr.duminy.jbackup.core.archive.zip.ZipArchiveFactory;
@@ -163,7 +162,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         // test
         try {
             task.call();
-        } catch (ArchiveException e) {
+        } catch (TaskException e) {
             throw e.getCause();
         } finally {
             // assertions
@@ -225,7 +224,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         for (ArchiveParameters.Source source : archiveParameters.getSources()) {
             String dirFilter = toJexlExpression(source.getDirFilter());
             String fileFilter = toJexlExpression(source.getFileFilter());
-            final Path sourcePath = source.getSource().toAbsolutePath();
+            final Path sourcePath = source.getPath().toAbsolutePath();
             config.addSource(sourcePath, dirFilter, fileFilter);
         }
         config.setArchiveFactory(mockFactory);
@@ -278,8 +277,8 @@ public class BackupTaskTest extends AbstractTaskTest {
             return mockCollectFilesCommand;
         }
 
-        @Override CompressCommand createCompressCommand(ArchiveFactory factory) {
-            realCompressCommand = super.createCompressCommand(factory);
+        @Override CompressCommand createCompressCommand() {
+            realCompressCommand = super.createCompressCommand();
             return mockCompressCommand;
         }
 

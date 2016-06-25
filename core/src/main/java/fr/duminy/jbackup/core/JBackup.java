@@ -65,7 +65,7 @@ public interface JBackup {
 
     Timer shutdown(final TerminationListener listener) throws InterruptedException;
 
-    public static interface TerminationListener {
+    @FunctionalInterface interface TerminationListener {
         void terminated();
     }
 }

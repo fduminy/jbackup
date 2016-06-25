@@ -39,7 +39,7 @@ public class TaskManagerStatusBar extends JPanel implements BackupConfigurationA
     private static final Logger LOG = LoggerFactory.getLogger(TaskManagerStatusBar.class);
 
     private final JLabel label = new JLabel();
-    private final JBackup jBackup;
+    private final transient JBackup jBackup;
     private final JButton button = new JButton("Show tasks");
     private AtomicInteger taskCount = new AtomicInteger(0);
     private JPopupMenu popup;
@@ -83,10 +83,12 @@ public class TaskManagerStatusBar extends JPanel implements BackupConfigurationA
 
     @Override
     public void totalSizeComputed(String configurationName, long totalSize) {
+        // nothing to do
     }
 
     @Override
     public void progress(String configurationName, long totalReadBytes) {
+        // nothing to do
     }
 
     @Override

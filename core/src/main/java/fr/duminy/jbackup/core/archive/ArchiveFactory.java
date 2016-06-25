@@ -27,7 +27,7 @@ import java.io.OutputStream;
 public interface ArchiveFactory {
     String getExtension();
 
-    ArchiveInputStream create(InputStream input) throws Exception;
+    ArchiveInputStream create(InputStream input) throws ArchiveException;
 
-    ArchiveOutputStream create(OutputStream output) throws Exception;
+    ArchiveOutputStream create(OutputStream output) throws ArchiveException;
 }

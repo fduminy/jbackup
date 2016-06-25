@@ -32,6 +32,9 @@ import static java.math.BigInteger.valueOf;
 public class Utils {
     public static final BigInteger MAX_INTEGER = valueOf(Integer.MAX_VALUE);
 
+    private Utils() {
+    }
+
     /**
      * Converts a <code>long</code> value to <code>int</code> value.
      * The value must be in the interval [0;<code>maxValue</code>].

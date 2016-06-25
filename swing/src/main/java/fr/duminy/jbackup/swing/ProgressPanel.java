@@ -38,7 +38,7 @@ public class ProgressPanel extends JPanel implements ProgressListener {
     private long totalSize;
     private boolean finished = false;
     private JButton cancelButton;
-    private Future<?> task;
+    private transient Future<?> task;
 
     public ProgressPanel(String title) {
         super(new BorderLayout());

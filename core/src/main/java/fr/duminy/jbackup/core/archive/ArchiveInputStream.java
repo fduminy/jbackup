@@ -27,7 +27,7 @@ import java.io.InputStream;
 public interface ArchiveInputStream extends Closeable {
     Entry getNextEntry() throws IOException;
 
-    public abstract static class Entry implements Closeable {
+    abstract class Entry implements Closeable {
         private final String name;
         private final long compressedSize;
 
@@ -44,8 +44,6 @@ public interface ArchiveInputStream extends Closeable {
             return compressedSize;
         }
 
-        abstract public InputStream getInput();
-
-        abstract public void close() throws IOException;
+        public abstract InputStream getInput();
     }
 }

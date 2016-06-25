@@ -29,7 +29,7 @@ public final class SourceWithPath {
 
     public SourceWithPath(Path source, Path path) {
         if (!source.isAbsolute()) {
-            throw new RuntimeException("source parameter must be absolute");
+            throw new IllegalArgumentException("source parameter must be absolute");
         }
         this.source = source;
         this.path = path;
@@ -44,19 +44,18 @@ public final class SourceWithPath {
     }
 
     public final String getRelativePath() {
-        String path;
-        Path source = getSource();
+        String relativePath;
         if (Files.isDirectory(source)) {
             final Path sourceParent = source.getParent();
             if (sourceParent == null) {
-                path = source.relativize(getPath()).toString();
+                relativePath = source.relativize(getPath()).toString();
             } else {
-                path = sourceParent.relativize(getPath()).toString();
+                relativePath = sourceParent.relativize(getPath()).toString();
             }
         } else {
-            path = String.valueOf(getPath().getFileName());
+            relativePath = String.valueOf(getPath().getFileName());
         }
-        return path;
+        return relativePath;
     }
 
     public String getAbsolutePath() {

@@ -20,10 +20,10 @@
  */
 package fr.duminy.jbackup.core;
 
-import fr.duminy.jbackup.core.archive.ArchiveException;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.task.BackupTask;
 import fr.duminy.jbackup.core.task.RestoreTask;
+import fr.duminy.jbackup.core.task.TaskException;
 import fr.duminy.jbackup.core.task.TaskListener;
 import fr.duminy.jbackup.core.util.FileDeleter;
 
@@ -53,7 +53,7 @@ public class LockableJBackup extends JBackupImpl {
     BackupTask createBackupTask(BackupConfiguration config, TaskListener taskListener, Cancellable cancellable) {
         return new BackupTask(config, TestUtils.newMockSupplier(), null, cancellable) {
             @Override
-            protected void executeTask(FileDeleter deleter) throws Exception {
+            protected void executeTask(FileDeleter deleter) throws TaskException {
                 waitUnlocked(compressionLock);
             }
         };
@@ -73,19 +73,19 @@ public class LockableJBackup extends JBackupImpl {
     RestoreTask createRestoreTask(BackupConfiguration config, Path archive, Path targetDirectory, TaskListener taskListener, Cancellable cancellable) {
         return new RestoreTask(config, archive, targetDirectory, TestUtils.newMockSupplier(), null, cancellable) {
             @Override
-            protected void executeTask(FileDeleter deleter) throws Exception {
+            protected void executeTask(FileDeleter deleter) throws TaskException {
                 waitUnlocked(decompressionLock);
             }
         };
     }
 
-    private static void waitUnlocked(AtomicBoolean lock) throws ArchiveException {
+    private static void waitUnlocked(AtomicBoolean lock) throws TaskException {
         if (lock != null) {
             while (lock.get()) {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
-                    throw new ArchiveException(e);
+                    throw new TaskException(e);
                 }
             }
         }

@@ -35,8 +35,8 @@ import static java.nio.file.Files.*;
  * and to identify the target directory of a <a href="https://maven.apache.org/">Maven</a> project.
  */
 class MavenTargetRecognizer {
-    final static String MAVEN2_PROJECT_FILE = "pom.xml";
-    final static String MAVEN2_TARGET_DIR = "target";
+    static final String MAVEN2_PROJECT_FILE = "pom.xml";
+    static final String MAVEN2_TARGET_DIR = "target";
 
     public boolean couldBeMavenTargetDirectory(Path directory) {
         return (directory != null) && exists(directory) && isDirectory(directory) && directory.endsWith(MAVEN2_TARGET_DIR);
@@ -65,12 +65,12 @@ class MavenTargetRecognizer {
         return isMavenProjectContent(charBuffer.rewind().toString()) ? Optional.of(projectPath) : Optional.empty();
     }
 
-    // TODO replacement of following (not working) regular expression : buffer.matches("(.*)<project (.*)<modelVersion>(.*)")
+    // replacement of following (not working) regular expression : buffer.matches("(.*)<project (.*)<modelVersion>(.*)")
     private boolean isMavenProjectContent(String buffer) {
         String tag = "<project";
         int index = buffer.indexOf(tag);
         if (index < 0) {
-            tag += ' ';
+            tag += Character.toString(' ');
             index = buffer.indexOf(tag);
             if (index < 0) {
                 return false;

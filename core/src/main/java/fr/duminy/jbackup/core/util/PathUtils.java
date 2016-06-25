@@ -23,23 +23,21 @@ package fr.duminy.jbackup.core.util;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class PathUtils {
+    private PathUtils() {
+    }
+
     public static void setReadable(Path path, final boolean readable) throws IOException {
         if (readable) {
             setReadableImpl(path, readable);
             if (Files.isDirectory(path)) {
-                for (Path p : Files.newDirectoryStream(path)) {
-                    setReadable(p, readable);
-                }
+                setReadableDirectory(path, readable);
             }
             return;
         }
@@ -66,6 +64,14 @@ public class PathUtils {
         Collections.reverse(paths);
         for (Path p : paths) {
             setReadableImpl(p, readable);
+        }
+    }
+
+    private static void setReadableDirectory(Path path, boolean readable) throws IOException {
+        try (DirectoryStream<Path> paths = Files.newDirectoryStream(path)) {
+            for (Path p : paths) {
+                setReadable(p, readable);
+            }
         }
     }
 

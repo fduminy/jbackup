@@ -27,16 +27,6 @@ import org.apache.commons.lang3.mutable.MutableLong;
 import java.io.InputStream;
 
 class NotifyingInputStream extends CountingInputStream {
-    static InputStream createCountingInputStream(final TaskListener listener, final MutableLong processedSize, final InputStream input) {
-        InputStream result = input;
-
-        if (listener != null) {
-            result = new NotifyingInputStream(listener, processedSize, input);
-        }
-
-        return result;
-    }
-
     private final TaskListener listener;
     private final MutableLong processedSize;
 
@@ -49,6 +39,17 @@ class NotifyingInputStream extends CountingInputStream {
         super(input);
         this.listener = listener;
         this.processedSize = processedSize;
+    }
+
+    static InputStream createCountingInputStream(final TaskListener listener, final MutableLong processedSize,
+                                                 final InputStream input) {
+        InputStream result = input;
+
+        if (listener != null) {
+            result = new NotifyingInputStream(listener, processedSize, input);
+        }
+
+        return result;
     }
 
     @Override

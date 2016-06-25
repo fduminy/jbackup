@@ -39,6 +39,7 @@ public class RestoreAction extends JBackupAction {
         this.targetDirectory = targetDirectory;
     }
 
+    @Override
     public Future<Void> executeAction(JBackup jBackup) {
         return jBackup.restore(config, archive, targetDirectory);
     }

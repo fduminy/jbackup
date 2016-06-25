@@ -59,7 +59,7 @@ class ArchiveParametersMatcher implements ArgumentMatcher<ArchiveParameters> {
             if (!source1.getFileFilter().equals(source2.getFileFilter())) {
                 return false;
             }
-            if (!source1.getSource().equals(source2.getSource())) {
+            if (!source1.getPath().equals(source2.getPath())) {
                 return false;
             }
         }

@@ -22,6 +22,7 @@ package fr.duminy.jbackup.core.archive;
 
 import fr.duminy.jbackup.core.util.InputStreamComparator;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.List;
@@ -36,7 +37,8 @@ public class ArchiveVerifier {
         this.comparator = comparator;
     }
 
-    public boolean verify(ArchiveFactory factory, InputStream archive, List<SourceWithPath> sourceFiles) throws Exception {
+    public boolean verify(ArchiveFactory factory, InputStream archive, List<SourceWithPath> sourceFiles)
+        throws ArchiveException {
         boolean result = true;
         try (ArchiveInputStream archiveInputStream = factory.create(archive)) {
             ArchiveInputStream.Entry entry;
@@ -45,6 +47,8 @@ public class ArchiveVerifier {
                 SourceWithPath swp = findPath(sourceFiles, entry.getName());
                 result &= (swp != null) && comparator.equals(Paths.get(swp.getAbsolutePath()), entry.getInput());
             }
+        } catch (IOException e) {
+            throw new ArchiveException(e);
         }
 
         return result;
