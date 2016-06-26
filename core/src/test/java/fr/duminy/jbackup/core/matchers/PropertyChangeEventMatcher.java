@@ -29,7 +29,7 @@ class PropertyChangeEventMatcher<T> implements ArgumentMatcher<PropertyChangeEve
     private final IsEqual<T> equals;
 
     PropertyChangeEventMatcher(T newValue) {
-        this.equals = new IsEqual<T>(newValue);
+        this.equals = new IsEqual<>(newValue);
     }
 
     @Override

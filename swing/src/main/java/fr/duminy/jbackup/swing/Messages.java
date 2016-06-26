@@ -28,8 +28,8 @@ import org.ez18n.MessageBundle;
  */
 @MessageBundle
 public interface Messages {
-    static final String BACKUP_MESSAGE = "Backup";
-    static final String RESTORE_MESSAGE = "Restore";
+    String BACKUP_MESSAGE = "Backup";
+    String RESTORE_MESSAGE = "Restore";
 
     @Message(value = BACKUP_MESSAGE)
     String backup();

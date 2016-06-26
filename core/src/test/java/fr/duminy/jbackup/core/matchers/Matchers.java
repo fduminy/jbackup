@@ -37,7 +37,7 @@ public class Matchers extends org.mockito.Matchers {
     }
 
     public static <T> PropertyChangeEvent propertyChangeEventWithNewValue(T value) {
-        return argThat(new PropertyChangeEventMatcher<T>(value));
+        return argThat(new PropertyChangeEventMatcher<>(value));
     }
 
     public static Comparator<? super ArchiveParameters> parametersComparator(Path expectedArchive) {

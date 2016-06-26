@@ -102,9 +102,7 @@ public class SourceListTypeMapper implements TypeMapper<ListPanel<Source, JList<
         DefaultListModel<Source> model = getModel(listPanel);
         model.clear();
         if (o != null) {
-            for (Source source : (List<Source>) o) {
-                model.addElement(source);
-            }
+            ((List<Source>) o).forEach(model::addElement);
         }
     }
 

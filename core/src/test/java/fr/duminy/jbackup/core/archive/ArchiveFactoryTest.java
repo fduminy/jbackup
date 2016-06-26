@@ -120,7 +120,7 @@ abstract public class ArchiveFactoryTest<T extends ArchiveFactory> {
     }
 
     private static Map<String, byte[]> asMap(ArchiveInputStream input) throws IOException {
-        Map<String, byte[]> actualEntries = new HashMap<String, byte[]>();
+        Map<String, byte[]> actualEntries = new HashMap<>();
 
         Entry actualEntry = input.getNextEntry();
         while (actualEntry != null) {

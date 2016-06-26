@@ -23,6 +23,5 @@ package fr.duminy.jbackup.core.task;
 import java.util.concurrent.Callable;
 
 public interface Task extends Callable<Void> {
-    @Override
-    public Void call() throws Exception;
+    @Override Void call() throws Exception;
 }

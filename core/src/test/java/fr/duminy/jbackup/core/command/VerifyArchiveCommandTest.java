@@ -41,8 +41,6 @@ import java.io.InputStream;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 public class VerifyArchiveCommandTest {

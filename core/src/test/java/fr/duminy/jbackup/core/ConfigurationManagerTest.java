@@ -99,7 +99,7 @@ public class ConfigurationManagerTest {
     @Test(expected = IllegalArgumentException.class)
     public void testInit_notWritableDirectory() throws Exception {
         Path dir = tempFolder.newFolder().toPath();
-        dir.toFile().setWritable(false);
+        assertThat(dir.toFile().setWritable(false)).isTrue();
         new ConfigurationManager(dir);
     }
 

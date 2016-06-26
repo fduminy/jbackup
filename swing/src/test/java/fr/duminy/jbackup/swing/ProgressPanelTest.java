@@ -303,13 +303,13 @@ public class ProgressPanelTest extends AbstractSwingTest {
         assertThat(buttonVisible).as("cancel button visible").isEqualTo(taskDefined);
     }
 
-    private static enum TaskState {
+    private enum TaskState {
         NOT_STARTED,
         TASK_DEFINED,
         STARTED,
         TOTAL_SIZE_COMPUTED,
         PROGRESS,
-        FINISHED;
+        FINISHED
     }
 
     private static class TestableTask implements Future<Object> {

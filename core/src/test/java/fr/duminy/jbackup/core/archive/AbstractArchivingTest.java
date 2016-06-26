@@ -44,7 +44,6 @@ import java.util.Map;
 
 import static fr.duminy.jbackup.core.archive.ArchiveDSL.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 @RunWith(Theories.class)
@@ -197,8 +196,8 @@ abstract public class AbstractArchivingTest {
         }
     }
 
-    protected static enum EntryType {
+    protected enum EntryType {
         RELATIVE,
-        ABSOLUTE;
+        ABSOLUTE
     }
 }

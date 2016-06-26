@@ -44,7 +44,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Supplier;
 
-import static fr.duminy.jbackup.core.matchers.Matchers.eq;
 import static fr.duminy.jbackup.core.matchers.Matchers.parametersComparator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -231,7 +230,7 @@ public class BackupTaskTest extends AbstractTaskTest {
         return config;
     }
 
-    protected static final String getName(IOFileFilter filter) {
+    protected static String getName(IOFileFilter filter) {
         if (filter instanceof JBackupImplTest.CustomNameFileFilter) {
             return ((JBackupImplTest.CustomNameFileFilter) filter).getName();
         } else {

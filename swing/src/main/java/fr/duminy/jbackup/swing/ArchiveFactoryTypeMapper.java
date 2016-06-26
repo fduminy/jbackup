@@ -27,7 +27,13 @@ import org.formbuilder.mapping.typemapper.impl.ReferenceToComboboxMapper;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.swing.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+
+import static java.util.Collections.addAll;
+import static java.util.Collections.sort;
 
 /**
  * A {@link org.formbuilder.TypeMapper} for {@link fr.duminy.jbackup.core.archive.ArchiveFactory}.
@@ -37,10 +43,8 @@ public class ArchiveFactoryTypeMapper extends ReferenceToComboboxMapper<ArchiveF
 
     public ArchiveFactoryTypeMapper(ArchiveFactory[] factories) {
         sortedFactories = new ArrayList<>(factories.length + 1);
-        for (ArchiveFactory f : factories) {
-            sortedFactories.add(f);
-        }
-        Collections.sort(sortedFactories, ArchiveFactoryComparator.INSTANCE);
+        addAll(sortedFactories, factories);
+        sort(sortedFactories, ArchiveFactoryComparator.INSTANCE);
         sortedFactories.add(0, null);
     }
 
@@ -66,7 +70,7 @@ public class ArchiveFactoryTypeMapper extends ReferenceToComboboxMapper<ArchiveF
 
     @Nonnull
     @Override
-    protected Collection getSuitableData() {
+    protected Collection<ArchiveFactory> getSuitableData() {
         return sortedFactories;
     }
 
@@ -84,7 +88,7 @@ public class ArchiveFactoryTypeMapper extends ReferenceToComboboxMapper<ArchiveF
 
     @Nonnull
     @Override
-    public Class getValueClass() {
+    public Class<ArchiveFactory> getValueClass() {
         return ArchiveFactory.class;
     }
 

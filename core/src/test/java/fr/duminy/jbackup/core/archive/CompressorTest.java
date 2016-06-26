@@ -43,8 +43,6 @@ import java.util.Map;
 import static fr.duminy.jbackup.core.TestUtils.createFile;
 import static fr.duminy.jbackup.core.archive.ArchiveDSL.Data;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 public class CompressorTest extends AbstractArchivingTest {
@@ -80,13 +78,11 @@ public class CompressorTest extends AbstractArchivingTest {
     private void testCompress_withCancellable(boolean cancelAfterFirstFile) throws Throwable {
         // prepare
         Cancellable cancellable = mock(Cancellable.class);
-        when(cancellable.isCancelled()).thenReturn(false, cancelAfterFirstFile ? true : false);
+        when(cancellable.isCancelled()).thenReturn(false, cancelAfterFirstFile);
         final ArchiveParameters archiveParameters = new ArchiveParameters(createArchivePath(), true);
         ArchiveOutputStream mockOutput = mock(ArchiveOutputStream.class);
         ArchiveFactory mockFactory = createMockArchiveFactory(mockOutput);
-        Path baseDirectory = createBaseDirectory();
-        Map<Path, List<Path>> expectedFilesBySource = TWO_SRC_FILES.createFiles(baseDirectory, archiveParameters);
-        List<Path> expectedFiles = mergeFiles(expectedFilesBySource);
+        TWO_SRC_FILES.createFiles(createBaseDirectory(), archiveParameters);
 
         // test compression
         compress(mockFactory, archiveParameters, null, cancellable);
@@ -172,9 +168,7 @@ public class CompressorTest extends AbstractArchivingTest {
 
     private List<Path> mergeFiles(Map<Path, List<Path>> filesBySource) {
         List<Path> files = new ArrayList<>();
-        for (List<Path> filesForSource : filesBySource.values()) {
-            files.addAll(filesForSource);
-        }
+        filesBySource.values().forEach(files::addAll);
         return files;
     }
 }

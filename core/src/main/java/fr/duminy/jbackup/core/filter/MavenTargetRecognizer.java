@@ -58,7 +58,7 @@ class MavenTargetRecognizer {
         }
 
         CharBuffer charBuffer = ByteBuffer.allocate(2048).asCharBuffer();
-        try (BufferedReader reader = newBufferedReader(projectPath, defaultCharset());) {
+        try (BufferedReader reader = newBufferedReader(projectPath, defaultCharset())) {
             reader.read(charBuffer);
         }
 
@@ -77,9 +77,6 @@ class MavenTargetRecognizer {
             }
         }
         index = buffer.indexOf("<modelVersion>", index + tag.length());
-        if (index < 0) {
-            return false;
-        }
-        return true;
+        return index >= 0;
     }
 }

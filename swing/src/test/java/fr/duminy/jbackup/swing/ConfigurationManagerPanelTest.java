@@ -56,18 +56,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static fr.duminy.components.swing.listpanel.StandardListPanelFeature.EDITING;
 import static fr.duminy.jbackup.swing.ConfigurationManagerPanel.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -170,12 +172,9 @@ public class ConfigurationManagerPanelTest extends AbstractSwingTest {
 
         //assertions
         JPanel form = new JFormPaneFixture(getRobot(), BackupConfiguration.class).target();
-        TreeSet<String> labels = new TreeSet<>();
-        for (JLabel label : getRobot().finder().findAll(form, JLabelMatcher.any())) {
-            if (!"List.cellRenderer".equals(label.getName())) {
-                labels.add(label.getName());
-            }
-        }
+        TreeSet<String> labels = getRobot().finder().findAll(form, JLabelMatcher.any()).stream()
+                                           .filter(label -> !"List.cellRenderer".equals(label.getName()))
+                                           .map(Component::getName).collect(Collectors.toCollection(TreeSet::new));
         assertThat(labels).containsExactly("archiveFactory", "name", "relativeEntries", "sources", "targetDirectory", "verify");
     }
 

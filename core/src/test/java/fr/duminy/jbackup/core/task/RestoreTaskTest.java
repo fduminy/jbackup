@@ -41,7 +41,6 @@ import java.util.function.Supplier;
 import static fr.duminy.jbackup.core.task.BackupTaskTest.createDeleterSupplier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 public class RestoreTaskTest extends AbstractTaskTest {
