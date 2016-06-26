@@ -91,7 +91,7 @@ public class CompressCommandTest {
         command = new CompressCommand() {
             @Override
             protected Compressor createCompressor(ArchiveFactory factory) {
-                createdCompressor = new Compressor(factory);
+                createdCompressor = super.createCompressor(factory);
                 usedFactory = factory;
                 return compressor;
             }

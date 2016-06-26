@@ -25,7 +25,10 @@ import fr.duminy.components.chain.CommandException;
 import fr.duminy.components.chain.CommandListener;
 import fr.duminy.jbackup.core.BackupConfiguration;
 import fr.duminy.jbackup.core.Cancellable;
-import fr.duminy.jbackup.core.archive.*;
+import fr.duminy.jbackup.core.archive.ArchiveFactory;
+import fr.duminy.jbackup.core.archive.ArchiveParameters;
+import fr.duminy.jbackup.core.archive.ArchiveVerifier;
+import fr.duminy.jbackup.core.archive.FileCollector;
 import fr.duminy.jbackup.core.command.*;
 import fr.duminy.jbackup.core.util.FileDeleter;
 import fr.duminy.jbackup.core.util.InputStreamComparator;
@@ -125,12 +128,7 @@ public class BackupTask extends FileCreatorTask {
     }
 
     CompressCommand createCompressCommand() {
-        return new CompressCommand() {
-            @Override
-            protected Compressor createCompressor(ArchiveFactory factory) {
-                return new Compressor(factory);
-            }
-        };
+        return new CompressCommand();
     }
 
     VerifyArchiveCommand createVerifyArchiveCommand() {

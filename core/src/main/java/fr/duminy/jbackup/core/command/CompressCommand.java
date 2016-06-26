@@ -25,7 +25,7 @@ import fr.duminy.jbackup.core.archive.ArchiveException;
 import fr.duminy.jbackup.core.archive.ArchiveFactory;
 import fr.duminy.jbackup.core.archive.Compressor;
 
-public abstract class CompressCommand implements JBackupCommand {
+public class CompressCommand implements JBackupCommand {
     @Override
     public void execute(JBackupContext context) throws CommandException {
         context.getFileDeleter().registerFile(context.getArchiveParameters().getArchive());
@@ -43,5 +43,7 @@ public abstract class CompressCommand implements JBackupCommand {
         context.getFileDeleter().deleteAll();
     }
 
-    protected abstract Compressor createCompressor(ArchiveFactory factory);
+    Compressor createCompressor(ArchiveFactory factory) {
+        return new Compressor(factory);
+    }
 }
