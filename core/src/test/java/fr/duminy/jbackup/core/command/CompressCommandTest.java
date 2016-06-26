@@ -60,7 +60,7 @@ public class CompressCommandTest {
     private TaskListener listener;
 
     @Mock
-    private Compressor compressor;
+    private Compressor mockCompressor;
 
     @Mock
     private FileDeleter fileDeleter;
@@ -70,7 +70,7 @@ public class CompressCommandTest {
 
     private CompressCommand command;
     private JBackupContext context;
-    private Compressor createdCompressor;
+    private Compressor realCompressor;
     private ArchiveFactory usedFactory;
     private boolean revertCalled;
 
@@ -91,9 +91,9 @@ public class CompressCommandTest {
         command = new CompressCommand() {
             @Override
             protected Compressor createCompressor(ArchiveFactory factory) {
-                createdCompressor = super.createCompressor(factory);
+                realCompressor = super.createCompressor(factory);
                 usedFactory = factory;
-                return compressor;
+                return mockCompressor;
             }
 
             @Override
@@ -108,11 +108,12 @@ public class CompressCommandTest {
     public void testExecute() throws Exception {
         command.execute(context);
 
-        InOrder inOrder = inOrder(compressor, fileDeleter);
+        InOrder inOrder = inOrder(mockCompressor, fileDeleter);
         inOrder.verify(fileDeleter).registerFile(eq(archive));
-        inOrder.verify(compressor).compress(eq(archiveParameters), eq(collectedFiles), eq(listener), eq(cancellable));
+        inOrder.verify(mockCompressor)
+               .compress(eq(archiveParameters), eq(collectedFiles), eq(listener), eq(cancellable));
         inOrder.verifyNoMoreInteractions();
-        assertThat(createdCompressor).as("result of createCompressor").isNotNull();
+        assertThat(realCompressor).as("result of createCompressor").isNotNull();
         assertThat(usedFactory).as("factory used by createCompressor").isSameAs(factory);
         assertThat(revertCalled).as("revert() called").isFalse();
     }
@@ -120,7 +121,7 @@ public class CompressCommandTest {
     @Test
     public void testExecute_withError() throws Exception {
         ArchiveException exception = new ArchiveException(new Exception("unexpected error"));
-        doThrow(exception).when(compressor).compress(any(), any(), any(), any());
+        doThrow(exception).when(mockCompressor).compress(any(), any(), any(), any());
         thrown.expect(CommandException.class);
         thrown.expectCause(equalTo(exception));
         thrown.expectMessage(exception.getMessage());

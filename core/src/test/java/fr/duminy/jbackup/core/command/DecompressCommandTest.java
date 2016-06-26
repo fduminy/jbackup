@@ -65,14 +65,14 @@ public class DecompressCommandTest {
     private TaskListener listener;
 
     @Mock
-    private Decompressor decompressor;
+    private Decompressor mockDecompressor;
 
     @Mock
     private FileDeleter fileDeleter;
 
     private DecompressCommand command;
     private JBackupContext context;
-    private Decompressor createdDecompressor;
+    private Decompressor realDecompressor;
     private ArchiveFactory usedFactory;
     private boolean revertCalled;
 
@@ -94,9 +94,9 @@ public class DecompressCommandTest {
         command = new DecompressCommand() {
             @Override
             Decompressor createDecompressor(ArchiveFactory factory) {
-                createdDecompressor = super.createDecompressor(factory);
+                realDecompressor = super.createDecompressor(factory);
                 usedFactory = factory;
-                return decompressor;
+                return mockDecompressor;
             }
 
             @Override
@@ -111,11 +111,11 @@ public class DecompressCommandTest {
     public void testExecute() throws Exception {
         command.execute(context);
 
-        InOrder inOrder = inOrder(decompressor, fileDeleter);
+        InOrder inOrder = inOrder(mockDecompressor, fileDeleter);
         inOrder.verify(fileDeleter).registerDirectory(eq(targetDirectory));
-        inOrder.verify(decompressor).decompress(eq(archive), eq(targetDirectory), eq(listener), eq(cancellable));
+        inOrder.verify(mockDecompressor).decompress(eq(archive), eq(targetDirectory), eq(listener), eq(cancellable));
         inOrder.verifyNoMoreInteractions();
-        assertThat(createdDecompressor).as("result of createDecompressor").isNotNull();
+        assertThat(realDecompressor).as("result of createDecompressor").isNotNull();
         assertThat(usedFactory).as("factory used by createDecompressor").isSameAs(factory);
         assertThat(revertCalled).as("revert() called").isFalse();
     }
@@ -123,7 +123,7 @@ public class DecompressCommandTest {
     @Test
     public void testExecute_withError() throws Exception {
         ArchiveException exception = new ArchiveException(new Exception("unexpected error"));
-        doThrow(exception).when(decompressor).decompress(any(), any(), any(), any());
+        doThrow(exception).when(mockDecompressor).decompress(any(), any(), any(), any());
         thrown.expect(CommandException.class);
         thrown.expectCause(equalTo(exception));
         thrown.expectMessage(exception.getMessage());
