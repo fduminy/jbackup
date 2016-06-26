@@ -65,7 +65,7 @@
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
-            <artifactId>assertj-swing-junit-4.5</artifactId>
+            <artifactId>assertj-swing-junit</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
