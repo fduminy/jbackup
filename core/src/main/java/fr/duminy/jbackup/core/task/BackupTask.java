@@ -105,7 +105,11 @@ public class BackupTask extends FileCreatorTask {
 
             @Override
             public void commandFinished(Command command, JBackupContext jBackupContext, Exception e) {
-                LOG.info("Finished command {} {}", command.getClass().getSimpleName(), e);
+                if (e == null) {
+                    LOG.info("Finished command {}", command.getClass().getSimpleName());
+                } else {
+                    LOG.info("Finished command {}, with error {}", command.getClass().getSimpleName(), e);
+                }
             }
         };
         JBackupChain chain = new JBackupChain(listener, commands);
