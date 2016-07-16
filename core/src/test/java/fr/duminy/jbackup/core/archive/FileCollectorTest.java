@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import java.io.IOException;
@@ -38,10 +39,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static fr.duminy.jbackup.core.matchers.Matchers.eq;
 import static java.util.Collections.sort;
 import static org.apache.commons.io.filefilter.FileFilterUtils.trueFileFilter;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.*;
 
 /**
@@ -110,21 +111,20 @@ public class FileCollectorTest {
 
         collectFiles(spiedActualFiles, null, null, cancellable);
 
+        ArgumentCaptor<SourceWithPath> pathArgumentCaptor = forClass(SourceWithPath.class);
         InOrder inOrder = inOrder(cancellable, spiedActualFiles);
         inOrder.verify(cancellable).isCancelled();
-        inOrder.verify(spiedActualFiles).add(eq(anyFileIn(actualFiles, 0)));
+        inOrder.verify(spiedActualFiles).add(pathArgumentCaptor.capture());
         inOrder.verify(cancellable).isCancelled();
         if (!cancelAfterFirstFile) {
-            inOrder.verify(spiedActualFiles).add(eq(anyFileIn(actualFiles, 1)));
+            inOrder.verify(spiedActualFiles).add(pathArgumentCaptor.capture());
         }
         inOrder.verifyNoMoreInteractions();
-    }
+        assertThat(pathArgumentCaptor.getAllValues()).extracting(SourceWithPath::getPath)
+                                                     .containsExactlyInAnyOrder(cancelAfterFirstFile ?
+                                                                                    new Path[] { expectedFiles[0] } :
+                                                                                    expectedFiles);
 
-    private Path anyFileIn(List<SourceWithPath> actualFiles, int index) {
-        if ((index >= actualFiles.size()) || (actualFiles.get(index).getAbsolutePath().equals(expectedFiles[index].toAbsolutePath().toString()))) {
-            index = (index == 0) ? 1 : 0;
-        }
-        return expectedFiles[index];
     }
 
     @Test
